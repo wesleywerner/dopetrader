@@ -89,7 +89,8 @@ function module:new(args)
 
     local instance = { }
 
-    instance.color = {0, 1, 1}
+    instance.text_color = {0, 1, 1}
+    instance.fill_color = {0, .2, .2}
     instance.disabled_color = {.7, .7, .7}
 
     -- copy arguments to the instance
@@ -103,12 +104,6 @@ function module:new(args)
             instance[k] = v
         end
     end
-
-    instance.secondary_color = {
-        instance.color[1] * .2,
-        instance.color[2] * .2,
-        instance.color[3] * .2
-        }
 
     -- apply instance functions
     setmetatable(instance, { __index = module_mt })
@@ -148,19 +143,26 @@ function module_mt.draw(self)
     if self.down then
         love.graphics.translate(1, 2)
     end
-    if not self.disabled and (self.focused or self.down) then
-        love.graphics.setColor(self.secondary_color)
-        love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
-    end
+    --if not self.disabled and (self.focused or self.down) then
+        --love.graphics.setColor(self.color)
+        --love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
+    --end
     if self.disabled then
         love.graphics.setColor(self.disabled_color)
+        love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
+    elseif self.focused or self.down then
+        love.graphics.setColor(self.text_color)
+        love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
+        love.graphics.setColor(0, 0, 0)
     else
-        love.graphics.setColor(self.color)
+        love.graphics.setColor(self.fill_color)
+        love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
+        love.graphics.setColor(self.text_color)
+        love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
     end
-    love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
     -- prevent font printing black outlines over current canvas
-    love.graphics.setBlendMode("alpha")
-    love.graphics.printf(self.text, self.left, self.top, self.width, "center")
+    --love.graphics.setBlendMode("alpha")
+    love.graphics.printf(self.text, self.left, self.top+3, self.width, "center")
     love.graphics.pop()
 end
 
@@ -170,7 +172,17 @@ end
 -- @tparam number dt
 -- delta time as given by Love
 function module_mt:update(dt)
-
+    if self.down and self.repeating and not self.disabled and not self.hidden then
+        self.down_tics = self.down_tics - dt
+        if self.down_tics < 0 then
+            love.system.vibrate(.025)
+            for n=1, self.repeating do
+                self.callback(self)
+            end
+            self.down_tics = 0.15
+            self.has_repeated = true
+        end
+    end
 end
 
 --- Process mouse/touch movement.
@@ -189,6 +201,8 @@ function module_mt:mousepressed(x, y, button, istouch)
 
     if not self.disabled and not self.hidden then
         self.down = self.focused
+        self.down_tics = 0.4
+        self.has_repeated = false
     end
 
 end
@@ -199,10 +213,12 @@ end
 -- and fires the "callback" function if it is present.
 function module_mt:mousereleased(x, y, button, istouch)
 
-    if self.down and self.focused and self.callback then
+    if self.down and self.focused and self.callback and not self.has_repeated then
+        love.system.vibrate(.025)
         self.callback(self)
     end
 
+    --self.focused = false
     self.down = false
 
 end
