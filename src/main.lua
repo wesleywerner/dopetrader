@@ -39,6 +39,7 @@ local market = {}
 local view = {}
 local trenchcoat = {}
 local util = {}
+local message_panel = {}
 
 local intro_state = {}
 local play_state = {}
@@ -57,6 +58,7 @@ function love.load()
     player:load()
     market:load()
     view:load()
+    message_panel:load()
 
     play_state:load()
 
@@ -391,8 +393,78 @@ function market.fluctuate(self)
 
 end
 
-    end
 
+--                                                                    _
+--  _ __ ___   ___  ___ ___  __ _  __ _  ___   _ __   __ _ _ __   ___| |
+-- | '_ ` _ \ / _ \/ __/ __|/ _` |/ _` |/ _ \ | '_ \ / _` | '_ \ / _ \ |
+-- | | | | | |  __/\__ \__ \ (_| | (_| |  __/ | |_) | (_| | | | |  __/ |
+-- |_| |_| |_|\___||___/___/\__,_|\__, |\___| | .__/ \__,_|_| |_|\___|_|
+--                                |___/       |_|
+--
+function message_panel.load(self)
+
+    -- message box layout
+    _, self.rest_y = layout:point_at("messages")
+
+    -- dont drag messages above this point
+    self.min_y = display.safe_h/2
+
+    -- panel position
+    self.y = self.rest_y
+
+    -- text position
+    self.text_y = display.height - self.y
+
+    -- indicator position
+    self.led_radius = 10
+    self.led_x = display.safe_w / 2
+    self.led_y = self.led_radius * 2
+
+end
+
+function message_panel.draw(self)
+    -- fill
+    love.graphics.setColor(0, .3, .3)
+    love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
+    -- message indicator
+    if #player.messages == 0 then
+        love.graphics.setColor(0, 0, 0)
+    else
+        love.graphics.setColor(0, 1, 1)
+    end
+    love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
+    -- text
+    if self.y ~= self.rest_y then
+        view:set_medium_font()
+        --love.graphics.setColor(0, 0, 0)
+        --love.graphics.printf(player.joined_messages, 3, self.y + self.text_y + 1, display.safe_w)
+        love.graphics.setColor(0, 1, 1)
+        love.graphics.printf(player.joined_messages, 4, self.y + self.text_y, display.safe_w)
+    end
+end
+
+function message_panel.update(self, dt)
+    if not self.dragging and self.y < self.rest_y then
+        self.y = math.min(self.rest_y, self.y + (self.y * dt))
+    end
+end
+
+function message_panel.mousepressed(self, x, y, button, istouch)
+    if not self.dragging and y > self.y then
+        self.dragging = y
+    end
+end
+
+function message_panel.mousereleased(self, x, y, button, istouch)
+    if self.dragging then
+        self.dragging = nil
+    end
+end
+
+function message_panel.mousemoved(self, x, y, dx, dy, istouch)
+    if self.dragging then
+        self.y = math.max(self.min_y, math.min(self.rest_y, y))
+    end
 end
 
 --        _
@@ -919,18 +991,6 @@ function view.draw_market(self)
 
 end
 
-function view.draw_messages(self)
-    -- TODO: show messages in a slide-up panel.
-    local msg_x, msg_y, msg_w, msg_h = layout:box_at("messages")
-    love.graphics.setColor(0, .5, .5)
-    love.graphics.rectangle("fill", 0, msg_y, display.width, msg_y)
-    view:set_small_font()
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.printf(player.joined_messages, msg_x-1, msg_y+1, msg_w-4)
-    love.graphics.setColor(.7, 1, 1)
-    love.graphics.printf(player.joined_messages, msg_x, msg_y+2, msg_w-4)
-end
-
 function view.set_location_text(self)
     self.play_buttons["jet"].text = player.location
 end
@@ -973,7 +1033,7 @@ end
 function play_state.draw(self)
     view:draw_player_stats()
     view:draw_market()
-    view:draw_messages()
+    message_panel:draw()
 end
 
 function play_state.update(self, dt)
@@ -981,24 +1041,28 @@ function play_state.update(self, dt)
     for _, butt in pairs(view.play_buttons) do
         butt:update(dt)
     end
+    message_panel:update(dt)
 end
 
 function play_state.mousepressed(self, x, y, button, istouch)
     for _, butt in pairs(view.play_buttons) do
         butt:mousepressed(x, y, button, istouch)
     end
+    message_panel:mousepressed(x, y, button, istouch)
 end
 
 function play_state.mousereleased(self, x, y, button, istouch)
     for _, butt in pairs(view.play_buttons) do
         butt:mousereleased(x, y, button, istouch)
     end
+    message_panel:mousereleased(x, y, button, istouch)
 end
 
 function play_state.mousemoved(self, x, y, dx, dy, istouch)
     for _, butt in pairs(view.play_buttons) do
         butt:mousemoved(x, y, dx, dy, istouch)
     end
+    message_panel:mousemoved(x, y, dx, dy, istouch)
 end
 
 function play_state.load_from_file(self)
