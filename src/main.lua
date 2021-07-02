@@ -40,11 +40,6 @@ local view = {}
 local trenchcoat = {}
 local util = {}
 
--- TODO
--- NOTES:
--- + the play screen drawing should not be tied to a state
---   so it can be called from multiple states.
---   in fact any drawing routines should be housed separate from state.
 local intro_state = {}
 local play_state = {}
 local jet_state = {}
@@ -54,7 +49,8 @@ local active_state = {}
 
 function love.load()
 
-    -- TODO: do not prevent device from sleeping
+    -- do not prevent device from sleeping
+    love.window.setDisplaySleepEnabled(true)
     love.filesystem.setIdentity("dopetrader")
     display:load()
     layout:load()
@@ -100,12 +96,12 @@ end
 function love.draw()
 
     ---- white border
-    --love.graphics.setColor({1, 1, 1, .2})
+    --love.graphics.setColor({1, 1, 1})
     --love.graphics.rectangle("line",
-        --display.safe_x + 10,
-        --display.safe_y + 10,
-        --display.safe_w - 20,
-        --display.safe_h - 20)
+        --display.safe_x,
+        --display.safe_y + 1,
+        --display.safe_w - 1,
+        --display.safe_h - 1)
 
     ---- system info
     --love.graphics.setColor({1, 1, 1, .2})
@@ -241,8 +237,8 @@ function layout.load(self)
 
     local map_layout_to_screen = function(definition)
         for _, o in ipairs(definition) do
-            local _x = o.x * display.safe_w
-            local _y = o.y * display.safe_h
+            local _x = display.safe_x + (o.x * display.safe_w)
+            local _y = display.safe_y + (o.y * display.safe_h)
             local _w = o.width * display.safe_w
             local _h = o.height * display.safe_h
             self.point[o.name] = {_x, _y}
@@ -260,9 +256,9 @@ function layout.point_at(self, key, index)
     return unpack(self.point[string.format(key, index)])
 end
 
-function layout.ralign_point_at(self, key, index)
+function layout.align_point_at(self, key, index, alignment)
     local _x, _y, _w = unpack(self.padded_box[string.format(key, index)])
-    return _x, _y, _w, "right"
+    return _x, _y, _w, alignment
 end
 
 function layout.box_at(self, key, index)
@@ -324,7 +320,7 @@ function market.load(self)
 
 end
 
-function market.randomize(self)
+function market.initialize_predictions(self)
 
     -- roll the dice
     math.randomseed(player.seed)
@@ -457,6 +453,10 @@ function player.add_message(self, text)
     print("message: "..text)
 end
 
+function player.add_popup(self, text)
+    print("popup: "..text)
+end
+
 function player.add_day(self, new_location)
     self:clear_messages()
     self.location = new_location
@@ -475,14 +475,132 @@ end
 
 function player.generate_events(self)
     -- TODO: random events adds messages or sets ischased
+
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
+
+    local brownies = math.random() < .1
+    local buy_gun = math.random() < .1
+    local buy_trenchcoat = math.random() < .1
+    local smoke_paraquat = math.random() < .1
+    local find_drugs = math.random() < .1
+    local give_drugs = math.random() < .1
+    local dropped_drugs = math.random() < .1
+    local mugged = math.random() < .1
+    local detour = math.random() < .1
+    local subway_anecdote = math.random() < .3
+    local hear_music = math.random() < .2
+
+    local has_drugs = trenchcoat.free < trenchcoat.size
+    local hash_amt = trenchcoat:stock_of("Hashish")
+    local weed_amt = trenchcoat:stock_of("Weed")
+    local coke_amt = trenchcoat:stock_of("Cocaine")
+    local heroin_amt = trenchcoat:stock_of("Heroin")
+    local hash_amt = trenchcoat:stock_of("Hashish")
+
+    -- each drug increases n% for every 100 units carried
+    local cops_chase_chance = .10
+    local charlie_risk = coke_amt / 100 * .2
+    local heroin_risk = heroin_amt / 100 * .1
+    local hash_risk = hash_amt / 100 * .1
+
+    if brownies then
+        local brownie_text = "Your mama made brownies with some of your %s! They were great!"
+        if hash_amt > 0 then
+            trenchcoat:adjust_stock("Hashish", -math.random(1, 4))
+            player:add_message(string.format(brownie_text, "hash"))
+        elseif weed_amt > 0 then
+            trenchcoat:adjust_stock("Weed", -math.random(1, 4))
+            player:add_message(string.format(brownie_text, "weed"))
+        end
+    end
+
+
+ --Your mama made brownies with some of your hash! They were great!
+ --Your mama made brownies with some of your weed! They were great!
+ --Would you like to buy a .38 Special/Ruger/Saturday Night Special for $0?
+ --Will you buy a new trenchcoat with more pockets for $0?
+ --There is some weed that smells like paraquat here! It looks good! Will you smoke it?
+ --You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!
+
+ --You meet a friend! She/He borrows some hash from you
+ --You give some weed to him/her
+ --You meet a friend! She/He lays some %s on you.
+ --You find %d units of %s on a dead dude in the subway!
+
+ --Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!
+ --You were mugged in the subway!
+ --You stopped to have a beer/smoke a joint/smoke a cigar/smoke a Djarum / smoke a cigarette
+
+ --The lady next to you on the subway said,
+ --Wouldn't it be funny if everyone suddenly quacked at once?
+ --The Pope was once Jewish, you know
+ --I'll bet you have some really interesting dreams
+ --So I think I'm going to Amsterdam this year
+ --Son, you need a yellow haircut
+ --I think it's wonderful what they're doing with incense these days
+ --I wasn't always a woman, you know
+ --Does your mother know you're a dope dealer?
+ --Are you high on something?
+ --Oh, you must be from California
+ --I used to be a hippie, myself
+ --There's nothing like having lots of money
+ --You look like an aardvark!
+ --I don't believe in Ronald Reagan
+ --Courage!
+ --Bush is a noodle!
+ --Haven't I seen you on TV?
+ --I think hemorrhoid commercials are really neat!
+ --We're winning the war for drugs!
+ --A day without dope is like night
+ --We only use 20% of our brains, so why not burn out the other 80%
+ --I'm soliciting contributions for Zombies for Christ
+ --I'd like to sell you an edible poodle
+ --Winners don't do drugs... unless they do
+ --Kill a cop for Christ!
+ --I am the walrus!
+ --Jesus loves you more than you will know
+ --I feel an unaccountable urge to dye my hair blue
+ --Wasn't Jane Fonda wonderful in Barbarella?
+ --Just say No... well, maybe... ok, what the hell!
+ --Would you like a jelly baby?
+ --Drugs can be your friend!
+ --... (at least, you -think- that's what she said)
+
+ --You hear someone playing
+    --`Are you Experienced` by Jimi Hendrix
+    --`Cheeba Cheeba` by Tone Loc
+    --`Comin' in to Los Angeles` by Arlo Guthrie
+    --`Commercial` by Spanky and Our Gang
+    --`Late in the Evening` by Paul Simon
+    --`Light Up` by Styx
+    --`Mexico` by Jefferson Airplane
+    --`One toke over the line` by Brewer & Shipley
+    --`The Smokeout` by Shel Silverstein
+    --`White Rabbit` by Jefferson Airplane
+    --`Itchycoo Park` by Small Faces
+    --`White Punks on Dope` by the Tubes
+    --`Legend of a Mind` by the Moody Blues
+    --`Eight Miles High` by the Byrds
+    --`Acapulco Gold` by Riders of the Purple Sage
+    --`Kicks` by Paul Revere & the Raiders
+    --the Nixon tapes
+    --`Legalize It` by Mojo Nixon & Skid Roper
+
+    -- a random message
+
+    -- uses some dope/hash
+
+    -- chased and dropped some drugs
+
 end
 
 function player.buy_drug(btn)
     local drug = market.available[btn.number]
     -- clamp allowed to player cash
     local max_purchasable = math.floor(player.cash / drug.cost)
-    -- clamp to free space
-    max_purchasable = math.min(trenchcoat:free_space(), max_purchasable)
+    ---- clamp to free space (MOVED TO adjust_stock())
+    --max_purchasable = math.min(trenchcoat:free_space(), max_purchasable)
     -- clamp to trading size
     max_purchasable = math.min(TRADE_SIZE, max_purchasable)
     if max_purchasable > 0 then
@@ -549,6 +667,7 @@ function view.load(self)
         width = jet_w,
         height = jet_h,
         text = "Jet",
+        alignment = "right",
         callback = jet_state.switch
     }
 
@@ -558,6 +677,7 @@ function view.load(self)
         width = debt_w,
         height = debt_h,
         text = "Debt",
+        alignment = "right",
         draw = function() end,
         callback = function(btn)
             print("clicked "..os.date("%c", os.time()))
@@ -580,9 +700,11 @@ function view.load(self)
             top = _y,
             width = _w,
             height = _h,
-            text = "Sell",
+            text = "",
+            title = "Sell",
             number = i,
             id = sell_id,
+            alignment = "right",
             callback = player.sell_drug
         }
         local _x, _y, _w, _h = layout:box_at("buy %d", i)
@@ -592,9 +714,11 @@ function view.load(self)
             top = _y,
             width = _w,
             height = _h,
-            text = "Buy",
+            text = "",
+            title = "Buy",
             number = i,
             id = buy_id,
+            alignment = "right",
             callback = player.buy_drug
         }
     end
@@ -684,11 +808,7 @@ end
 
 function view.draw_player_stats(self)
 
-    -- background cyan, black text
-    --local day_x, day_y, day_w, day_h = layout:box_at("day")
     love.graphics.setColor(PRIMARY_COLOR)
-    --love.graphics.rectangle("fill", 0, 0, display.width, day_y + day_h)
-    --love.graphics.setColor(0, 0, 0)
 
     if display.mobile then
         view:set_small_font()
@@ -697,49 +817,49 @@ function view.draw_player_stats(self)
     end
 
     love.graphics.print("Cash", layout:padded_point_at("cash"))
-    love.graphics.printf(player.cash_amount, layout:ralign_point_at("cash amount"))
-    love.graphics.rectangle("line", layout:box_between("cash", "cash amount"))
-    --love.graphics.rectangle("line", layout:box_at("cash"))
+    love.graphics.printf(player.cash_amount, layout:align_point_at("cash",nil,"right"))
+    --love.graphics.rectangle("line", layout:box_between("cash", "cash amount"))
+    love.graphics.rectangle("line", layout:box_at("cash"))
     --love.graphics.rectangle("line", layout:box_at("cash amount"))
     --love.graphics.line(layout:underline_at("cash"))
     --love.graphics.line(layout:underline_at("cash amount"))
 
     love.graphics.print("Bank", layout:padded_point_at("bank"))
-    love.graphics.printf(player.bank_amount, layout:ralign_point_at("bank amount"))
-    love.graphics.rectangle("line", layout:box_between("bank", "bank amount"))
-    --love.graphics.rectangle("line", layout:box_at("bank"))
+    love.graphics.printf(player.bank_amount, layout:align_point_at("bank",nil,"right"))
+    --love.graphics.rectangle("line", layout:box_between("bank", "bank amount"))
+    love.graphics.rectangle("line", layout:box_at("bank"))
     --love.graphics.rectangle("line", layout:box_at("bank amount"))
     --love.graphics.line(layout:underline_at("bank"))
     --love.graphics.line(layout:underline_at("bank amount"))
 
     love.graphics.print("Debt", layout:padded_point_at("debt"))
-    love.graphics.printf(player.debt_amount, layout:ralign_point_at("debt amount"))
-    love.graphics.rectangle("line", layout:box_between("debt", "debt amount"))
-    --love.graphics.rectangle("line", layout:box_at("debt"))
+    love.graphics.printf(player.debt_amount, layout:align_point_at("debt",nil,"right"))
+    --love.graphics.rectangle("line", layout:box_between("debt", "debt amount"))
+    love.graphics.rectangle("line", layout:box_at("debt"))
     --love.graphics.rectangle("line", layout:box_at("debt amount"))
     --love.graphics.line(layout:underline_at("debt"))
     --love.graphics.line(layout:underline_at("debt amount"))
 
     love.graphics.print("Guns", layout:padded_point_at("guns"))
-    love.graphics.printf(player.guns, layout:ralign_point_at("guns amount"))
-    love.graphics.rectangle("line", layout:box_between("guns", "guns amount"))
-    --love.graphics.rectangle("line", layout:box_at("guns"))
+    love.graphics.printf(player.guns, layout:align_point_at("guns",nil,"right"))
+    --love.graphics.rectangle("line", layout:box_between("guns", "guns amount"))
+    love.graphics.rectangle("line", layout:box_at("guns"))
     --love.graphics.rectangle("line", layout:box_at("guns amount"))
     --love.graphics.line(layout:underline_at("guns"))
     --love.graphics.line(layout:underline_at("guns amount"))
 
     love.graphics.print("Health", layout:padded_point_at("health"))
-    love.graphics.printf(player.health, layout:ralign_point_at("health amount"))
-    love.graphics.rectangle("line", layout:box_between("health", "health amount"))
-    --love.graphics.rectangle("line", layout:box_at("health"))
+    love.graphics.printf(player.health, layout:align_point_at("health",nil,"right"))
+    --love.graphics.rectangle("line", layout:box_between("health", "health amount"))
+    love.graphics.rectangle("line", layout:box_at("health"))
     --love.graphics.rectangle("line", layout:box_at("health amount"))
     --love.graphics.line(layout:underline_at("health"))
     --love.graphics.line(layout:underline_at("health amount"))
 
     love.graphics.print("Coat", layout:padded_point_at("free"))
-    love.graphics.printf(trenchcoat:free_space(), layout:ralign_point_at("free amount"))
-    love.graphics.rectangle("line", layout:box_between("free", "free amount"))
-    --love.graphics.rectangle("line", layout:box_at("free"))
+    love.graphics.printf(trenchcoat:free_space(), layout:align_point_at("free",nil,"right"))
+    --love.graphics.rectangle("line", layout:box_between("free", "free amount"))
+    love.graphics.rectangle("line", layout:box_at("free"))
     --love.graphics.rectangle("line", layout:box_at("free amount"))
     --love.graphics.line(layout:underline_at("free"))
 
@@ -754,11 +874,7 @@ end
 
 function view.draw_market(self)
 
-    if display.mobile then
-        view:set_small_font()
-    else
-        view:set_medium_font()
-    end
+    view:set_medium_font()
 
     love.graphics.setColor(PRIMARY_COLOR)
     local last_available_i = 0
@@ -766,7 +882,7 @@ function view.draw_market(self)
     -- list stock on the market today
     for i, item in ipairs(market.available) do
         love.graphics.print(item.name, layout:padded_point_at("name %d", i))
-        love.graphics.line(layout:underline_at("name %d", i))
+        love.graphics.rectangle("line", layout:box_at("name %d", i))
         last_available_i = i
     end
 
@@ -774,10 +890,15 @@ function view.draw_market(self)
     love.graphics.setColor(.7, .7, .7)
     for _, item in ipairs(market.not_for_sale) do
         last_available_i = last_available_i + 1
-        love.graphics.print(item.stock, layout:point_at("sell %d", last_available_i))
-        love.graphics.print(item.name, layout:point_at("name %d", last_available_i))
-        love.graphics.print("no sale", layout:point_at("buy %d", last_available_i))
-        love.graphics.line(layout:underline_at("name %d", last_available_i))
+        love.graphics.printf(item.stock, layout:align_point_at("sell %d", last_available_i,"right"))
+        love.graphics.print(item.name, layout:padded_point_at("name %d", last_available_i))
+        love.graphics.printf("no sale", layout:align_point_at("buy %d", last_available_i,"center"))
+    end
+
+    if display.mobile then
+        view:set_small_font()
+    else
+        view:set_medium_font()
     end
 
     for _, butt in pairs(self.play_buttons) do
@@ -790,11 +911,14 @@ function view.draw_market(self)
 end
 
 function view.draw_messages(self)
+    -- TODO: show messages in a slide-up panel.
     local msg_x, msg_y, msg_w, msg_h = layout:box_at("messages")
-    love.graphics.setColor(0, .7, .7)
+    love.graphics.setColor(0, .5, .5)
     love.graphics.rectangle("fill", 0, msg_y, display.width, msg_y)
-    love.graphics.setColor(0, 0, 0)
     view:set_small_font()
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.printf(player.joined_messages, msg_x-1, msg_y+1, msg_w-4)
+    love.graphics.setColor(.7, 1, 1)
     love.graphics.printf(player.joined_messages, msg_x, msg_y+2, msg_w-4)
 end
 
@@ -817,19 +941,19 @@ end
 
 function play_state.new_game(self)
     player:reset_game()
-    market:randomize()
-    player:generate_events()
+    market:initialize_predictions()
     market:fluctuate()
     view:update_market_buttons()
+    player:generate_events()
 end
 
 function play_state.next_day(self, new_location)
     if player:add_day(new_location) <= #market.predictions then
         player:accrue_debt()
-        player:generate_events()
         market:fluctuate()
         view:update_market_buttons()
         self:save_to_file()
+        player:generate_events()
     else
         self:remove_save()
         -- TODO: switch to end game state
@@ -881,7 +1005,6 @@ function play_state.load_from_file(self)
                 local key, value = ite()
                 if key == nil then break end
                 local dec = tonumber(value,16)
-                print(key, value, dec)
                 if player[key] ~= nil then
                     player[key] = dec or value
                 else
@@ -904,7 +1027,10 @@ function play_state.load_from_file(self)
             player:set_cash()
             player:set_bank()
             player:set_debt()
+            market:initialize_predictions()
+            market:fluctuate()
             view:update_market_buttons()
+            player:generate_events()
         end
     end
 end
@@ -949,6 +1075,10 @@ function trenchcoat.reset(self)
 end
 
 function trenchcoat.adjust_stock(self, name, amount)
+    -- clamp to free space
+    if amount > 0 then
+        amount = math.min(trenchcoat.free, amount)
+    end
     local current_stock = (self[name] or 0)
     local new_stock = math.max(0, current_stock + amount)
     if new_stock == 0 then

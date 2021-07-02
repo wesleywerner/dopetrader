@@ -89,6 +89,7 @@ function module:new(args)
 
     local instance = { }
 
+    instance.alignment = "center"
     instance.text_color = {0, 1, 1}
     instance.fill_color = {0, .2, .2}
     instance.disabled_color = {.7, .7, .7}
@@ -108,8 +109,12 @@ function module:new(args)
     -- apply instance functions
     setmetatable(instance, { __index = module_mt })
 
-    -- default size to the measured text
-    --instance.width, instance.height = love.graphics.newText(love.graphics.getFont(), args.text):getDimensions()
+    -- centre text vertically by measure
+    local sample_width, sample_height = love.graphics.newText(love.graphics.getFont(), "XXX"):getDimensions()
+    instance.y_offset = (instance.height / 2) - (sample_height / 2)
+
+    local osname = love.system.getOS()
+    instance.mobile = osname == "Android" or osname == "iOS"
 
     return instance
 
@@ -143,26 +148,32 @@ function module_mt.draw(self)
     if self.down then
         love.graphics.translate(1, 2)
     end
-    --if not self.disabled and (self.focused or self.down) then
-        --love.graphics.setColor(self.color)
-        --love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
-    --end
     if self.disabled then
-        love.graphics.setColor(self.disabled_color)
-        love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
+        -- no fill
     elseif self.focused or self.down then
         love.graphics.setColor(self.text_color)
         love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
-        love.graphics.setColor(0, 0, 0)
     else
         love.graphics.setColor(self.fill_color)
         love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
+    end
+    -- border
+    love.graphics.setColor(self.text_color)
+    love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
+    -- text color
+    if self.disabled then
+        love.graphics.setColor(self.disabled_color)
+    elseif self.focused or self.down then
+        love.graphics.setColor(0, 0, 0)
+    else
         love.graphics.setColor(self.text_color)
-        love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
     end
     -- prevent font printing black outlines over current canvas
     --love.graphics.setBlendMode("alpha")
-    love.graphics.printf(self.text, self.left, self.top+3, self.width, "center")
+    if self.title then
+        love.graphics.print(self.title, self.left+4, self.top + self.y_offset)
+    end
+    love.graphics.printf(self.text, self.left, self.top + self.y_offset, self.width-10, self.alignment)
     love.graphics.pop()
 end
 
@@ -218,7 +229,10 @@ function module_mt:mousereleased(x, y, button, istouch)
         self.callback(self)
     end
 
-    --self.focused = false
+    -- unfocus for mobile
+    if self.mobile then
+        self.focused = false
+    end
     self.down = false
 
 end
