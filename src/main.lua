@@ -188,7 +188,7 @@ end
 function jet_state.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
     view:set_large_font()
-    love.graphics.printf("Where to?", 0, display.height/3, display.width, "center")
+    love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
     view:set_medium_font()
     for _, butt in ipairs(view.jet_buttons) do
         butt:draw()
@@ -993,6 +993,8 @@ function play_state.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function play_state.load_from_file(self)
+    player:clear_messages()
+    print("LOADING state from file")
     local file = love.filesystem.newFile("savegame")
     local ok, err = file:open("r")
     local other = {}
@@ -1011,7 +1013,9 @@ function play_state.load_from_file(self)
                     other[key] = dec
                 end
             end
+            trenchcoat:reset()
             trenchcoat.size = other.coat
+            trenchcoat.free = trenchcoat.size
             for _, item in ipairs(market.db) do
                 for k, v in pairs(other) do
                     if k == item.name then
