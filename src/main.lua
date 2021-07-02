@@ -515,10 +515,11 @@ function player.clear_messages(self)
     self.joined_messages = ""
 end
 
-function player.add_message(self, text)
-    table.insert(self.messages, text)
-    self.joined_messages = self.joined_messages .. text .. "\n"
-    print("message: "..text)
+function player.add_message(self, text, ...)
+    local msg = string.format(text, ...)
+    table.insert(self.messages, msg)
+    self.joined_messages = self.joined_messages .. msg .. "\n"
+    print("message: "..msg)
 end
 
 function player.add_popup(self, text)
@@ -559,107 +560,139 @@ function player.generate_events(self)
     local subway_anecdote = math.random() < .3
     local hear_music = math.random() < .2
 
-    local has_drugs = trenchcoat.free < trenchcoat.size
-    local hash_amt = trenchcoat:stock_of("Hashish")
-    local weed_amt = trenchcoat:stock_of("Weed")
-    local coke_amt = trenchcoat:stock_of("Cocaine")
-    local heroin_amt = trenchcoat:stock_of("Heroin")
-    local hash_amt = trenchcoat:stock_of("Hashish")
-
-    -- each drug increases n% for every 100 units carried
-    local cops_chase_chance = .10
-    local charlie_risk = coke_amt / 100 * .2
-    local heroin_risk = heroin_amt / 100 * .1
-    local hash_risk = hash_amt / 100 * .1
-
     if brownies then
         local brownie_text = "Your mama made brownies with some of your %s! They were great!"
-        if hash_amt > 0 then
+        if trenchcoat:stock_of("Hashish") > 20 then
             trenchcoat:adjust_stock("Hashish", -math.random(1, 4))
-            player:add_message(string.format(brownie_text, "hash"))
-        elseif weed_amt > 0 then
+            player:add_message(brownie_text, "hash")
+        elseif trenchcoat:stock_of("Weed") > 20 then
             trenchcoat:adjust_stock("Weed", -math.random(1, 4))
-            player:add_message(string.format(brownie_text, "weed"))
+            player:add_message(brownie_text, "weed")
         end
     end
 
+    if give_drugs then
+        -- pick a drug where you have at least n units
+        local name = trenchcoat:get_random(20)
+        if name then
+            -- give it away
+            trenchcoat:adjust_stock(name, -math.random(2, 6))
+            local flavor = util.pick(
+                "they borrow some %s from you.",
+                "you give some %s to them.")
+            player:add_message("You meet a friend, "..flavor, name)
+        end
+    end
 
- --Your mama made brownies with some of your hash! They were great!
- --Your mama made brownies with some of your weed! They were great!
+    if dropped_drugs then
+        -- pick a drug where you have at least n units
+        local name = trenchcoat:get_random(20)
+        if name then
+            -- lose it
+            local delta = trenchcoat:adjust_stock(name, -math.random(10, 20))
+            print(string.format("event: lost %d %s", delta, name))
+            player:add_message("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!")
+        end
+    end
+
+    if find_drugs then
+        local drug = util.pick(unpack(market.db))
+        -- delta amount of drugs added to your coat
+        local delta = trenchcoat:adjust_stock(drug.name, math.random(3, 10))
+        if delta > 0 then
+            local flavor = util.pick(
+                "You find %d units of %s on a dead dude in the subway!",
+                "You meet a friend, they lay %d units of %s on you.")
+            player:add_message(flavor, delta, drug.name)
+        end
+    end
+
+    if mugged then
+        local amount = math.random(player.cash * .1, player.cash * .25)
+        player:debit_account(amount)
+        player:add_message("You were mugged in the subway!")
+        print(string.format("event: lost $%d", amount))
+    end
+
+    if detour then
+        local bad_thing = util.pick("have a beer.", "smoke a joint.",
+            "smoke a cigar.", "smoke a Djarum.", "smoke a cigarette.")
+        player:add_message("You stopped to "..bad_thing)
+    end
+
+    if subway_anecdote then
+        local anecdote = util.pick(
+        "Wouldn't it be funny if everyone suddenly quacked at once?",
+        "The Pope was once Jewish, you know",
+        "I'll bet you have some really interesting dreams",
+        "So I think I'm going to Amsterdam this year",
+        "Son, you need a yellow haircut",
+        "I think it's wonderful what they're doing with incense these days",
+        "Does your mother know you're a dope dealer?",
+        "Are you high on something?",
+        "Oh, you must be from California",
+        "I used to be a hippie, myself",
+        "There's nothing like having lots of money",
+        "You look like an aardvark!",
+        "I don't believe in Ronald Reagan",
+        "Courage!",
+        "Bush is a noodle!",
+        "Haven't I seen you on TV?",
+        "I think hemorrhoid commercials are really neat!",
+        "We're winning the war for drugs!",
+        "A day without dope is like night",
+        "We only use 20% of our brains, so why not burn out the other 80%",
+        "I'm soliciting contributions for Zombies for Christ",
+        "I'd like to sell you an edible poodle",
+        "Winners don't do drugs... unless they do",
+        "I am the walrus!",
+        "I feel an unaccountable urge to dye my hair blue",
+        "Wasn't Jane Fonda wonderful in Barbarella?",
+        "Just say No... well, maybe... Ok, what the hell!",
+        "Would you like a jelly baby?",
+        "Drugs can be your friend!")
+        player:add_message("The lady next to you on the subway said, `%s`",anecdote)
+        if math.random() < .3 then
+            player:add_message("(at least, you -think- that's what she said)")
+        end
+    end
+
+    if hear_music then
+        local good_song = util.pick(
+        "`Are you Experienced` by Jimi Hendrix",
+        "`Cheeba Cheeba` by Tone Loc",
+        "`Comin' in to Los Angeles` by Arlo Guthrie",
+        "`Commercial` by Spanky and Our Gang",
+        "`Late in the Evening` by Paul Simon",
+        "`Light Up` by Styx",
+        "`Mexico` by Jefferson Airplane",
+        "`One toke over the line` by Brewer & Shipley",
+        "`The Smokeout` by Shel Silverstein",
+        "`White Rabbit` by Jefferson Airplane",
+        "`Itchycoo Park` by Small Faces",
+        "`White Punks on Dope` by the Tubes",
+        "`Legend of a Mind` by the Moody Blues",
+        "`Eight Miles High` by the Byrds",
+        "`Acapulco Gold` by Riders of the Purple Sage",
+        "`Kicks` by Paul Revere & the Raiders",
+        "the Nixon tapes",
+        "`Legalize It` by Mojo Nixon & Skid Roper")
+        player:add_message("You hear someone playing %s.",good_song)
+    end
+
+    ---- each drug increases n% for every 100 units carried
+    --local cops_chase_chance = .10
+    --local charlie_risk = trenchcoat:stock_of("Cocaine") / 100 * .2
+    --local heroin_risk = trenchcoat:stock_of("Heroin") / 100 * .1
+    --local hash_risk = trenchcoat:stock_of("Hashish") / 100 * .1
+
+
+    view:update_market_buttons()
+
  --Would you like to buy a .38 Special/Ruger/Saturday Night Special for $0?
  --Will you buy a new trenchcoat with more pockets for $0?
  --There is some weed that smells like paraquat here! It looks good! Will you smoke it?
  --You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!
-
- --You meet a friend! She/He borrows some hash from you
- --You give some weed to him/her
- --You meet a friend! She/He lays some %s on you.
- --You find %d units of %s on a dead dude in the subway!
-
- --Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!
- --You were mugged in the subway!
- --You stopped to have a beer/smoke a joint/smoke a cigar/smoke a Djarum / smoke a cigarette
-
- --The lady next to you on the subway said,
- --Wouldn't it be funny if everyone suddenly quacked at once?
- --The Pope was once Jewish, you know
- --I'll bet you have some really interesting dreams
- --So I think I'm going to Amsterdam this year
- --Son, you need a yellow haircut
- --I think it's wonderful what they're doing with incense these days
- --I wasn't always a woman, you know
- --Does your mother know you're a dope dealer?
- --Are you high on something?
- --Oh, you must be from California
- --I used to be a hippie, myself
- --There's nothing like having lots of money
- --You look like an aardvark!
- --I don't believe in Ronald Reagan
- --Courage!
- --Bush is a noodle!
- --Haven't I seen you on TV?
- --I think hemorrhoid commercials are really neat!
- --We're winning the war for drugs!
- --A day without dope is like night
- --We only use 20% of our brains, so why not burn out the other 80%
- --I'm soliciting contributions for Zombies for Christ
- --I'd like to sell you an edible poodle
- --Winners don't do drugs... unless they do
- --Kill a cop for Christ!
- --I am the walrus!
- --Jesus loves you more than you will know
- --I feel an unaccountable urge to dye my hair blue
- --Wasn't Jane Fonda wonderful in Barbarella?
- --Just say No... well, maybe... ok, what the hell!
- --Would you like a jelly baby?
- --Drugs can be your friend!
- --... (at least, you -think- that's what she said)
-
- --You hear someone playing
-    --`Are you Experienced` by Jimi Hendrix
-    --`Cheeba Cheeba` by Tone Loc
-    --`Comin' in to Los Angeles` by Arlo Guthrie
-    --`Commercial` by Spanky and Our Gang
-    --`Late in the Evening` by Paul Simon
-    --`Light Up` by Styx
-    --`Mexico` by Jefferson Airplane
-    --`One toke over the line` by Brewer & Shipley
-    --`The Smokeout` by Shel Silverstein
-    --`White Rabbit` by Jefferson Airplane
-    --`Itchycoo Park` by Small Faces
-    --`White Punks on Dope` by the Tubes
-    --`Legend of a Mind` by the Moody Blues
-    --`Eight Miles High` by the Byrds
-    --`Acapulco Gold` by Riders of the Purple Sage
-    --`Kicks` by Paul Revere & the Raiders
-    --the Nixon tapes
-    --`Legalize It` by Mojo Nixon & Skid Roper
-
-    -- a random message
-
-    -- uses some dope/hash
-
-    -- chased and dropped some drugs
 
 end
 
@@ -1186,6 +1219,18 @@ function trenchcoat.stock_of(self, name)
     end
 end
 
+function trenchcoat.get_random(self, minimum_amount)
+    minimum_amount = minimum_amount or 0
+    for i=1, #market.db do
+        local pick = market.db[math.random(1, #market.db)]
+        local amount = self:stock_of(pick.name)
+        if amount > minimum_amount then
+            print("check "..pick.name.." with amount "..amount)
+            return pick.name, amount
+        end
+    end
+end
+
 function trenchcoat.crc(self)
     local crc = 0
     for k, v in pairs(self) do
@@ -1211,4 +1256,8 @@ function util.comma_value(amount)
         end
     end
     return "$"..formatted
+end
+
+function util.pick(...)
+    return select(math.random(1, select("#",...)), ...)
 end
