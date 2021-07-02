@@ -353,6 +353,7 @@ function market.fluctuate(self)
     local count = math.random(math.floor(#self.db/2), #self.db)
 
     self.available = {}
+    self.is_available = {}
 
     while #self.available < count do
 
@@ -384,17 +385,12 @@ function market.fluctuate(self)
             stock = trenchcoat:stock_of(drug.name)
         })
 
+        self.is_available[drug.name] = true
+
     end
 
-    -- remember player stock not on the market
-    self.not_for_sale = {}
-    for _, drug in ipairs(drugbag) do
-        if trenchcoat:has(drug.name) then
-            table.insert(self.not_for_sale, {
-                name = drug.name,
-                stock = trenchcoat:stock_of(drug.name)
-            })
-        end
+end
+
     end
 
 end
@@ -750,7 +746,10 @@ end
 
 function view.update_market_buttons(self)
 
+    self.not_for_sale = {}
+
     for i=1, #market.db do
+
         local sell_id = string.format("sell %d", i)
         local buy_id = string.format("buy %d", i)
         local market_item = market.available[i]
@@ -786,6 +785,16 @@ function view.update_market_buttons(self)
             buy_btn.hidden = true
             sell_btn.hidden = true
         end
+
+        -- list this drug in the not-for-sale list
+        local drug = market.db[i]
+        if not market.is_available[drug.name] and trenchcoat:has(drug.name) then
+            table.insert(self.not_for_sale, {
+                name = drug.name,
+                stock = trenchcoat:stock_of(drug.name)
+            })
+        end
+
     end
 
 end
@@ -888,7 +897,7 @@ function view.draw_market(self)
 
     -- list stock not on the market
     love.graphics.setColor(.7, .7, .7)
-    for _, item in ipairs(market.not_for_sale) do
+    for _, item in ipairs(self.not_for_sale) do
         last_available_i = last_available_i + 1
         love.graphics.printf(item.stock, layout:align_point_at("sell %d", last_available_i,"right"))
         love.graphics.print(item.name, layout:padded_point_at("name %d", last_available_i))
