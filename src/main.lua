@@ -417,7 +417,6 @@ function jet_state.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
     view:set_large_font()
     love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
-    view:set_medium_font()
     for _, butt in ipairs(view.jet_buttons) do
         butt:draw()
     end
@@ -997,14 +996,9 @@ end
 function view.load(self)
 
     -- load font resources
-    self.defaultfont = love.graphics.getFont()
     self.largefont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 40)
     self.mediumfont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 24)
     self.smallfont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
-
-    -- TODO: set font on buttons
-    -- so buttons calculate alignment correctly
-    --view:set_medium_font()
 
     -- create jet & debt buttons
     local button = require("harness.button")
@@ -1018,6 +1012,7 @@ function view.load(self)
         height = jet_h,
         text = "Jet",
         alignment = "right",
+        font = self.largefont,
         callback = jet_state.switch
     }
 
@@ -1055,7 +1050,8 @@ function view.load(self)
             number = i,
             id = sell_id,
             alignment = "right",
-            callback = player.sell_drug
+            callback = player.sell_drug,
+            font = self.mediumfont
         }
         local _x, _y, _w, _h = layout:box_at("buy %d", i)
         self.play_buttons[buy_id] = button:new{
@@ -1069,7 +1065,8 @@ function view.load(self)
             number = i,
             id = buy_id,
             alignment = "right",
-            callback = player.buy_drug
+            callback = player.buy_drug,
+            font = self.mediumfont
         }
     end
 
@@ -1083,7 +1080,8 @@ function view.load(self)
             width = _w,
             height = _h,
             text = title,
-            callback = jet_state.go
+            callback = jet_state.go,
+            font = self.largefont
         })
     end
     local _x, _y, _w, _h = layout:box_at("jet cancel")
@@ -1093,7 +1091,8 @@ function view.load(self)
         width = _w,
         height = _h,
         text = "I changed my mind",
-        callback = jet_state.cancel
+        callback = jet_state.cancel,
+        font = self.mediumfont
     })
 
 end
@@ -1258,18 +1257,9 @@ function view.draw_market(self)
         love.graphics.printf("no sale", layout:align_point_at("buy %d", last_available_i,"center"))
     end
 
-    if display.mobile then
-        view:set_small_font()
-    else
-        view:set_medium_font()
-    end
-
     for _, butt in pairs(self.play_buttons) do
         butt:draw()
     end
-
-    view:set_medium_font()
-    self.play_buttons["jet"]:draw()
 
 end
 

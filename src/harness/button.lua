@@ -110,7 +110,8 @@ function module:new(args)
     setmetatable(instance, { __index = module_mt })
 
     -- centre text vertically by measure
-    local sample_width, sample_height = love.graphics.newText(love.graphics.getFont(), "XXX"):getDimensions()
+    local measure_font = instance.font or love.graphics.getFont()
+    local sample_width, sample_height = love.graphics.newText(measure_font, "XXX"):getDimensions()
     instance.y_offset = (instance.height / 2) - (sample_height / 2)
 
     local osname = love.system.getOS()
@@ -170,6 +171,9 @@ function module_mt.draw(self)
     end
     -- prevent font printing black outlines over current canvas
     --love.graphics.setBlendMode("alpha")
+    if self.font then
+        love.graphics.setFont(self.font)
+    end
     if self.title then
         love.graphics.print(self.title, self.left+4, self.top + self.y_offset)
     end
