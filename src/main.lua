@@ -141,6 +141,34 @@ function love.draw()
 
 end
 
+--      _ _           _
+--   __| (_)___ _ __ | | __ _ _   _
+--  / _` | / __| '_ \| |/ _` | | | |
+-- | (_| | \__ \ |_) | | (_| | |_| |
+--  \__,_|_|___/ .__/|_|\__,_|\__, |
+--             |_|            |___/
+--
+
+function display.load(self)
+
+    display.dpi = love.graphics.getDPIScale()
+
+    -- flip wh for portrait orientation
+    display.height, display.width = love.graphics.getDimensions()
+
+    -- flip xy, wh for portrait orientation
+    display.safe_y, display.safe_x, display.safe_h, display.safe_w = love.window.getSafeArea()
+
+    -- keep the notification and navigation bars
+    love.window.setMode(display.width, display.height)
+
+    --love.graphics.setBlendMode("replace")
+
+    local osname = love.system.getOS()
+    self.mobile = osname == "Android" or osname == "iOS"
+
+end
+
 --                                   _
 --   ___ _ __   ___ ___  _   _ _ __ | |_ ___ _ __
 --  / _ \ '_ \ / __/ _ \| | | | '_ \| __/ _ \ '__|
@@ -358,36 +386,6 @@ function encounter_state.test_death(self)
     else
         love.system.vibrate(.2)
     end
-end
-
-
-
---      _ _           _
---   __| (_)___ _ __ | | __ _ _   _
---  / _` | / __| '_ \| |/ _` | | | |
--- | (_| | \__ \ |_) | | (_| | |_| |
---  \__,_|_|___/ .__/|_|\__,_|\__, |
---             |_|            |___/
---
-
-function display.load(self)
-
-    display.dpi = love.graphics.getDPIScale()
-
-    -- flip wh for portrait orientation
-    display.height, display.width = love.graphics.getDimensions()
-
-    -- flip xy, wh for portrait orientation
-    display.safe_y, display.safe_x, display.safe_h, display.safe_w = love.window.getSafeArea()
-
-    -- keep the notification and navigation bars
-    love.window.setMode(display.width, display.height)
-
-    --love.graphics.setBlendMode("replace")
-
-    local osname = love.system.getOS()
-    self.mobile = osname == "Android" or osname == "iOS"
-
 end
 
 --    _      _         _        _
@@ -694,6 +692,159 @@ function message_panel.mousemoved(self, x, y, dx, dy, istouch)
     end
 end
 
+--        _                   _        _
+--  _ __ | | __ _ _   _   ___| |_ __ _| |_ ___
+-- | '_ \| |/ _` | | | | / __| __/ _` | __/ _ \
+-- | |_) | | (_| | |_| | \__ \ || (_| | ||  __/
+-- | .__/|_|\__,_|\__, | |___/\__\__,_|\__\___|
+-- |_|            |___/
+--
+function play_state.load(self)
+    -- TODO: move this call to the intro state
+    self:new_game()
+    self:load_from_file()
+end
+
+function play_state.new_game(self)
+    player:reset_game()
+    market:initialize_predictions()
+    market:fluctuate()
+    view:update_market_buttons()
+    player:generate_events()
+end
+
+function play_state.next_day(self, new_location)
+    if player:add_day(new_location) <= #market.predictions then
+        player:accrue_debt()
+        market:fluctuate()
+        view:update_market_buttons()
+        self:save_to_file()
+        player:generate_events()
+    else
+        self:remove_save()
+        -- TODO: switch to end game state
+        self:new_game()
+    end
+end
+
+function play_state.draw(self)
+    view:draw_player_stats()
+    view:draw_market()
+    message_panel:draw()
+end
+
+function play_state.update(self, dt)
+
+    for _, butt in pairs(view.play_buttons) do
+        butt:update(dt)
+    end
+
+    message_panel:update(dt)
+
+    if player.gang_encounter then
+        encounter_state:switch(player.gang_encounter)
+        player.gang_encounter = false
+        return
+    end
+
+    -- TODO: end game state
+    if player.health < 1 then
+        --active_state = end_game_state
+    end
+
+end
+
+function play_state.mousepressed(self, x, y, button, istouch)
+    for _, butt in pairs(view.play_buttons) do
+        butt:mousepressed(x, y, button, istouch)
+    end
+    message_panel:mousepressed(x, y, button, istouch)
+end
+
+function play_state.mousereleased(self, x, y, button, istouch)
+    for _, butt in pairs(view.play_buttons) do
+        butt:mousereleased(x, y, button, istouch)
+    end
+    message_panel:mousereleased(x, y, button, istouch)
+end
+
+function play_state.mousemoved(self, x, y, dx, dy, istouch)
+    for _, butt in pairs(view.play_buttons) do
+        butt:mousemoved(x, y, dx, dy, istouch)
+    end
+    message_panel:mousemoved(x, y, dx, dy, istouch)
+end
+
+function play_state.load_from_file(self)
+    player:clear_messages()
+    print("LOADING state from file")
+    local file = love.filesystem.newFile("savegame")
+    local ok, err = file:open("r")
+    local other = {}
+    if ok then
+        local contents, size = file:read()
+        file:close()
+        if size > 0 then
+            local ite = string.gfind(contents, "(%a+)=([%w_]+)")
+            while true do
+                local key, value = ite()
+                if key == nil then break end
+                local dec = tonumber(value,16)
+                if player[key] ~= nil then
+                    player[key] = dec or value
+                else
+                    other[key] = dec
+                end
+            end
+            trenchcoat:reset()
+            trenchcoat.size = other.coat
+            trenchcoat.free = trenchcoat.size
+            for _, item in ipairs(market.db) do
+                for k, v in pairs(other) do
+                    if k == item.name then
+                        trenchcoat:adjust_stock(k, v)
+                    end
+                end
+            end
+            local crc = player:crc()
+            if crc ~= other.check then
+                print(string.format("crc mismatch! %d <> %d", other.check, crc))
+            end
+            player.location = string.gsub(player.location, "_", " ")
+            player:set_cash()
+            player:set_bank()
+            player:set_debt()
+            market:initialize_predictions()
+            market:fluctuate()
+            view:update_market_buttons()
+            player:generate_events()
+        end
+    end
+end
+
+function play_state.save_to_file(self)
+    local file = love.filesystem.newFile("savegame")
+    local ok, err = file:open("w")
+    if ok then
+        local data = string.format([[
+            seed=%x cash=%x bank=%x debt=%x
+            guns=%x health=%x coat=%x day=%x
+            city=%s check=%x]],
+            player.seed, player.cash, player.bank, player.debt,
+            player.guns, player.health, trenchcoat.size, player.day,
+            string.gsub(player.location, " ", "_"), player:crc())
+        for _, item in ipairs(market.db) do
+            data = data .. string.format(" %s=%x", item.name, trenchcoat:stock_of(item.name))
+        end
+        local contents, err = file:write(data)
+        file:close()
+    end
+end
+
+function play_state.remove_save(self)
+    love.filesystem.remove("savegame")
+end
+
 --        _
 --  _ __ | | __ _ _   _  ___ _ __
 -- | '_ \| |/ _` | | | |/ _ \ '__|
@@ -987,6 +1138,101 @@ function player.crc(self)
     return (trenchcoat:crc() + crc) % 255
 end
 
+
+--  _                       _                     _
+-- | |_ _ __ ___ _ __   ___| |__   ___ ___   __ _| |_
+-- | __| '__/ _ \ '_ \ / __| '_ \ / __/ _ \ / _` | __|
+-- | |_| | |  __/ | | | (__| | | | (_| (_) | (_| | |_
+--  \__|_|  \___|_| |_|\___|_| |_|\___\___/ \__,_|\__|
+--
+function trenchcoat.reset(self)
+    for k, v in pairs(self) do
+        if type(v) == "number" then
+            self[k] = nil
+        end
+    end
+    self.size = 100
+    self.free = self.size
+end
+
+function trenchcoat.adjust_stock(self, name, amount)
+    -- clamp to free space
+    if amount > 0 then
+        amount = math.min(trenchcoat.free, amount)
+    end
+    local current_stock = (self[name] or 0)
+    local new_stock = math.max(0, current_stock + amount)
+    if new_stock == 0 then
+        self[name] = nil
+    else
+        self[name] = new_stock
+    end
+    -- stock amount difference
+    local delta = new_stock - current_stock
+    -- account delta into free space
+    self.free = self.free - delta
+    return math.abs(delta), new_stock
+end
+
+function trenchcoat.free_space(self)
+    return self.free
+end
+
+function trenchcoat.has(self, name)
+    return self[name]
+end
+
+function trenchcoat.stock_of(self, name)
+    if self:has(name) then
+        return self[name]
+    else
+        return 0
+    end
+end
+
+function trenchcoat.get_random(self, minimum_amount)
+    minimum_amount = minimum_amount or 0
+    for i=1, #market.db do
+        local pick = market.db[math.random(1, #market.db)]
+        local amount = self:stock_of(pick.name)
+        if amount > minimum_amount then
+            print("check "..pick.name.." with amount "..amount)
+            return pick.name, amount
+        end
+    end
+end
+
+function trenchcoat.crc(self)
+    local crc = 0
+    for k, v in pairs(self) do
+        if k ~= "free" and type(v) == "number" then
+            crc = crc + v
+        end
+    end
+    return crc % 255
+end
+
+--        _   _ _
+--  _   _| |_(_) |
+-- | | | | __| | |
+-- | |_| | |_| | |
+--  \__,_|\__|_|_|
+--
+function util.comma_value(amount)
+    local formatted = amount
+    while true do
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        if (k==0) then
+            break
+        end
+    end
+    return "$"..formatted
+end
+
+function util.pick(...)
+    return select(math.random(1, select("#",...)), ...)
+end
+
 --        _
 -- __   _(_) _____      __
 -- \ \ / / |/ _ \ \ /\ / /
@@ -1265,251 +1511,4 @@ end
 
 function view.set_location_text(self)
     self.play_buttons["jet"].text = player.location
-end
-
---        _                   _        _
---  _ __ | | __ _ _   _   ___| |_ __ _| |_ ___
--- | '_ \| |/ _` | | | | / __| __/ _` | __/ _ \
--- | |_) | | (_| | |_| | \__ \ || (_| | ||  __/
--- | .__/|_|\__,_|\__, | |___/\__\__,_|\__\___|
--- |_|            |___/
---
-function play_state.load(self)
-    -- TODO: move this call to the intro state
-    self:new_game()
-    self:load_from_file()
-end
-
-function play_state.new_game(self)
-    player:reset_game()
-    market:initialize_predictions()
-    market:fluctuate()
-    view:update_market_buttons()
-    player:generate_events()
-end
-
-function play_state.next_day(self, new_location)
-    if player:add_day(new_location) <= #market.predictions then
-        player:accrue_debt()
-        market:fluctuate()
-        view:update_market_buttons()
-        self:save_to_file()
-        player:generate_events()
-    else
-        self:remove_save()
-        -- TODO: switch to end game state
-        self:new_game()
-    end
-end
-
-function play_state.draw(self)
-    view:draw_player_stats()
-    view:draw_market()
-    message_panel:draw()
-end
-
-function play_state.update(self, dt)
-
-    for _, butt in pairs(view.play_buttons) do
-        butt:update(dt)
-    end
-
-    message_panel:update(dt)
-
-    if player.gang_encounter then
-        encounter_state:switch(player.gang_encounter)
-        player.gang_encounter = false
-        return
-    end
-
-    -- TODO: end game state
-    if player.health < 1 then
-        --active_state = end_game_state
-    end
-
-end
-
-function play_state.mousepressed(self, x, y, button, istouch)
-    for _, butt in pairs(view.play_buttons) do
-        butt:mousepressed(x, y, button, istouch)
-    end
-    message_panel:mousepressed(x, y, button, istouch)
-end
-
-function play_state.mousereleased(self, x, y, button, istouch)
-    for _, butt in pairs(view.play_buttons) do
-        butt:mousereleased(x, y, button, istouch)
-    end
-    message_panel:mousereleased(x, y, button, istouch)
-end
-
-function play_state.mousemoved(self, x, y, dx, dy, istouch)
-    for _, butt in pairs(view.play_buttons) do
-        butt:mousemoved(x, y, dx, dy, istouch)
-    end
-    message_panel:mousemoved(x, y, dx, dy, istouch)
-end
-
-function play_state.load_from_file(self)
-    player:clear_messages()
-    print("LOADING state from file")
-    local file = love.filesystem.newFile("savegame")
-    local ok, err = file:open("r")
-    local other = {}
-    if ok then
-        local contents, size = file:read()
-        file:close()
-        if size > 0 then
-            local ite = string.gfind(contents, "(%a+)=([%w_]+)")
-            while true do
-                local key, value = ite()
-                if key == nil then break end
-                local dec = tonumber(value,16)
-                if player[key] ~= nil then
-                    player[key] = dec or value
-                else
-                    other[key] = dec
-                end
-            end
-            trenchcoat:reset()
-            trenchcoat.size = other.coat
-            trenchcoat.free = trenchcoat.size
-            for _, item in ipairs(market.db) do
-                for k, v in pairs(other) do
-                    if k == item.name then
-                        trenchcoat:adjust_stock(k, v)
-                    end
-                end
-            end
-            local crc = player:crc()
-            if crc ~= other.check then
-                print(string.format("crc mismatch! %d <> %d", other.check, crc))
-            end
-            player.location = string.gsub(player.location, "_", " ")
-            player:set_cash()
-            player:set_bank()
-            player:set_debt()
-            market:initialize_predictions()
-            market:fluctuate()
-            view:update_market_buttons()
-            player:generate_events()
-        end
-    end
-end
-
-function play_state.save_to_file(self)
-    local file = love.filesystem.newFile("savegame")
-    local ok, err = file:open("w")
-    if ok then
-        local data = string.format([[
-            seed=%x cash=%x bank=%x debt=%x
-            guns=%x health=%x coat=%x day=%x
-            city=%s check=%x]],
-            player.seed, player.cash, player.bank, player.debt,
-            player.guns, player.health, trenchcoat.size, player.day,
-            string.gsub(player.location, " ", "_"), player:crc())
-        for _, item in ipairs(market.db) do
-            data = data .. string.format(" %s=%x", item.name, trenchcoat:stock_of(item.name))
-        end
-        local contents, err = file:write(data)
-        file:close()
-    end
-end
-
-function play_state.remove_save(self)
-    love.filesystem.remove("savegame")
-end
-
---  _                       _                     _
--- | |_ _ __ ___ _ __   ___| |__   ___ ___   __ _| |_
--- | __| '__/ _ \ '_ \ / __| '_ \ / __/ _ \ / _` | __|
--- | |_| | |  __/ | | | (__| | | | (_| (_) | (_| | |_
---  \__|_|  \___|_| |_|\___|_| |_|\___\___/ \__,_|\__|
---
-function trenchcoat.reset(self)
-    for k, v in pairs(self) do
-        if type(v) == "number" then
-            self[k] = nil
-        end
-    end
-    self.size = 100
-    self.free = self.size
-end
-
-function trenchcoat.adjust_stock(self, name, amount)
-    -- clamp to free space
-    if amount > 0 then
-        amount = math.min(trenchcoat.free, amount)
-    end
-    local current_stock = (self[name] or 0)
-    local new_stock = math.max(0, current_stock + amount)
-    if new_stock == 0 then
-        self[name] = nil
-    else
-        self[name] = new_stock
-    end
-    -- stock amount difference
-    local delta = new_stock - current_stock
-    -- account delta into free space
-    self.free = self.free - delta
-    return math.abs(delta), new_stock
-end
-
-function trenchcoat.free_space(self)
-    return self.free
-end
-
-function trenchcoat.has(self, name)
-    return self[name]
-end
-
-function trenchcoat.stock_of(self, name)
-    if self:has(name) then
-        return self[name]
-    else
-        return 0
-    end
-end
-
-function trenchcoat.get_random(self, minimum_amount)
-    minimum_amount = minimum_amount or 0
-    for i=1, #market.db do
-        local pick = market.db[math.random(1, #market.db)]
-        local amount = self:stock_of(pick.name)
-        if amount > minimum_amount then
-            print("check "..pick.name.." with amount "..amount)
-            return pick.name, amount
-        end
-    end
-end
-
-function trenchcoat.crc(self)
-    local crc = 0
-    for k, v in pairs(self) do
-        if k ~= "free" and type(v) == "number" then
-            crc = crc + v
-        end
-    end
-    return crc % 255
-end
-
---        _   _ _
---  _   _| |_(_) |
--- | | | | __| | |
--- | |_| | |_| | |
---  \__,_|\__|_|_|
---
-function util.comma_value(amount)
-    local formatted = amount
-    while true do
-        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-        if (k==0) then
-            break
-        end
-    end
-    return "$"..formatted
-end
-
-function util.pick(...)
-    return select(math.random(1, select("#",...)), ...)
 end
