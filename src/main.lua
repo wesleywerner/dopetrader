@@ -41,7 +41,7 @@ local trenchcoat = {}
 local util = {}
 local message_panel = {}
 
-local intro_state = {}
+local menu_state = {}
 local play_state = {}
 local jet_state = {}
 local cops_state = {}
@@ -54,6 +54,7 @@ function love.load()
     -- do not prevent device from sleeping
     love.window.setDisplaySleepEnabled(true)
     love.filesystem.setIdentity("dopetrader")
+
     display:load()
     layout:load()
     player:load()
@@ -61,32 +62,22 @@ function love.load()
     view:load()
     message_panel:load()
 
+    menu_state:load()
     play_state:load()
     encounter_state:load()
 
-    touchpos = {x=0, y=0}
-    touchrel = {x=0, y=0}
-
-    --DEBUG
-    --player.guns = 2
-    --player:credit_account(200000)
-
-    active_state = play_state
+    menu_state:switch()
 end
 
 function love.keypressed(key, isrepeat)
-    if key == "escape" then
-        love.event.quit()
-    end
+    active_state:keypressed(key)
 end
 
 function love.mousepressed(x, y, button, istouch)
-    touchpos = {x=x, y=y}
     active_state:mousepressed(x, y, button, istouch)
 end
 
 function love.mousereleased(x, y, button, istouch)
-    touchrel = {x=x, y=y}
     active_state:mousereleased(x, y, button, istouch)
 end
 
@@ -102,43 +93,7 @@ function love.update(dt)
 end
 
 function love.draw()
-
-    ---- white border
-    --love.graphics.setColor({1, 1, 1})
-    --love.graphics.rectangle("line",
-        --display.safe_x,
-        --display.safe_y + 1,
-        --display.safe_w - 1,
-        --display.safe_h - 1)
-
-    ---- system info
-    --love.graphics.setColor({1, 1, 1, .2})
-
-    --local template = [[
-    --Love for Android NFO
-    --Screen Size: %d x %d
-    --DPI Scale: %d
-    --Scaled Screen: %d x %d
-    --FPS: %d
-    --Touched XY: %d, %d
-    --Released XY: %d, %d
-    --OS: %s
-    --]]
-
-    --local details = string.format(template,
-        --display.width, display.height,
-        --display.dpi,
-        --display.width * display.dpi, display.height * display.dpi,
-        --love.timer.getFPS(),
-        --touchpos.x, touchpos.y,
-        --touchrel.x, touchrel.y,
-        --love.system.getOS()
-        --)
-
-    --love.graphics.printf(details, 0, display.height/2, display.width, 'center')
-
     active_state:draw()
-
 end
 
 --      _ _           _
@@ -176,9 +131,6 @@ end
 --  \___|_| |_|\___\___/ \__,_|_| |_|\__\___|_|
 --
 function encounter_state.load(self)
-
-    -- load prediction
-    math.randomseed(market.predictions[player.day])
 
     local wc = require("harness.widgetcollection")
     self.buttons = wc:new()
@@ -231,15 +183,12 @@ function encounter_state.load(self)
         callback = self.visit_doctor
     })
 
-    local dr = require("harness.digitroller")
-    self.health_counter = dr:new({
-        subject = player,
-        target = "health"
-    })
-
 end
 
 function encounter_state.switch(self, risk_factor)
+
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
 
     self.thugs = math.random(1, 10 * risk_factor)
     self.cash_prize = (math.random() * 1000) + self.thugs * 1000
@@ -253,12 +202,19 @@ function encounter_state.switch(self, risk_factor)
     self.buttons:get("run").hidden = false
     self.buttons:get("doctor").hidden = true
 
-    active_state = encounter_state
+    -- watch player health as a spinning number
+    local dr = require("harness.digitroller")
+    self.health_counter = dr:new({
+        subject = player,
+        target = "health"
+    })
+
+    active_state = self
     print(string.format("chased by %d thugs. you can earn a $%d prize.", self.thugs, self.cash_prize))
 end
 
 function encounter_state.exit_state()
-    active_state = play_state
+    play_state:switch()
 end
 
 function encounter_state.update(self, dt)
@@ -282,6 +238,12 @@ function encounter_state.draw(self)
 
     self.buttons:draw()
 
+end
+
+function encounter_state.keypressed(self, key)
+    if key == "escape" then
+        menu_state:switch()
+    end
 end
 
 function encounter_state.mousepressed(self, x, y, button, istouch)
@@ -420,6 +382,12 @@ function jet_state.draw(self)
     end
 end
 
+function jet_state.keypressed(self, key)
+    if key == "escape" then
+        play_state:switch()
+    end
+end
+
 function jet_state.mousepressed(self, x, y, button, istouch)
     for _, butt in ipairs(view.jet_buttons) do
         butt:mousepressed(x, y, button, istouch)
@@ -441,12 +409,124 @@ end
 function jet_state.go(btn)
     -- TODO: flashing "subway" text with animated train across the screen
     play_state:next_day(btn.text)
-    active_state = play_state
+    play_state:switch()
 end
 
 function jet_state.cancel(btn)
-    active_state = play_state
+    play_state:switch()
 end
+
+--                                   _        _
+--  _ __ ___   ___ _ __  _   _   ___| |_ __ _| |_ ___
+-- | '_ ` _ \ / _ \ '_ \| | | | / __| __/ _` | __/ _ \
+-- | | | | | |  __/ | | | |_| | \__ \ || (_| | ||  __/
+-- |_| |_| |_|\___|_| |_|\__,_| |___/\__\__,_|\__\___|
+--
+function menu_state.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local run_box = layout.box["new game"]
+    self.buttons:button("new", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "New Game",
+        font = view.largefont,
+        callback = self.new_game
+    })
+
+    local run_box = layout.box["resume game"]
+    self.buttons:button("resume", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Resume Game",
+        font = view.largefont,
+        callback = self.resume_game,
+        disabled = true
+    })
+
+    local run_box = layout.box["high scores"]
+    self.buttons:button("scores", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "High Rollers",
+        font = view.largefont,
+        callback = self.view_scores,
+        disabled = true
+    })
+
+    local run_box = layout.box["about"]
+    self.buttons:button("about", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "About",
+        font = view.largefont,
+        callback = self.view_about,
+        disabled = true
+    })
+
+end
+
+function menu_state.update(self, dt)
+    self.buttons:update(dt)
+end
+
+function menu_state.switch(self)
+    local savegame_exists = love.filesystem.getInfo("savegame", "file") ~= nil
+    self.buttons:get("resume").disabled = not savegame_exists
+    active_state = self
+end
+
+function menu_state.draw(self)
+    view:set_large_font()
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.printf("DoPe TrAder", layout:align_point_at("menu logo", nil, "center"))
+    self.buttons:draw()
+end
+
+function menu_state.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        love.event.quit()
+    end
+end
+
+function menu_state.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function menu_state.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function menu_state.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function menu_state.new_game(btn)
+    play_state:new_game()
+    play_state:switch()
+end
+
+function menu_state.resume_game(btn)
+    play_state:new_game()
+    play_state:load_from_file()
+    play_state:switch()
+end
+
 
 --  _                         _
 -- | | __ _ _   _  ___  _   _| |_
@@ -477,6 +557,7 @@ function layout.load(self)
     map_layout_to_screen(require("play_layout"))
     map_layout_to_screen(require("jet_layout"))
     map_layout_to_screen(require("prompt_layout"))
+    map_layout_to_screen(require("menu_layout"))
 end
 
 function layout.point_at(self, key, index)
@@ -700,9 +781,11 @@ end
 -- |_|            |___/
 --
 function play_state.load(self)
-    -- TODO: move this call to the intro state
-    self:new_game()
-    self:load_from_file()
+
+end
+
+function play_state.switch(self)
+    active_state = self
 end
 
 function play_state.new_game(self)
@@ -723,7 +806,7 @@ function play_state.next_day(self, new_location)
     else
         self:remove_save()
         -- TODO: switch to end game state
-        self:new_game()
+        menu_state:switch()
     end
 end
 
@@ -752,6 +835,12 @@ function play_state.update(self, dt)
         --active_state = end_game_state
     end
 
+end
+
+function play_state.keypressed(self, key)
+    if key == "escape" then
+        menu_state:switch()
+    end
 end
 
 function play_state.mousepressed(self, x, y, button, istouch)
@@ -829,7 +918,7 @@ function play_state.save_to_file(self)
         local data = string.format([[
             seed=%x cash=%x bank=%x debt=%x
             guns=%x health=%x coat=%x day=%x
-            city=%s check=%x]],
+            location=%s check=%x]],
             player.seed, player.cash, player.bank, player.debt,
             player.guns, player.health, trenchcoat.size, player.day,
             string.gsub(player.location, " ", "_"), player:crc())
