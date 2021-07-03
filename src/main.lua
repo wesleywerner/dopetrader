@@ -47,6 +47,7 @@ local jet_state = {}
 local cops_state = {}
 local scores_state = {}
 local active_state = {}
+local encounter_state = {}
 
 function love.load()
 
@@ -61,9 +62,14 @@ function love.load()
     message_panel:load()
 
     play_state:load()
+    encounter_state:load()
 
     touchpos = {x=0, y=0}
     touchrel = {x=0, y=0}
+
+    --DEBUG
+    --player.guns = 2
+    --player:credit_account(200000)
 
     active_state = play_state
 end
@@ -134,6 +140,226 @@ function love.draw()
     active_state:draw()
 
 end
+
+--                                   _
+--   ___ _ __   ___ ___  _   _ _ __ | |_ ___ _ __
+--  / _ \ '_ \ / __/ _ \| | | | '_ \| __/ _ \ '__|
+-- |  __/ | | | (_| (_) | |_| | | | | ||  __/ |
+--  \___|_| |_|\___\___/ \__,_|_| |_|\__\___|_|
+--
+function encounter_state.load(self)
+
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local run_box = layout.box["answer 1"]
+    self.buttons:button("run", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Run",
+        font = view.largefont,
+        callback = self.attempt_run
+    })
+
+    local run_box = layout.box["answer 2"]
+    self.buttons:button("fight", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Fight",
+        font = view.largefont,
+        callback = self.attempt_fight
+    })
+
+    local run_box = layout.box["close prompt"]
+    self.buttons:button("close", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "I'm outta here",
+        font = view.largefont,
+        hidden = true,
+        callback = self.exit_state
+    })
+
+    local run_box = layout.box["alt close prompt"]
+    self.buttons:button("doctor", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Patch me up, doc!",
+        font = view.largefont,
+        hidden = true,
+        callback = self.visit_doctor
+    })
+
+    local dr = require("harness.digitroller")
+    self.health_counter = dr:new({
+        subject = player,
+        target = "health"
+    })
+
+end
+
+function encounter_state.switch(self, risk_factor)
+
+    self.thugs = math.random(1, 10 * risk_factor)
+    self.cash_prize = (math.random() * 1000) + self.thugs * 1000
+    self.doctors_fees = 1000
+    self:set_message()
+    self.outcome = ""
+
+    self.buttons:get("fight").hidden = false
+    self.buttons:get("fight").disabled = player.guns == 0
+    self.buttons:get("close").hidden = true
+    self.buttons:get("run").hidden = false
+    self.buttons:get("doctor").hidden = true
+
+    active_state = encounter_state
+    print(string.format("chased by %d thugs. you can earn a $%d prize.", self.thugs, self.cash_prize))
+end
+
+function encounter_state.exit_state()
+    active_state = play_state
+end
+
+function encounter_state.update(self, dt)
+    self.health_counter:update(dt)
+end
+
+function encounter_state.draw(self)
+
+    view:set_large_font()
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    love.graphics.print("Health", layout:padded_point_at("title"))
+    love.graphics.printf(math.floor(self.health_counter.value), layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+
+    if self.outcome then
+        love.graphics.printf(self.outcome, layout:align_point_at("response", nil, "center"))
+    end
+
+    self.buttons:draw()
+
+end
+
+function encounter_state.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function encounter_state.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function encounter_state.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function encounter_state.set_message(self)
+    if self.thugs == 0 then
+        self.message = string.format("You fought them off!\nYou found $%d on the body.", self.cash_prize)
+    elseif self.thugs == 1 then
+        self.message = string.format("A gang leader is chasing you!")
+    elseif self.thugs == 2 then
+        self.message = string.format("A gang leader and one of his thugs are chasing you!")
+    else
+        self.message = string.format("A gang leader and %d of his thugs are chasing you!", self.thugs - 1)
+    end
+end
+
+function encounter_state.visit_doctor()
+    player:restore_health()
+    player:debit_account(encounter_state.doctors_fees)
+    encounter_state:exit_state()
+end
+
+function encounter_state.get_shot_at(self)
+    -- chance of being hit is proportional to number of thugs
+    local hit_chance = math.min(0.6, self.thugs * 0.2)
+    print(string.format("they fire with hit chance of %d%%", hit_chance * 100))
+    if math.random() < hit_chance then
+        print("you are hit")
+        player:lose_health(math.random(5, 15))
+        self:test_death()
+        return "They fire at you! You are hit!"
+    else
+        print("they miss")
+        return "They fire at you, and miss!"
+    end
+end
+
+function encounter_state.attempt_run(btn)
+    -- chance of escape is inversely proportional to number of thugs.
+    -- clamp upper limit so there is always a small chance of escape.
+    local escape_chance = math.max(0.1, 0.7 - btn.context.thugs * 0.075)
+
+    if math.random() < escape_chance then
+        print(string.format("you escaped with chance of %d%%", escape_chance * 100))
+        btn.context:allow_exit()
+        btn.context.outcome = "You lost them in the alleys"
+    else
+        print(string.format("failed to escape with chance of %d%%", escape_chance * 100))
+        btn.context.outcome = "You can't lose them! " .. btn.context:get_shot_at()
+    end
+end
+
+function encounter_state.attempt_fight(btn)
+    -- chance of hit is proportional to number of guns carried.
+    local hit_chance = math.min(0.75, player.guns * 0.25)
+    print(string.format("you fire with a hit chance of %d%%", hit_chance * 100))
+    if math.random() < hit_chance then
+        print("you hit them")
+        btn.context.thugs = btn.context.thugs - 1
+        btn.context:set_message()
+        btn.context.outcome = "You hit one of them! " .. btn.context:get_shot_at()
+        if btn.context.thugs == 0 then
+            player:credit_account(encounter_state.cash_prize)
+            btn.context.outcome = ""
+            btn.context:allow_exit()
+        end
+    else
+        print("you miss")
+        btn.context.outcome = "You miss! " .. btn.context:get_shot_at()
+    end
+end
+
+function encounter_state.allow_exit(self)
+    self.buttons:get("close").hidden = false
+    self.buttons:get("run").hidden = true
+    self.buttons:get("fight").hidden = true
+
+    if self.thugs == 0 and player.health < 100 then
+        self.doctors_fees = (math.random() * 1000) + 1500
+        if self.doctors_fees <= player.cash then
+            self.buttons:get("doctor").hidden = false
+            self.outcome = string.format("Visit a clinic to patch you up for $%d?", self.doctors_fees)
+        end
+    end
+end
+
+function encounter_state.test_death(self)
+    if player.health < 1 then
+        self:allow_exit()
+        self.outcome = "They wasted you, man! What a drag!"
+        love.system.vibrate(.25)
+    else
+        love.system.vibrate(.2)
+    end
+end
+
 
 
 --      _ _           _
@@ -216,6 +442,7 @@ function jet_state.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function jet_state.go(btn)
+    -- TODO: flashing "subway" text with animated train across the screen
     play_state:next_day(btn.text)
     active_state = play_state
 end
@@ -252,6 +479,7 @@ function layout.load(self)
 
     map_layout_to_screen(require("play_layout"))
     map_layout_to_screen(require("jet_layout"))
+    map_layout_to_screen(require("prompt_layout"))
 end
 
 function layout.point_at(self, key, index)
@@ -338,8 +566,7 @@ end
 function market.fluctuate(self)
 
     -- load prediction
-    local prediction = self.predictions[player.day]
-    math.randomseed(prediction)
+    math.randomseed(self.predictions[player.day])
 
     -- clone the database into a holding bag
     local drugbag = {}
@@ -434,6 +661,7 @@ function message_panel.draw(self)
     end
     love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
     -- text
+    -- TODO: color text by message priority
     if self.y ~= self.rest_y then
         view:set_medium_font()
         --love.graphics.setColor(0, 0, 0)
@@ -489,10 +717,18 @@ function player.reset_game(self)
     self:set_bank(0)
     self:set_debt(5500)
     self.location = LOCATIONS[1]
-    self.ischased = false
+    self.gang_encounter = false
     self.messages = {}
     trenchcoat:reset()
     view:set_location_text()
+end
+
+function player.lose_health(self, value)
+    self.health = self.health - value
+end
+
+function player.restore_health(self)
+    self.health = 100
 end
 
 function player.set_cash(self, value)
@@ -543,22 +779,22 @@ function player.accrue_debt(self)
 end
 
 function player.generate_events(self)
-    -- TODO: random events adds messages or sets ischased
 
     -- load prediction
     math.randomseed(market.predictions[player.day])
 
     local brownies = math.random() < .1
-    local buy_gun = math.random() < .1
-    local buy_trenchcoat = math.random() < .1
-    local smoke_paraquat = math.random() < .1
-    local find_drugs = math.random() < .1
-    local give_drugs = math.random() < .1
-    local dropped_drugs = math.random() < .1
-    local mugged = math.random() < .1
+    local buy_gun = math.random() < .07
+    local buy_trenchcoat = math.random() < .07
+    local smoke_paraquat = math.random() < .05
+    local find_drugs = math.random() < .07
+    local give_drugs = math.random() < .07
+    local dropped_drugs = math.random() < .07
+    local mugged = math.random() < .05
     local detour = math.random() < .1
     local subway_anecdote = math.random() < .3
-    local hear_music = math.random() < .2
+    local hear_music = math.random() < .15
+    local fight_encounter = math.random()
 
     if brownies then
         local brownie_text = "Your mama made brownies with some of your %s! They were great!"
@@ -680,12 +916,17 @@ function player.generate_events(self)
         player:add_message("You hear someone playing %s.",good_song)
     end
 
-    ---- each drug increases n% for every 100 units carried
-    --local cops_chase_chance = .10
-    --local charlie_risk = trenchcoat:stock_of("Cocaine") / 100 * .2
-    --local heroin_risk = trenchcoat:stock_of("Heroin") / 100 * .1
-    --local hash_risk = trenchcoat:stock_of("Hashish") / 100 * .1
-
+    -- % chance of encounter for every unit of drug carried
+    local encounter_chance = (trenchcoat.size - trenchcoat.free) * .001
+    -- additional risk when carrying these
+    local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003
+    local heroin_risk = trenchcoat:stock_of("Heroin") * 0.003
+    local hash_risk = trenchcoat:stock_of("Hashish") * 0.002
+    local risk_factor = math.min(0.6, encounter_chance + charlie_risk + heroin_risk + hash_risk)
+    print(string.format("test thug encounter against %d%%", risk_factor * 100))
+    if fight_encounter < risk_factor then
+        player.gang_encounter = risk_factor
+    end
 
     view:update_market_buttons()
 
@@ -723,11 +964,15 @@ function player.sell_drug(btn)
 end
 
 function player.debit_account(self, amount)
+    amount = math.floor(amount)
+    print(string.format("account debited with $%d", amount))
     self.cash = self.cash - amount
     self.cash_amount = util.comma_value(self.cash)
 end
 
 function player.credit_account(self, amount)
+    amount = math.floor(amount)
+    print(string.format("account credited with $%d", amount))
     self.cash = self.cash + amount
     self.cash_amount = util.comma_value(self.cash)
 end
@@ -756,6 +1001,10 @@ function view.load(self)
     self.largefont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 40)
     self.mediumfont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 24)
     self.smallfont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
+
+    -- TODO: set font on buttons
+    -- so buttons calculate alignment correctly
+    --view:set_medium_font()
 
     -- create jet & debt buttons
     local button = require("harness.button")
@@ -1070,11 +1319,24 @@ function play_state.draw(self)
 end
 
 function play_state.update(self, dt)
-    -- TODO: if player.ischased then switch to chase state
+
     for _, butt in pairs(view.play_buttons) do
         butt:update(dt)
     end
+
     message_panel:update(dt)
+
+    if player.gang_encounter then
+        encounter_state:switch(player.gang_encounter)
+        player.gang_encounter = false
+        return
+    end
+
+    -- TODO: end game state
+    if player.health < 1 then
+        --active_state = end_game_state
+    end
+
 end
 
 function play_state.mousepressed(self, x, y, button, istouch)
