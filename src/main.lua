@@ -36,7 +36,7 @@ local display = {}
 local layout = {}
 local player = {}
 local market = {}
-local view = {}
+local fonts = {}
 local trenchcoat = {}
 local util = {}
 local message_panel = {}
@@ -55,15 +55,16 @@ function love.load()
     love.window.setDisplaySleepEnabled(true)
     love.filesystem.setIdentity("dopetrader")
 
+    fonts:load()
     display:load()
     layout:load()
     player:load()
     market:load()
-    view:load()
     message_panel:load()
 
     menu_state:load()
     play_state:load()
+    jet_state:load()
     encounter_state:load()
 
     menu_state:switch()
@@ -143,7 +144,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Run",
-        font = view.largefont,
+        font = fonts.large,
         callback = self.attempt_run
     })
 
@@ -155,7 +156,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Fight",
-        font = view.largefont,
+        font = fonts.large,
         callback = self.attempt_fight
     })
 
@@ -166,7 +167,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "I'm outta here",
-        font = view.largefont,
+        font = fonts.large,
         hidden = true,
         callback = self.exit_state
     })
@@ -178,7 +179,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Patch me up, doc!",
-        font = view.largefont,
+        font = fonts.large,
         hidden = true,
         callback = self.visit_doctor
     })
@@ -223,7 +224,7 @@ end
 
 function encounter_state.draw(self)
 
-    view:set_large_font()
+    fonts:set_large()
     love.graphics.setColor(PRIMARY_COLOR)
 
     love.graphics.print("Health", layout:padded_point_at("title"))
@@ -241,6 +242,7 @@ function encounter_state.draw(self)
 end
 
 function encounter_state.keypressed(self, key)
+    self.buttons:keypressed(key)
     if key == "escape" then
         menu_state:switch()
     end
@@ -350,6 +352,30 @@ function encounter_state.test_death(self)
     end
 end
 
+--   __             _
+--  / _| ___  _ __ | |_ ___
+-- | |_ / _ \| '_ \| __/ __|
+-- |  _| (_) | | | | |_\__ \
+-- |_|  \___/|_| |_|\__|___/
+--
+function fonts.load(self)
+    self.large = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 40)
+    self.medium = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 24)
+    self.small = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
+end
+
+function fonts.set_small(self)
+    love.graphics.setFont(self.small)
+end
+
+function fonts.set_medium(self)
+    love.graphics.setFont(self.medium)
+end
+
+function fonts.set_large(self)
+    love.graphics.setFont(self.large)
+end
+
 --    _      _         _        _
 --   (_) ___| |_   ___| |_ __ _| |_ ___
 --   | |/ _ \ __| / __| __/ _` | __/ _ \
@@ -359,14 +385,41 @@ end
 --
 function jet_state.load(self)
 
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    for i, title in ipairs(LOCATIONS) do
+        local _x, _y, _w, _h = layout:box_at("loc %d", i)
+        self.buttons:button(title, {
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = title,
+            callback = jet_state.go,
+            font = fonts.large
+        })
+    end
+
+    local _x, _y, _w, _h = layout:box_at("jet cancel")
+    self.buttons:button("back", {
+        left = _x,
+        top = _y,
+        width = _w,
+        height = _h,
+        text = "I changed my mind",
+        callback = jet_state.cancel,
+        font = fonts.medium
+    })
+
 end
 
 function jet_state.update(self, dt)
-
+    self.buttons:update(dt)
 end
 
 function jet_state.switch(btn)
-    for _, butt in ipairs(view.jet_buttons) do
+    for _, butt in pairs(jet_state.buttons.controls) do
         butt.disabled = butt.text == player.location
     end
     active_state = jet_state
@@ -375,35 +428,28 @@ end
 
 function jet_state.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
-    view:set_large_font()
+    fonts:set_large()
     love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
-    for _, butt in ipairs(view.jet_buttons) do
-        butt:draw()
-    end
+    self.buttons:draw()
 end
 
 function jet_state.keypressed(self, key)
+    self.buttons:keypressed(key)
     if key == "escape" then
         play_state:switch()
     end
 end
 
 function jet_state.mousepressed(self, x, y, button, istouch)
-    for _, butt in ipairs(view.jet_buttons) do
-        butt:mousepressed(x, y, button, istouch)
-    end
+    self.buttons:mousepressed(x, y, button, istouch)
 end
 
 function jet_state.mousereleased(self, x, y, button, istouch)
-    for _, butt in ipairs(view.jet_buttons) do
-        butt:mousereleased(x, y, button, istouch)
-    end
+    self.buttons:mousereleased(x, y, button, istouch)
 end
 
 function jet_state.mousemoved(self, x, y, dx, dy, istouch)
-    for _, butt in ipairs(view.jet_buttons) do
-        butt:mousemoved(x, y, dx, dy, istouch)
-    end
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
 function jet_state.go(btn)
@@ -435,7 +481,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "New Game",
-        font = view.largefont,
+        font = fonts.large,
         callback = self.new_game
     })
 
@@ -447,7 +493,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Resume Game",
-        font = view.largefont,
+        font = fonts.large,
         callback = self.resume_game,
         disabled = true
     })
@@ -460,7 +506,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "High Rollers",
-        font = view.largefont,
+        font = fonts.large,
         callback = self.view_scores,
         disabled = true
     })
@@ -473,7 +519,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "About",
-        font = view.largefont,
+        font = fonts.large,
         callback = self.view_about,
         disabled = true
     })
@@ -491,7 +537,7 @@ function menu_state.switch(self)
 end
 
 function menu_state.draw(self)
-    view:set_large_font()
+    fonts:set_large()
     love.graphics.setColor(PRIMARY_COLOR)
     love.graphics.printf("DoPe TrAder", layout:align_point_at("menu logo", nil, "center"))
     self.buttons:draw()
@@ -741,7 +787,7 @@ function message_panel.draw(self)
     -- text
     -- TODO: color text by message priority
     if self.y ~= self.rest_y then
-        view:set_medium_font()
+        fonts:set_medium()
         --love.graphics.setColor(0, 0, 0)
         --love.graphics.printf(player.joined_messages, 3, self.y + self.text_y + 1, display.safe_w)
         love.graphics.setColor(0, 1, 1)
@@ -782,25 +828,93 @@ end
 --
 function play_state.load(self)
 
+    local wc = require("harness.widgetcollection")
+    self.play_buttons = wc:new()
+
+    -- create jet & debt buttons
+    local jet_box = layout.box["jet"]
+    self.play_buttons:button("jet", {
+        left = jet_box[1],
+        top = jet_box[2],
+        width = jet_box[3],
+        height = jet_box[4],
+        text = "Jet",
+        alignment = "right",
+        font = fonts.large,
+        callback = jet_state.switch
+    })
+
+    local debt_box = layout.box["debt"]
+    self.play_buttons:button("debt", {
+        left = debt_box[1],
+        top = debt_box[2],
+        width = debt_box[3],
+        height = debt_box[4],
+        text = "Debt",
+        alignment = "right",
+        hidden = true
+        --callback = TODO
+    })
+
+    -- Create market buy & sell buttons
+    for i=1, #market.db do
+        local sell_id = string.format("sell %d", i)
+        local buy_id = string.format("buy %d", i)
+        local _x, _y, _w, _h = layout:box_at("sell %d", i)
+        self.play_buttons:button(sell_id, {
+            repeating = 10,
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = "",
+            title = "Sell",
+            number = i,
+            id = sell_id,
+            alignment = "right",
+            callback = player.sell_drug,
+            font = fonts.medium
+        })
+        local _x, _y, _w, _h = layout:box_at("buy %d", i)
+        self.play_buttons:button(buy_id, {
+            repeating = 10,
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = "",
+            title = "Buy",
+            number = i,
+            id = buy_id,
+            alignment = "right",
+            callback = player.buy_drug,
+            font = fonts.medium
+        })
+    end
+
 end
 
 function play_state.switch(self)
     active_state = self
 end
 
+function play_state.set_location_button(self)
+    self.play_buttons:get("jet").text = player.location
+end
+
 function play_state.new_game(self)
     player:reset_game()
     market:initialize_predictions()
     market:fluctuate()
-    view:update_market_buttons()
     player:generate_events()
+    self:set_location_button()
 end
 
 function play_state.next_day(self, new_location)
     if player:add_day(new_location) <= #market.predictions then
+        self:set_location_button()
         player:accrue_debt()
         market:fluctuate()
-        view:update_market_buttons()
         self:save_to_file()
         player:generate_events()
     else
@@ -811,16 +925,75 @@ function play_state.next_day(self, new_location)
 end
 
 function play_state.draw(self)
-    view:draw_player_stats()
-    view:draw_market()
+
+    -- Draw player stats
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    if display.mobile then
+        fonts:set_small()
+    else
+        fonts:set_medium()
+    end
+
+    love.graphics.print("Cash", layout:padded_point_at("cash"))
+    love.graphics.printf(player.cash_amount, layout:align_point_at("cash",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("cash"))
+
+    love.graphics.print("Bank", layout:padded_point_at("bank"))
+    love.graphics.printf(player.bank_amount, layout:align_point_at("bank",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("bank"))
+
+    love.graphics.print("Debt", layout:padded_point_at("debt"))
+    love.graphics.printf(player.debt_amount, layout:align_point_at("debt",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("debt"))
+
+    love.graphics.print("Guns", layout:padded_point_at("guns"))
+    love.graphics.printf(player.guns, layout:align_point_at("guns",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("guns"))
+
+    love.graphics.print("Health", layout:padded_point_at("health"))
+    love.graphics.printf(player.health, layout:align_point_at("health",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("health"))
+
+    love.graphics.print("Coat", layout:padded_point_at("free"))
+    love.graphics.printf(trenchcoat:free_space(), layout:align_point_at("free",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("free"))
+
+    fonts:set_medium()
+    love.graphics.print(string.format("Day %d", player.day), layout:padded_point_at("day"))
+    love.graphics.rectangle("line", layout:box_at("day"))
+
+    -- Draw market buy/sell
+    fonts:set_medium()
+
+    love.graphics.setColor(PRIMARY_COLOR)
+    local last_available_i = 0
+
+    -- list stock on the market today
+    for i, item in ipairs(market.available) do
+        love.graphics.print(item.name, layout:padded_point_at("name %d", i))
+        love.graphics.rectangle("line", layout:box_at("name %d", i))
+        last_available_i = i
+    end
+
+    -- list stock not on the market
+    love.graphics.setColor(.7, .7, .7)
+    for _, item in ipairs(self.not_for_sale) do
+        last_available_i = last_available_i + 1
+        love.graphics.printf(item.stock, layout:align_point_at("sell %d", last_available_i,"right"))
+        love.graphics.print(item.name, layout:padded_point_at("name %d", last_available_i))
+        love.graphics.printf("no sale", layout:align_point_at("buy %d", last_available_i,"center"))
+    end
+
+    self.play_buttons:draw()
+
     message_panel:draw()
+
 end
 
 function play_state.update(self, dt)
 
-    for _, butt in pairs(view.play_buttons) do
-        butt:update(dt)
-    end
+    self.play_buttons:update(dt)
 
     message_panel:update(dt)
 
@@ -837,6 +1010,61 @@ function play_state.update(self, dt)
 
 end
 
+function play_state.update_market_buttons(self)
+
+    self.not_for_sale = {}
+
+    for i=1, #market.db do
+
+        local sell_id = string.format("sell %d", i)
+        local buy_id = string.format("buy %d", i)
+        local market_item = market.available[i]
+        local sell_btn = self.play_buttons:get(sell_id)
+        local buy_btn = self.play_buttons:get(buy_id)
+
+        -- reset button state
+        sell_btn.hidden = false
+        sell_btn.disabled = false
+        buy_btn.hidden = false
+        buy_btn.disabled = false
+
+        -- item is on the market
+        if market_item then
+            local stock_amt = trenchcoat:stock_of(market_item.name)
+            -- set player stock as sell text
+            sell_btn.text = stock_amt
+            buy_btn.text = market_item.cost_amount
+            -- player has no stock to sell, hide the button
+            if stock_amt == 0 then
+                sell_btn.hidden = true
+            end
+            -- player cannot afford 1 unit, disable the button
+            if market_item.cost > player.cash then
+                buy_btn.disabled = true
+            end
+            -- no space left to carry, disable the button
+            if trenchcoat:free_space() == 0 then
+                buy_btn.disabled = true
+            end
+        else
+            -- not on the market, hide the buy and sell buttons
+            buy_btn.hidden = true
+            sell_btn.hidden = true
+        end
+
+        -- list this drug in the not-for-sale list
+        local drug = market.db[i]
+        if not market.is_available[drug.name] and trenchcoat:has(drug.name) then
+            table.insert(self.not_for_sale, {
+                name = drug.name,
+                stock = trenchcoat:stock_of(drug.name)
+            })
+        end
+
+    end
+
+end
+
 function play_state.keypressed(self, key)
     if key == "escape" then
         menu_state:switch()
@@ -844,23 +1072,17 @@ function play_state.keypressed(self, key)
 end
 
 function play_state.mousepressed(self, x, y, button, istouch)
-    for _, butt in pairs(view.play_buttons) do
-        butt:mousepressed(x, y, button, istouch)
-    end
+    self.play_buttons:mousepressed(x, y, button, istouch)
     message_panel:mousepressed(x, y, button, istouch)
 end
 
 function play_state.mousereleased(self, x, y, button, istouch)
-    for _, butt in pairs(view.play_buttons) do
-        butt:mousereleased(x, y, button, istouch)
-    end
+    self.play_buttons:mousereleased(x, y, button, istouch)
     message_panel:mousereleased(x, y, button, istouch)
 end
 
 function play_state.mousemoved(self, x, y, dx, dy, istouch)
-    for _, butt in pairs(view.play_buttons) do
-        butt:mousemoved(x, y, dx, dy, istouch)
-    end
+    self.play_buttons:mousemoved(x, y, dx, dy, istouch)
     message_panel:mousemoved(x, y, dx, dy, istouch)
 end
 
@@ -900,12 +1122,13 @@ function play_state.load_from_file(self)
                 print(string.format("crc mismatch! %d <> %d", other.check, crc))
             end
             player.location = string.gsub(player.location, "_", " ")
+            self:set_location_button()
             player:set_cash()
             player:set_bank()
             player:set_debt()
             market:initialize_predictions()
             market:fluctuate()
-            view:update_market_buttons()
+            --self:update_market_buttons()
             player:generate_events()
         end
     end
@@ -959,7 +1182,6 @@ function player.reset_game(self)
     self.gang_encounter = false
     self.messages = {}
     trenchcoat:reset()
-    view:set_location_text()
 end
 
 function player.lose_health(self, value)
@@ -1004,7 +1226,6 @@ end
 function player.add_day(self, new_location)
     self:clear_messages()
     self.location = new_location
-    view:set_location_text()
     self.day = self.day + 1
     return self.day
 end
@@ -1167,7 +1388,7 @@ function player.generate_events(self)
         player.gang_encounter = risk_factor
     end
 
-    view:update_market_buttons()
+    play_state:update_market_buttons()
 
  --Would you like to buy a .38 Special/Ruger/Saturday Night Special for $0?
  --Will you buy a new trenchcoat with more pockets for $0?
@@ -1187,7 +1408,7 @@ function player.buy_drug(btn)
     if max_purchasable > 0 then
         local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
         player:debit_account(delta * drug.cost)
-        view:update_market_buttons()
+        play_state:update_market_buttons()
         print("bought "..delta.." "..drug.name)
     end
 end
@@ -1197,7 +1418,7 @@ function player.sell_drug(btn)
     local delta, current_stock = trenchcoat:adjust_stock(drug.name, -TRADE_SIZE)
     if delta > 0 then
         player:credit_account(delta * drug.cost)
-        view:update_market_buttons()
+        play_state:update_market_buttons()
         print("sold "..delta.." "..drug.name)
     end
 end
@@ -1320,284 +1541,4 @@ end
 
 function util.pick(...)
     return select(math.random(1, select("#",...)), ...)
-end
-
---        _
--- __   _(_) _____      __
--- \ \ / / |/ _ \ \ /\ / /
---  \ V /| |  __/\ V  V /
---   \_/ |_|\___| \_/\_/
---
-function view.load(self)
-
-    -- load font resources
-    self.largefont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 40)
-    self.mediumfont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 24)
-    self.smallfont = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
-
-    -- create jet & debt buttons
-    local button = require("harness.button")
-    local jet_x, jet_y, jet_w, jet_h = layout:box_at("jet")
-    local debt_x, debt_y, debt_w, debt_h = layout:box_at("debt")
-
-    local jetbutton = button:new{
-        left = jet_x,
-        top = jet_y,
-        width = jet_w,
-        height = jet_h,
-        text = "Jet",
-        alignment = "right",
-        font = self.largefont,
-        callback = jet_state.switch
-    }
-
-    local debtbutton = button:new{
-        left = debt_x,
-        top = debt_y,
-        width = debt_w,
-        height = debt_h,
-        text = "Debt",
-        alignment = "right",
-        draw = function() end,
-        callback = function(btn)
-            print("clicked "..os.date("%c", os.time()))
-            end
-    }
-
-    self.play_buttons = {
-        ["jet"] = jetbutton,
-        ["debt"] = debtbutton
-    }
-
-    -- Create market buy & sell buttons
-    for i=1, #market.db do
-        local sell_id = string.format("sell %d", i)
-        local buy_id = string.format("buy %d", i)
-        local _x, _y, _w, _h = layout:box_at("sell %d", i)
-        self.play_buttons[sell_id] = button:new{
-            repeating = 10,
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = "",
-            title = "Sell",
-            number = i,
-            id = sell_id,
-            alignment = "right",
-            callback = player.sell_drug,
-            font = self.mediumfont
-        }
-        local _x, _y, _w, _h = layout:box_at("buy %d", i)
-        self.play_buttons[buy_id] = button:new{
-            repeating = 10,
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = "",
-            title = "Buy",
-            number = i,
-            id = buy_id,
-            alignment = "right",
-            callback = player.buy_drug,
-            font = self.mediumfont
-        }
-    end
-
-    -- create jet buttons
-    self.jet_buttons = {}
-    for i, title in ipairs(LOCATIONS) do
-        local _x, _y, _w, _h = layout:box_at("loc %d", i)
-        table.insert(self.jet_buttons, button:new{
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = title,
-            callback = jet_state.go,
-            font = self.largefont
-        })
-    end
-    local _x, _y, _w, _h = layout:box_at("jet cancel")
-    table.insert(self.jet_buttons, button:new{
-        left = _x,
-        top = _y,
-        width = _w,
-        height = _h,
-        text = "I changed my mind",
-        callback = jet_state.cancel,
-        font = self.mediumfont
-    })
-
-end
-
-function view.update_market_buttons(self)
-
-    self.not_for_sale = {}
-
-    for i=1, #market.db do
-
-        local sell_id = string.format("sell %d", i)
-        local buy_id = string.format("buy %d", i)
-        local market_item = market.available[i]
-        local sell_btn = self.play_buttons[sell_id]
-        local buy_btn = self.play_buttons[buy_id]
-
-        -- reset button state
-        sell_btn.hidden = false
-        sell_btn.disabled = false
-        buy_btn.hidden = false
-        buy_btn.disabled = false
-
-        -- item is on the market
-        if market_item then
-            local stock_amt = trenchcoat:stock_of(market_item.name)
-            -- set player stock as sell text
-            sell_btn.text = stock_amt
-            buy_btn.text = market_item.cost_amount
-            -- player has no stock to sell, hide the button
-            if stock_amt == 0 then
-                sell_btn.hidden = true
-            end
-            -- player cannot afford 1 unit, disable the button
-            if market_item.cost > player.cash then
-                buy_btn.disabled = true
-            end
-            -- no space left to carry, disable the button
-            if trenchcoat:free_space() == 0 then
-                buy_btn.disabled = true
-            end
-        else
-            -- not on the market, hide the buy and sell buttons
-            buy_btn.hidden = true
-            sell_btn.hidden = true
-        end
-
-        -- list this drug in the not-for-sale list
-        local drug = market.db[i]
-        if not market.is_available[drug.name] and trenchcoat:has(drug.name) then
-            table.insert(self.not_for_sale, {
-                name = drug.name,
-                stock = trenchcoat:stock_of(drug.name)
-            })
-        end
-
-    end
-
-end
-
-function view.set_small_font(self)
-    love.graphics.setFont(self.smallfont)
-end
-
-function view.set_medium_font(self)
-    love.graphics.setFont(self.mediumfont)
-end
-
-function view.set_large_font(self)
-    love.graphics.setFont(self.largefont)
-end
-
-function view.draw_logo(self)
-
-end
-
-function view.draw_player_stats(self)
-
-    love.graphics.setColor(PRIMARY_COLOR)
-
-    if display.mobile then
-        view:set_small_font()
-    else
-        view:set_medium_font()
-    end
-
-    love.graphics.print("Cash", layout:padded_point_at("cash"))
-    love.graphics.printf(player.cash_amount, layout:align_point_at("cash",nil,"right"))
-    --love.graphics.rectangle("line", layout:box_between("cash", "cash amount"))
-    love.graphics.rectangle("line", layout:box_at("cash"))
-    --love.graphics.rectangle("line", layout:box_at("cash amount"))
-    --love.graphics.line(layout:underline_at("cash"))
-    --love.graphics.line(layout:underline_at("cash amount"))
-
-    love.graphics.print("Bank", layout:padded_point_at("bank"))
-    love.graphics.printf(player.bank_amount, layout:align_point_at("bank",nil,"right"))
-    --love.graphics.rectangle("line", layout:box_between("bank", "bank amount"))
-    love.graphics.rectangle("line", layout:box_at("bank"))
-    --love.graphics.rectangle("line", layout:box_at("bank amount"))
-    --love.graphics.line(layout:underline_at("bank"))
-    --love.graphics.line(layout:underline_at("bank amount"))
-
-    love.graphics.print("Debt", layout:padded_point_at("debt"))
-    love.graphics.printf(player.debt_amount, layout:align_point_at("debt",nil,"right"))
-    --love.graphics.rectangle("line", layout:box_between("debt", "debt amount"))
-    love.graphics.rectangle("line", layout:box_at("debt"))
-    --love.graphics.rectangle("line", layout:box_at("debt amount"))
-    --love.graphics.line(layout:underline_at("debt"))
-    --love.graphics.line(layout:underline_at("debt amount"))
-
-    love.graphics.print("Guns", layout:padded_point_at("guns"))
-    love.graphics.printf(player.guns, layout:align_point_at("guns",nil,"right"))
-    --love.graphics.rectangle("line", layout:box_between("guns", "guns amount"))
-    love.graphics.rectangle("line", layout:box_at("guns"))
-    --love.graphics.rectangle("line", layout:box_at("guns amount"))
-    --love.graphics.line(layout:underline_at("guns"))
-    --love.graphics.line(layout:underline_at("guns amount"))
-
-    love.graphics.print("Health", layout:padded_point_at("health"))
-    love.graphics.printf(player.health, layout:align_point_at("health",nil,"right"))
-    --love.graphics.rectangle("line", layout:box_between("health", "health amount"))
-    love.graphics.rectangle("line", layout:box_at("health"))
-    --love.graphics.rectangle("line", layout:box_at("health amount"))
-    --love.graphics.line(layout:underline_at("health"))
-    --love.graphics.line(layout:underline_at("health amount"))
-
-    love.graphics.print("Coat", layout:padded_point_at("free"))
-    love.graphics.printf(trenchcoat:free_space(), layout:align_point_at("free",nil,"right"))
-    --love.graphics.rectangle("line", layout:box_between("free", "free amount"))
-    love.graphics.rectangle("line", layout:box_at("free"))
-    --love.graphics.rectangle("line", layout:box_at("free amount"))
-    --love.graphics.line(layout:underline_at("free"))
-
-    view:set_medium_font()
-    love.graphics.print(string.format("Day %d", player.day), layout:padded_point_at("day"))
-    love.graphics.rectangle("line", layout:box_at("day"))
-    --love.graphics.print(player.location, layout:padded_point_at("location"))
-    --love.graphics.line(layout:underline_at("day"))
-    --love.graphics.line(layout:underline_at("location"))
-
-end
-
-function view.draw_market(self)
-
-    view:set_medium_font()
-
-    love.graphics.setColor(PRIMARY_COLOR)
-    local last_available_i = 0
-
-    -- list stock on the market today
-    for i, item in ipairs(market.available) do
-        love.graphics.print(item.name, layout:padded_point_at("name %d", i))
-        love.graphics.rectangle("line", layout:box_at("name %d", i))
-        last_available_i = i
-    end
-
-    -- list stock not on the market
-    love.graphics.setColor(.7, .7, .7)
-    for _, item in ipairs(self.not_for_sale) do
-        last_available_i = last_available_i + 1
-        love.graphics.printf(item.stock, layout:align_point_at("sell %d", last_available_i,"right"))
-        love.graphics.print(item.name, layout:padded_point_at("name %d", last_available_i))
-        love.graphics.printf("no sale", layout:align_point_at("buy %d", last_available_i,"center"))
-    end
-
-    for _, butt in pairs(self.play_buttons) do
-        butt:draw()
-    end
-
-end
-
-function view.set_location_text(self)
-    self.play_buttons["jet"].text = player.location
 end
