@@ -248,7 +248,6 @@ function encounter_state.switch(self, risk_factor)
     })
 
     active_state = self
-    print(string.format("chased by %d thugs. you can earn a $%d prize.", self.thugs, self.cash_prize))
 end
 
 function encounter_state.exit_state()
@@ -329,14 +328,14 @@ function encounter_state.get_shot_at(self)
     end
     -- chance of being hit is proportional to number of thugs
     local hit_chance = math.min(0.6, self.thugs * 0.2)
-    print(string.format("they fire with hit chance of %d%%", hit_chance * 100))
+    print(string.format("Thugs fire with a hit chance of %d%%.", hit_chance * 100))
     if math.random() < hit_chance then
-        print("you are hit")
+        print("You got hit!")
         player:lose_health(math.random(5, 15))
         self:test_death()
         return "They fire at you! You are hit!"
     else
-        print("they miss")
+        print("They miss!")
         return "They fire at you, and miss!"
     end
 end
@@ -347,11 +346,11 @@ function encounter_state.attempt_run(btn)
     local escape_chance = math.max(0.1, 0.7 - btn.context.thugs * 0.075)
 
     if math.random() < escape_chance then
-        print(string.format("you escaped with chance of %d%%", escape_chance * 100))
+        print(string.format("Escaped with chance of %d%%.", escape_chance * 100))
         btn.context:allow_exit()
         btn.context.outcome = "You lost them in the alleys"
     else
-        print(string.format("failed to escape with chance of %d%%", escape_chance * 100))
+        print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
         btn.context.outcome = "You can't lose them! " .. btn.context:get_shot_at()
     end
 end
@@ -359,9 +358,9 @@ end
 function encounter_state.attempt_fight(btn)
     -- chance of hit is proportional to number of guns carried.
     local hit_chance = math.min(0.75, player.guns * 0.25)
-    print(string.format("you fire with a hit chance of %d%%", hit_chance * 100))
+    print(string.format("Firing with a hit chance of %d%%.", hit_chance * 100))
     if math.random() < hit_chance then
-        print("you hit them")
+        print("Hit!")
         btn.context.thugs = btn.context.thugs - 1
         btn.context:set_message()
         btn.context.outcome = "You hit one of them! " .. btn.context:get_shot_at()
@@ -371,7 +370,7 @@ function encounter_state.attempt_fight(btn)
             btn.context:allow_exit()
         end
     else
-        print("you miss")
+        print("Miss!")
         btn.context.outcome = "You miss! " .. btn.context:get_shot_at()
     end
 end
@@ -991,13 +990,11 @@ function market.fluctuate(self)
                 cost = cost * math.random(3, 6)
                 local template = util.pick(unpack(self.increase_message))
                     or "%s increase template not found"
-                print("TEMPLATE", template)
                 message_panel:add_message(template, GOOD_INFO, drug.name)
             elseif drug.decrease then
                 cost = math.floor(cost / math.random(3, 6))
                 local template = self.decrease_message[drug.name]
                     or "%s decrease template not found"
-                print("TEMPLATE", template)
                 message_panel:add_message(template, GOOD_INFO)
             end
         end
@@ -1101,7 +1098,7 @@ function message_panel.add_message(self, text, color, ...)
     local msg = string.format(text, ...)
     table.insert(self.messages, color)
     table.insert(self.messages, msg.."\n\n")
-    print("message: "..msg)
+    print("Message: "..msg)
 end
 
 function message_panel.is_dragging(self)
@@ -1512,7 +1509,7 @@ end
 
 function play_state.load_from_file(self)
     message_panel:clear_messages()
-    print("LOADING state from file")
+    print("Loading state from file.")
     local file = love.filesystem.newFile("savegame")
     local ok, err = file:open("r")
     local other = {}
@@ -1543,7 +1540,7 @@ function play_state.load_from_file(self)
             end
             local crc = player:crc()
             if crc ~= other.check then
-                print(string.format("crc mismatch! %d <> %d", other.check, crc))
+                print(string.format("crc mismatch! %d <> %d.", other.check, crc))
             end
             player.location = string.gsub(player.location, "_", " ")
             player:set_cash()
@@ -1616,6 +1613,7 @@ end
 
 function player.restore_health(self)
     self.health = 100
+    print("Your health is restored.")
 end
 
 function player.set_cash(self, value)
@@ -1636,10 +1634,6 @@ end
 function player.pay_debt(self, value)
     self.debt = self.debt - value
     self.debt_amount = util.comma_value(self.debt)
-end
-
-function player.add_popup(self, text)
-    print("popup: "..text)
 end
 
 function player.add_day(self, new_location)
@@ -1704,7 +1698,7 @@ function player.generate_events(self)
         if name then
             -- lose it
             local delta = trenchcoat:adjust_stock(name, -math.random(10, 20))
-            print(string.format("event: lost %d %s", delta, name))
+            print(string.format("Event: lost %d %s.", delta, name))
             message_panel:add_message("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!", BAD_INFO)
         end
     end
@@ -1725,7 +1719,7 @@ function player.generate_events(self)
         local amount = math.random(player.cash * .1, player.cash * .25)
         player:debit_account(amount)
         message_panel:add_message("You were mugged in the subway!", BAD_INFO)
-        print(string.format("event: lost $%d", amount))
+        print(string.format("Event: lost $%d.", amount))
     end
 
     if detour then
@@ -1798,12 +1792,12 @@ function player.generate_events(self)
     -- % chance of encounter for every unit of drug carried
     local encounter_chance = (trenchcoat.size - trenchcoat.free) * .001 -- 10% / 100 units
     -- additional risk when carrying these
-    local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003
+    local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003 -- +30%
     local heroin_risk = trenchcoat:stock_of("Heroin") * 0.003
-    local hash_risk = trenchcoat:stock_of("Hashish") * 0.002
+    local hash_risk = trenchcoat:stock_of("Hashish") * 0.002 -- +20%
     local hash_risk = trenchcoat:stock_of("Opium") * 0.002
     local risk_factor = math.min(0.6, encounter_chance + charlie_risk + heroin_risk + hash_risk)
-    print(string.format("test thug encounter against %d%%", risk_factor * 100))
+    print(string.format("Test for thug encounter at %d%%.", risk_factor * 100))
     if fight_encounter < risk_factor then
         player.gang_encounter = risk_factor
     end
@@ -1829,7 +1823,7 @@ function player.buy_drug(btn)
         local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
         player:debit_account(delta * drug.cost)
         play_state:update_button_texts()
-        print("bought "..delta.." "..drug.name)
+        print(string.format("Bought %d %s.", delta, drug.name))
     end
 end
 
@@ -1839,20 +1833,20 @@ function player.sell_drug(btn)
     if delta > 0 then
         player:credit_account(delta * drug.cost)
         play_state:update_button_texts()
-        print("sold "..delta.." "..drug.name)
+        print(string.format("Sold %d %s.", delta, drug.name))
     end
 end
 
 function player.debit_account(self, amount)
     amount = math.floor(amount)
-    print(string.format("account debited with $%d", amount))
+    print(string.format("Account debited $%d.", amount))
     self.cash = self.cash - amount
     self.cash_amount = util.comma_value(self.cash)
 end
 
 function player.credit_account(self, amount)
     amount = math.floor(amount)
-    print(string.format("account credited with $%d", amount))
+    print(string.format("Account credited $%d.", amount))
     self.cash = self.cash + amount
     self.cash_amount = util.comma_value(self.cash)
 end
@@ -1870,7 +1864,7 @@ end
 
 function player.add_gun(self)
     self.guns = self.guns + 1
-    print(string.format("You got a gun, you now have %d", self.guns))
+    print(string.format("Got a gun. You have %d.", self.guns))
 end
 
 --  _                       _                     _
@@ -1930,7 +1924,6 @@ function trenchcoat.get_random(self, minimum_amount)
         local pick = market.db[math.random(1, #market.db)]
         local amount = self:stock_of(pick.name)
         if amount > minimum_amount then
-            print("check "..pick.name.." with amount "..amount)
             return pick.name, amount
         end
     end
@@ -1950,7 +1943,7 @@ function trenchcoat.add_pockets(self)
     local amt = 20
     self.size = self.size + amt
     self.free = self.free + amt
-    print(string.format("You expanded your trenchcoat to %d pockets", self.size))
+    print(string.format("Got a trench coat. You now have %d pockets.", self.size))
 end
 
 --        _   _ _
