@@ -1031,12 +1031,15 @@ function message_panel.draw(self)
 end
 
 function message_panel.update(self, dt)
-    if not self.dragging and self.y < self.rest_y then
+    if not self.locked and not self.dragging and self.y < self.rest_y then
         self.y = math.min(self.rest_y, self.y + (self.y * dt))
     end
 end
 
 function message_panel.mousepressed(self, x, y, button, istouch)
+    if self:is_locked() then
+        self:unlock()
+    end
     if not self.dragging and y > self.y then
         self.dragging = y
     end
@@ -1066,6 +1069,24 @@ function message_panel.add_message(self, text, ...)
     print("message: "..msg)
 end
 
+function message_panel.is_dragging(self)
+    return self.dragging
+end
+
+function message_panel.show_and_lock(self)
+    if #self.messages > 0 then
+        self.y = self.min_y
+        self.locked = true
+    end
+end
+
+function message_panel.is_locked(self)
+    return self.locked
+end
+
+function message_panel.unlock(self)
+    self.locked = false
+end
 
 --        _                   _        _
 --  _ __ | | __ _ _   _   ___| |_ __ _| |_ ___
@@ -1244,12 +1265,16 @@ function play_state.load(self)
 end
 
 function play_state.switch(self)
+
     active_state = self
 
     -- show debt button if player has debt, hide if not in home location
     local debt_button = self.buttons:get("debt button")
     debt_button.text = player.debt_amount
     debt_button.hidden = (player.debt == 0) or (player.location ~= LOCATIONS[1])
+
+    message_panel:show_and_lock()
+
 end
 
 function play_state.update_button_texts(self)
@@ -1402,10 +1427,20 @@ function play_state.update(self, dt)
 end
 
 function play_state.keypressed(self, key)
-    self.buttons:keypressed(key)
     if key == "escape" then
         menu_state:switch()
+    elseif key == "space" then
+        if message_panel:is_locked() then
+            message_panel:unlock()
+        else
+            message_panel:show_and_lock()
+        end
     end
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:keypressed(key)
 end
 
 function play_state.keyreleased(self, key)
@@ -1413,18 +1448,30 @@ function play_state.keyreleased(self, key)
 end
 
 function play_state.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
     message_panel:mousepressed(x, y, button, istouch)
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:mousepressed(x, y, button, istouch)
 end
 
 function play_state.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
     message_panel:mousereleased(x, y, button, istouch)
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:mousereleased(x, y, button, istouch)
 end
 
 function play_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
     message_panel:mousemoved(x, y, dx, dy, istouch)
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
 function play_state.load_from_file(self)
