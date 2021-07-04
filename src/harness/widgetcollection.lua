@@ -27,6 +27,7 @@ local module = { }
 local widgetcollection = { }
 local thispath = select('1', ...):match(".+%.") or ""
 local buttonModule = require(thispath.."button")
+local labelModule = require(thispath.."label")
 
 --- Returns a new widget collection instance.
 --
@@ -168,6 +169,16 @@ end
 function widgetcollection:button(key, parameters)
 
     self.controls[key] = buttonModule:new(parameters)
+    mapkeys(self)
+    focusFirst(self)
+    return self.controls[key]
+
+end
+
+
+function widgetcollection:label(key, parameters)
+
+    self.controls[key] = labelModule:new(parameters)
     mapkeys(self)
     focusFirst(self)
     return self.controls[key]
