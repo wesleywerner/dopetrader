@@ -98,14 +98,18 @@ function love.mousemoved(x, y, dx, dy, istouch)
 end
 
 function love.update(dt)
-    if dt < 1/15 then
-        love.timer.sleep(1/15 - dt)
-    end
+    display:request_default_fps()
     active_state:update(dt)
+    display:update(dt)
 end
 
 function love.draw()
     active_state:draw()
+    if DEBUG then
+        love.graphics.setColor(1, 1, 1)
+        fonts:set_small()
+        love.graphics.print(love.timer.getFPS(), 1, display.safe_h - 20)
+    end
 end
 
 --      _ _           _
@@ -117,6 +121,9 @@ end
 --
 
 function display.load(self)
+
+    self.default_fps = 1/10
+    self.fast_fps = false
 
     display.dpi = love.graphics.getDPIScale()
 
@@ -134,6 +141,20 @@ function display.load(self)
     local osname = love.system.getOS()
     self.mobile = osname == "Android" or osname == "iOS"
 
+end
+
+function display.update(self, dt)
+    if not display.fast_fps and dt < display.default_fps then
+        love.timer.sleep(display.default_fps - dt)
+    end
+end
+
+function display.request_default_fps(self)
+    self.fast_fps = false
+end
+
+function display.request_fast_fps(self)
+    self.fast_fps = true
 end
 
 --                                   _
@@ -230,6 +251,10 @@ function encounter_state.exit_state()
 end
 
 function encounter_state.update(self, dt)
+    if self.health_counter_refresh ~= self.health_counter.value then
+        self.health_counter_refresh = self.health_counter.value
+        display:request_fast_fps()
+    end
     self.health_counter:update(dt)
 end
 
@@ -294,6 +319,9 @@ function encounter_state.visit_doctor()
 end
 
 function encounter_state.get_shot_at(self)
+    if self.thugs == 0 then
+        return ""
+    end
     -- chance of being hit is proportional to number of thugs
     local hit_chance = math.min(0.6, self.thugs * 0.2)
     print(string.format("they fire with hit chance of %d%%", hit_chance * 100))
@@ -1032,6 +1060,10 @@ end
 function message_panel.update(self, dt)
     if not self.locked and not self.dragging and self.y < self.rest_y then
         self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
+        display:request_fast_fps()
+    end
+    if self.dragging then
+        display:request_fast_fps()
     end
 end
 
@@ -1398,6 +1430,7 @@ function play_state.update(self, dt)
     -- Update player stats labels
     self.cash_counter:update(dt)
     if self.cash_counter_refresh ~= self.cash_counter.value then
+        display:request_fast_fps()
         self.cash_counter_refresh = self.cash_counter.value
         self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
     end
