@@ -1575,11 +1575,12 @@ function player.generate_events(self)
     end
 
     -- % chance of encounter for every unit of drug carried
-    local encounter_chance = (trenchcoat.size - trenchcoat.free) * .001
+    local encounter_chance = (trenchcoat.size - trenchcoat.free) * .001 -- 10% / 100 units
     -- additional risk when carrying these
     local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003
     local heroin_risk = trenchcoat:stock_of("Heroin") * 0.003
     local hash_risk = trenchcoat:stock_of("Hashish") * 0.002
+    local hash_risk = trenchcoat:stock_of("Opium") * 0.002
     local risk_factor = math.min(0.6, encounter_chance + charlie_risk + heroin_risk + hash_risk)
     print(string.format("test thug encounter against %d%%", risk_factor * 100))
     if fight_encounter < risk_factor then
