@@ -117,6 +117,14 @@ function module:new(args)
     local osname = love.system.getOS()
     instance.mobile = osname == "Android" or osname == "iOS"
 
+    -- pad right aligned
+    instance.title_padding = 10
+    if instance.alignment == "right" then
+        instance.right_padding = 10
+    else
+        instance.right_padding = 0
+    end
+
     return instance
 
 end
@@ -175,9 +183,9 @@ function module_mt.draw(self)
         love.graphics.setFont(self.font)
     end
     if self.title then
-        love.graphics.print(self.title, self.left+4, self.top + self.y_offset)
+        love.graphics.print(self.title, self.left + self.title_padding, self.top + self.y_offset)
     end
-    love.graphics.printf(self.text, self.left, self.top + self.y_offset, self.width-10, self.alignment)
+    love.graphics.printf(self.text, self.left, self.top + self.y_offset, self.width - self.right_padding, self.alignment)
     love.graphics.pop()
 end
 

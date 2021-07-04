@@ -29,6 +29,8 @@
 
 local TRADE_SIZE = 1
 local PRIMARY_COLOR = {0, 1, 1}
+local GOOD_COLOR = {0, 1, 0}
+local BAD_COLOR = {1, 1, 0}
 local LOCATIONS = {"Bronx", "Ghetto", "Central Park",
                     "Manhattan", "Coney Island", "Brooklyn" }
 
@@ -144,7 +146,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Run",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         callback = self.attempt_run
     })
 
@@ -156,7 +158,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Fight",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         callback = self.attempt_fight
     })
 
@@ -167,7 +169,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "I'm outta here",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         hidden = true,
         callback = self.exit_state
     })
@@ -179,7 +181,7 @@ function encounter_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Patch me up, doc!",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         hidden = true,
         callback = self.visit_doctor
     })
@@ -376,6 +378,48 @@ function fonts.set_large(self)
     love.graphics.setFont(self.large)
 end
 
+function fonts.for_title(self)
+    if display.mobile then
+        return self.large
+    else
+        return self.large
+    end
+end
+
+function fonts.for_menu_button(self)
+    if display.mobile then
+        return self.large
+    else
+        return self.large
+    end
+end
+
+function fonts.for_market_button(self)
+    if display.mobile then
+        return self.small
+    else
+        return self.medium
+    end
+end
+
+function fonts.for_jet_button(self)
+    if display.mobile then
+        return self.medium
+    else
+        return self.large
+    end
+end
+
+function fonts.for_player_stats(self)
+    if display.mobile then
+        return self.small
+    else
+        return self.medium
+    end
+end
+
+
+
 --    _      _         _        _
 --   (_) ___| |_   ___| |_ __ _| |_ ___
 --   | |/ _ \ __| / __| __/ _` | __/ _ \
@@ -397,7 +441,7 @@ function jet_state.load(self)
             height = _h,
             text = title,
             callback = jet_state.go,
-            font = fonts.large
+            font = fonts:for_jet_button()
         })
     end
 
@@ -409,7 +453,7 @@ function jet_state.load(self)
         height = _h,
         text = "I changed my mind",
         callback = jet_state.cancel,
-        font = fonts.medium
+        font = fonts:for_jet_button()
     })
 
 end
@@ -428,7 +472,7 @@ end
 
 function jet_state.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
-    fonts:set_large()
+    love.graphics.setFont(fonts:for_title())
     love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
     self.buttons:draw()
 end
@@ -481,7 +525,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "New Game",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         callback = self.new_game
     })
 
@@ -493,7 +537,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Resume Game",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         callback = self.resume_game,
         disabled = true
     })
@@ -506,7 +550,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "High Rollers",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         callback = self.view_scores,
         disabled = true
     })
@@ -519,7 +563,7 @@ function menu_state.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "About",
-        font = fonts.large,
+        font = fonts:for_menu_button(),
         callback = self.view_about,
         disabled = true
     })
@@ -853,7 +897,7 @@ function play_state.load(self)
         height = jet_box[4],
         text = "Jet",
         alignment = "right",
-        font = fonts.large,
+        font = fonts:for_jet_button(),
         callback = jet_state.switch
     })
 
@@ -886,7 +930,7 @@ function play_state.load(self)
             id = sell_id,
             alignment = "right",
             callback = player.sell_drug,
-            font = fonts.medium
+            font = fonts:for_market_button()
         })
         local _x, _y, _w, _h = layout:box_at("buy %d", i)
         self.play_buttons:button(buy_id, {
@@ -901,7 +945,7 @@ function play_state.load(self)
             id = buy_id,
             alignment = "right",
             callback = player.buy_drug,
-            font = fonts.medium
+            font = fonts:for_market_button()
         })
     end
 
@@ -943,12 +987,7 @@ function play_state.draw(self)
 
     -- Draw player stats
     love.graphics.setColor(PRIMARY_COLOR)
-
-    if display.mobile then
-        fonts:set_small()
-    else
-        fonts:set_medium()
-    end
+    love.graphics.setFont(fonts:for_player_stats())
 
     love.graphics.print("Cash", layout:padded_point_at("cash"))
     love.graphics.printf(player.cash_amount, layout:align_point_at("cash",nil,"right"))
@@ -978,19 +1017,18 @@ function play_state.draw(self)
     love.graphics.print(string.format("Day %d", player.day), layout:padded_point_at("day"))
     love.graphics.rectangle("line", layout:box_at("day"))
 
-    -- Draw market buy/sell
-    fonts:set_medium()
-
     love.graphics.setColor(PRIMARY_COLOR)
     local last_available_i = 0
 
-    -- list stock on the market today
+    -- Market drug labels
+    love.graphics.setFont(fonts:for_market_button())
     for i, item in ipairs(market.available) do
         love.graphics.print(item.name, layout:padded_point_at("name %d", i))
         love.graphics.rectangle("line", layout:box_at("name %d", i))
         last_available_i = i
     end
 
+    -- TODO: reuse existing controls, disabled sell button "no sale", hidden buy button
     -- list stock not on the market
     love.graphics.setColor(.7, .7, .7)
     for _, item in ipairs(self.not_for_sale) do
