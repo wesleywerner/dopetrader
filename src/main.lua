@@ -52,6 +52,7 @@ local cops_state = {}
 local scores_state = {}
 local active_state = {}
 local encounter_state = {}
+local loan_shark_state = {}
 
 function love.load()
 
@@ -70,6 +71,7 @@ function love.load()
     play_state:load()
     jet_state:load()
     encounter_state:load()
+    loan_shark_state:load()
 
     menu_state:switch()
 end
@@ -686,6 +688,126 @@ function menu_state.resume_game(btn)
     play_state:switch()
 end
 
+--  _                 _       _                _
+-- | | ___   __ _  __| |  ___| |__   __ _ _ __| | __
+-- | |/ _ \ / _` |/ _` | / __| '_ \ / _` | '__| |/ /
+-- | | (_) | (_| | (_| | \__ \ | | | (_| | |  |   <
+-- |_|\___/ \__,_|\__,_| |___/_| |_|\__,_|_|  |_|\_\
+--
+function loan_shark_state.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local box = layout.box["close prompt"]
+    self.buttons:button("close", {
+        left = box[1],
+        top = box[2],
+        width = box[3],
+        height = box[4],
+        text = "I'm outta here",
+        font = fonts:for_menu_button(),
+        callback = self.exit_state
+    })
+
+    local box = layout.box["alt close prompt"]
+    self.buttons:button("pay", {
+        left = box[1],
+        top = box[2],
+        width = box[3],
+        height = box[4],
+        text = "Pay",
+        font = fonts:for_menu_button(),
+        callback = self.pay_debt,
+        context = self
+    })
+
+end
+
+function loan_shark_state.switch(self)
+
+    self.message = util.pick(
+        "The loan shark eyes you suspiciously",
+        "The loan shark counts bills while waiting for you",
+        "\"Are you going to pay up, or should I call Tyre-Iron Tyrone?\"",
+        "\"I hope you have my cash, chum.\"")
+
+    self.debt_amount = util.comma_value(player.debt)
+    self.pay_max = math.min(player.debt, player.cash)
+    self.pay_amount = self.pay_max
+    self.pay_amount_text = util.comma_value(self.pay_amount)
+    self.slider_y = math.floor(display.safe_h / 2)
+    self.slider_x1 = 40
+    self.slider_x2 = display.safe_w - 40
+    self.slider_width = self.slider_x2 - self.slider_x1
+    self.slider_position = self.slider_x2
+
+    active_state = self
+
+end
+
+function loan_shark_state.update(self, dt)
+
+end
+
+function loan_shark_state.draw(self)
+
+    self.buttons:draw()
+
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.print("Debt", layout:padded_point_at("title"))
+    love.graphics.printf(self.debt_amount, layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+
+    love.graphics.line(self.slider_x1, self.slider_y, self.slider_x2, self.slider_y)
+    fonts:set_large()
+    love.graphics.print("$", self.slider_position, self.slider_y - 20)
+    love.graphics.printf(self.pay_amount_text, self.slider_x1, self.slider_y + 20, self.slider_width, "center")
+
+end
+
+function loan_shark_state.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        play_state:switch()
+    end
+end
+
+function loan_shark_state.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function loan_shark_state.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+    self.isdown = true
+end
+
+function loan_shark_state.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+    self.isdown = false
+end
+
+function loan_shark_state.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+    if self.isdown and math.abs(self.slider_y - y) < 60 then
+        self.slider_position = math.max(self.slider_x1, math.min(self.slider_x2, x))
+        local ratio = (self.slider_position - self.slider_x1) / self.slider_width
+        self.pay_amount = math.floor(self.pay_max * ratio)
+        self.pay_amount_text = util.comma_value(self.pay_amount)
+    end
+end
+
+function loan_shark_state.exit_state()
+    play_state:switch()
+end
+
+function loan_shark_state.pay_debt(btn)
+    player:debit_account(btn.context.pay_amount)
+    player:pay_debt(btn.context.pay_amount)
+    play_state:switch()
+end
+
 
 --  _                         _
 -- | | __ _ _   _  ___  _   _| |_
@@ -1050,15 +1172,16 @@ function play_state.load(self)
     })
 
     local debt_box = layout.box["debt"]
-    self.buttons:button("debt", {
+    self.buttons:button("debt button", {
         left = debt_box[1],
         top = debt_box[2],
         width = debt_box[3],
         height = debt_box[4],
-        text = "Debt",
+        title = "Debt",
+        text = "0",
         alignment = "right",
-        hidden = true
-        --callback = TODO
+        font = fonts:for_player_stats(),
+        callback = self.visit_loanshark
     })
 
     -- Create market name labels, buy & sell buttons
@@ -1122,6 +1245,11 @@ end
 
 function play_state.switch(self)
     active_state = self
+
+    -- show debt button if player has debt, hide if not in home location
+    local debt_button = self.buttons:get("debt button")
+    debt_button.text = player.debt_amount
+    debt_button.hidden = (player.debt == 0) or (player.location ~= LOCATIONS[1])
 end
 
 function play_state.update_button_texts(self)
@@ -1368,6 +1496,10 @@ function play_state.remove_save(self)
     love.filesystem.remove("savegame")
 end
 
+function play_state.visit_loanshark(self)
+    loan_shark_state:switch()
+end
+
 --        _
 --  _ __ | | __ _ _   _  ___ _ __
 -- | '_ \| |/ _` | | | |/ _ \ '__|
@@ -1415,6 +1547,11 @@ end
 
 function player.set_debt(self, value)
     self.debt = value or self.debt
+    self.debt_amount = util.comma_value(self.debt)
+end
+
+function player.pay_debt(self, value)
+    self.debt = self.debt - value
     self.debt_amount = util.comma_value(self.debt)
 end
 
