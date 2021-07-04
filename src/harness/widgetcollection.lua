@@ -74,16 +74,30 @@ end
 --
 -- @tparam table instance
 -- The widget collection instance to work on.
-local function focusNext(instance)
+local function focusNext(instance, loop_limit)
 
     instance.focusedKey = instance.focusedKey + 1
     if instance.focusedKey > #instance.keymap then
         instance.focusedKey = 1
     end
 
+    -- repeat this action while no focus is found, with a loop limiter
+    local found_focus = false
+    if loop_limit and loop_limit > 10 then
+        return
+    end
+
     -- apply focus
     for key, control in pairs(instance.controls) do
-        control.focused = (key == instance.keymap[instance.focusedKey].key)
+        local skip = control.hidden or control.disabled or not control.callback
+        control.focused = not skip and (key == instance.keymap[instance.focusedKey].key)
+        if control.focused then
+            found_focus = true
+        end
+    end
+
+    if not found_focus then
+        focusNext(instance, (loop_limit or 0) + 1)
     end
 
 end
@@ -93,16 +107,30 @@ end
 --
 -- @tparam table instance
 -- The widget collection instance to work on.
-local function focusPrev(instance)
+local function focusPrev(instance, loop_limit)
 
     instance.focusedKey = instance.focusedKey - 1
     if instance.focusedKey < 1 then
         instance.focusedKey = #instance.keymap
     end
 
+    -- repeat this action while no focus is found, with a loop limiter
+    local found_focus = false
+    if loop_limit and loop_limit > 10 then
+        return
+    end
+
     -- apply focus
     for key, control in pairs(instance.controls) do
-        control.focused = (key == instance.keymap[instance.focusedKey].key)
+        local skip = control.hidden or control.disabled or not control.callback
+        control.focused = not skip and (key == instance.keymap[instance.focusedKey].key)
+        if control.focused then
+            found_focus = true
+        end
+    end
+
+    if not found_focus then
+        focusPrev(instance, (loop_limit or 0) + 1)
     end
 
 end
@@ -173,10 +201,16 @@ function widgetcollection:keypressed(key)
         end
     elseif key == "return" or key == "kpenter" then
         local control = self.controls[self.keymap[self.focusedKey].key]
-        control.down = true
-        control.downdt = .1
+        control:mousepressed()
     end
 
+end
+
+function widgetcollection:keyreleased(key,scancode)
+    if key == "return" or key == "kpenter" then
+        local control = self.controls[self.keymap[self.focusedKey].key]
+        control:mousereleased()
+    end
 end
 
 --- Process click/touch movement on all elements in the collection.
@@ -220,20 +254,6 @@ function widgetcollection:update(dt)
 
         -- update control state
         control:update(dt)
-
-        -- reduce down timeout
-        if control.downdt then
-           control.downdt = control.downdt - dt
-           -- release down state when timer expires
-           if control.downdt < 0 then
-                control.downdt = nil
-                control.down = false
-                -- fire the callback
-                if type(control.callback) == "function" then
-                    control.callback(control)
-                end
-           end
-        end
 
     end
 

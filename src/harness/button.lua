@@ -224,8 +224,10 @@ function module_mt:mousepressed(x, y, button, istouch)
 
     if not self.disabled and not self.hidden then
         self.down = self.focused
-        self.down_tics = 0.4
-        self.has_repeated = false
+        if self.down then
+            self.down_tics = 0.4
+            self.has_repeated = false
+        end
     end
 
 end

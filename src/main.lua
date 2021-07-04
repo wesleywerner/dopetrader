@@ -76,6 +76,10 @@ function love.keypressed(key, isrepeat)
     active_state:keypressed(key)
 end
 
+function love.keyreleased(key, scancode)
+    active_state:keyreleased(key)
+end
+
 function love.mousepressed(x, y, button, istouch)
     active_state:mousepressed(x, y, button, istouch)
 end
@@ -248,6 +252,10 @@ function encounter_state.keypressed(self, key)
     if key == "escape" then
         menu_state:switch()
     end
+end
+
+function encounter_state.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
 end
 
 function encounter_state.mousepressed(self, x, y, button, istouch)
@@ -484,6 +492,10 @@ function jet_state.keypressed(self, key)
     end
 end
 
+function jet_state.keyreleased(self, key)
+    self.buttons:keyreleased(key)
+end
+
 function jet_state.mousepressed(self, x, y, button, istouch)
     self.buttons:mousepressed(x, y, button, istouch)
 end
@@ -592,6 +604,10 @@ function menu_state.keypressed(self, key)
     if key == "escape" then
         love.event.quit()
     end
+end
+
+function menu_state.keyreleased(self, key)
+    self.buttons:keyreleased(key)
 end
 
 function menu_state.mousepressed(self, x, y, button, istouch)
@@ -886,11 +902,11 @@ end
 function play_state.load(self)
 
     local wc = require("harness.widgetcollection")
-    self.play_buttons = wc:new()
+    self.buttons = wc:new()
 
     -- create jet & debt buttons
     local jet_box = layout.box["jet"]
-    self.play_buttons:button("jet", {
+    self.buttons:button("jet", {
         left = jet_box[1],
         top = jet_box[2],
         width = jet_box[3],
@@ -902,7 +918,7 @@ function play_state.load(self)
     })
 
     local debt_box = layout.box["debt"]
-    self.play_buttons:button("debt", {
+    self.buttons:button("debt", {
         left = debt_box[1],
         top = debt_box[2],
         width = debt_box[3],
@@ -918,7 +934,7 @@ function play_state.load(self)
         local sell_id = string.format("sell %d", i)
         local buy_id = string.format("buy %d", i)
         local _x, _y, _w, _h = layout:box_at("sell %d", i)
-        self.play_buttons:button(sell_id, {
+        self.buttons:button(sell_id, {
             repeating = 10,
             left = _x,
             top = _y,
@@ -933,7 +949,7 @@ function play_state.load(self)
             font = fonts:for_market_button()
         })
         local _x, _y, _w, _h = layout:box_at("buy %d", i)
-        self.play_buttons:button(buy_id, {
+        self.buttons:button(buy_id, {
             repeating = 10,
             left = _x,
             top = _y,
@@ -956,7 +972,7 @@ function play_state.switch(self)
 end
 
 function play_state.set_location_button(self)
-    self.play_buttons:get("jet").text = player.location
+    self.buttons:get("jet").text = player.location
 end
 
 function play_state.new_game(self)
@@ -1038,7 +1054,7 @@ function play_state.draw(self)
         love.graphics.printf("no sale", layout:align_point_at("buy %d", last_available_i,"center"))
     end
 
-    self.play_buttons:draw()
+    self.buttons:draw()
 
     message_panel:draw()
 
@@ -1046,7 +1062,7 @@ end
 
 function play_state.update(self, dt)
 
-    self.play_buttons:update(dt)
+    self.buttons:update(dt)
 
     message_panel:update(dt)
 
@@ -1072,8 +1088,8 @@ function play_state.update_market_buttons(self)
         local sell_id = string.format("sell %d", i)
         local buy_id = string.format("buy %d", i)
         local market_item = market.available[i]
-        local sell_btn = self.play_buttons:get(sell_id)
-        local buy_btn = self.play_buttons:get(buy_id)
+        local sell_btn = self.buttons:get(sell_id)
+        local buy_btn = self.buttons:get(buy_id)
 
         -- reset button state
         sell_btn.hidden = false
@@ -1119,23 +1135,28 @@ function play_state.update_market_buttons(self)
 end
 
 function play_state.keypressed(self, key)
+    self.buttons:keypressed(key)
     if key == "escape" then
         menu_state:switch()
     end
 end
 
+function play_state.keyreleased(self, key)
+    self.buttons:keyreleased(key)
+end
+
 function play_state.mousepressed(self, x, y, button, istouch)
-    self.play_buttons:mousepressed(x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
     message_panel:mousepressed(x, y, button, istouch)
 end
 
 function play_state.mousereleased(self, x, y, button, istouch)
-    self.play_buttons:mousereleased(x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
     message_panel:mousereleased(x, y, button, istouch)
 end
 
 function play_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.play_buttons:mousemoved(x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
     message_panel:mousemoved(x, y, dx, dy, istouch)
 end
 
