@@ -223,8 +223,13 @@ function encounter_state.switch(self, risk_factor)
     -- load prediction
     math.randomseed(market.predictions[player.day])
 
-    self.thugs = math.random(1, 10 * risk_factor)
+    local upper_thugs = 20 * risk_factor
+    self.thugs = math.random(1, upper_thugs)
+    print(string.format("Encounter picked %d out of %d thugs, from risk factor %d%%.", self.thugs, upper_thugs, risk_factor * 100))
+
     self.cash_prize = (math.random() * 1000) + self.thugs * 1000
+    print(string.format("You can earn $%d if you win this fight.", self.cash_prize))
+
     self.doctors_fees = 1000
     self:set_message()
     self.outcome = ""
