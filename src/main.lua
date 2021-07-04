@@ -27,6 +27,7 @@
 
 ]]--
 
+local DEBUG = 1
 local TRADE_SIZE = 1
 local PRIMARY_COLOR = {0, 1, 1}
 local GOOD_COLOR = {0, 1, 0}
@@ -42,6 +43,7 @@ local fonts = {}
 local trenchcoat = {}
 local util = {}
 local message_panel = {}
+local test = {}
 
 local menu_state = {}
 local play_state = {}
@@ -511,7 +513,6 @@ end
 function jet_state.go(btn)
     -- TODO: flashing "subway" text with animated train across the screen
     play_state:next_day(btn.text)
-    play_state:switch()
 end
 
 function jet_state.cancel(btn)
@@ -567,6 +568,19 @@ function menu_state.load(self)
         disabled = true
     })
 
+    local run_box = layout.box["options"]
+    self.buttons:button("options", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Options",
+        font = fonts:for_menu_button(),
+        callback = self.view_about,
+        disabled = true
+    })
+
     local run_box = layout.box["about"]
     self.buttons:button("about", {
         context = self,
@@ -580,6 +594,42 @@ function menu_state.load(self)
         disabled = true
     })
 
+    if DEBUG then
+        local z_box = layout.box["debug 1"]
+        self.buttons:button("debug cash", {
+            context = self,
+            left = z_box[1],
+            top = z_box[2],
+            width = z_box[3],
+            height = z_box[4],
+            text = "$",
+            font = fonts:for_player_stats(),
+            callback = test.add_cash
+        })
+        local z_box = layout.box["debug 2"]
+        self.buttons:button("debug guns", {
+            context = self,
+            left = z_box[1],
+            top = z_box[2],
+            width = z_box[3],
+            height = z_box[4],
+            text = "Guns",
+            font = fonts:for_player_stats(),
+            callback = test.add_guns
+        })
+        local z_box = layout.box["debug 3"]
+        self.buttons:button("debug pockets", {
+            context = self,
+            left = z_box[1],
+            top = z_box[2],
+            width = z_box[3],
+            height = z_box[4],
+            text = "Pockets",
+            font = fonts:for_player_stats(),
+            callback = test.add_pockets
+        })
+    end
+
 end
 
 function menu_state.update(self, dt)
@@ -589,7 +639,7 @@ end
 function menu_state.switch(self)
     local savegame_exists = love.filesystem.getInfo("savegame", "file") ~= nil
     self.buttons:get("resume").disabled = not savegame_exists
-    active_state = self
+    active_state = menu_state
 end
 
 function menu_state.draw(self)
@@ -628,8 +678,11 @@ function menu_state.new_game(btn)
 end
 
 function menu_state.resume_game(btn)
-    play_state:new_game()
-    play_state:load_from_file()
+    -- load from disk if no day, otherwise resumes game in-progress
+    if player.game_over then
+        play_state:new_game()
+        play_state:load_from_file()
+    end
     play_state:switch()
 end
 
@@ -1163,9 +1216,12 @@ function play_state.next_day(self, new_location)
         self:update_button_texts()
         self:save_to_file()
         player:generate_events()
+        play_state:switch()
     else
         self:remove_save()
         -- TODO: switch to end game state
+        -- clear day flag
+        player.game_over = true
         menu_state:switch()
     end
 end
@@ -1307,7 +1363,7 @@ end
 -- |_|            |___/
 --
 function player.load(self)
-    --self:reset_game()
+    self.game_over = true
     message_panel:clear_messages()
 end
 
@@ -1322,6 +1378,7 @@ function player.reset_game(self)
     self:set_debt(5500)
     self.location = LOCATIONS[1]
     self.gang_encounter = false
+    self.game_over = false
     trenchcoat:reset()
 end
 
@@ -1576,6 +1633,10 @@ function player.crc(self)
     return (trenchcoat:crc() + crc) % 255
 end
 
+function player.add_gun(self)
+    self.guns = self.guns + 1
+    print(string.format("You got a gun, you now have %d", self.guns))
+end
 
 --  _                       _                     _
 -- | |_ _ __ ___ _ __   ___| |__   ___ ___   __ _| |_
@@ -1650,6 +1711,13 @@ function trenchcoat.crc(self)
     return crc % 255
 end
 
+function trenchcoat.add_pockets(self)
+    local amt = 20
+    self.size = self.size + amt
+    self.free = self.free + amt
+    print(string.format("You expanded your trenchcoat to %d pockets", self.size))
+end
+
 --        _   _ _
 --  _   _| |_(_) |
 -- | | | | __| | |
@@ -1669,4 +1737,22 @@ end
 
 function util.pick(...)
     return select(math.random(1, select("#",...)), ...)
+end
+
+--  _            _
+-- | |_ ___  ___| |_
+-- | __/ _ \/ __| __|
+-- | ||  __/\__ \ |_
+--  \__\___||___/\__|
+
+function test.add_pockets(self)
+    trenchcoat:add_pockets()
+end
+
+function test.add_guns(self)
+    player:add_gun()
+end
+
+function test.add_cash(self)
+    player:credit_account(25000)
 end
