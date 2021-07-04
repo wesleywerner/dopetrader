@@ -1109,6 +1109,15 @@ function play_state.load(self)
         })
     end
 
+    -- animate player cash value
+    local dr = require("harness.digitroller")
+    self.cash_counter_refresh = 0
+    self.cash_counter = dr:new({
+        duration = 2,
+        subject = player,
+        target = "cash"
+    })
+
 end
 
 function play_state.switch(self)
@@ -1236,7 +1245,11 @@ end
 function play_state.update(self, dt)
 
     -- Update player stats labels
-    self.buttons:get("cash label").text = player.cash_amount
+    self.cash_counter:update(dt)
+    if self.cash_counter_refresh ~= self.cash_counter.value then
+        self.cash_counter_refresh = self.cash_counter.value
+        self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
+    end
     self.buttons:get("bank label").text = player.bank_amount
     self.buttons:get("debt label").text = player.debt_amount
     self.buttons:get("guns label").text = player.guns
@@ -1363,6 +1376,7 @@ end
 -- |_|            |___/
 --
 function player.load(self)
+    self.cash = 0
     self.game_over = true
     message_panel:clear_messages()
 end
