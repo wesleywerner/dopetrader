@@ -1382,8 +1382,7 @@ function player.load(self)
 end
 
 function player.reset_game(self)
-    -- TODO: random seed
-    self.seed = 42
+    self.seed = os.time()
     self.day = 1
     self:set_cash(2000)
     self.health = 100
