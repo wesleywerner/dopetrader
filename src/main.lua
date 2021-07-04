@@ -30,8 +30,9 @@
 local DEBUG = 1
 local TRADE_SIZE = 1
 local PRIMARY_COLOR = {0, 1, 1}
-local GOOD_COLOR = {0, 1, 0}
-local BAD_COLOR = {1, 1, 0}
+local GOOD_INFO = {0, 1, .5}
+local BAD_INFO = {1, 1, .5}
+local ZERO_INFO = {.5, 1, 1}
 local LOCATIONS = {"Bronx", "Ghetto", "Central Park",
                     "Manhattan", "Coney Island", "Brooklyn" }
 
@@ -955,14 +956,16 @@ function market.fluctuate(self)
         if math.random() < .15 then
             if drug.increase then
                 cost = cost * math.random(3, 6)
-                local template = self.increase_message[math.random(1, #self.increase_message)]
+                local template = util.pick(unpack(self.increase_message))
                     or "%s increase template not found"
-                message_panel:add_message(string.format(template, drug.name))
+                print("TEMPLATE", template)
+                message_panel:add_message(template, GOOD_INFO, drug.name)
             elseif drug.decrease then
                 cost = math.floor(cost / math.random(3, 6))
                 local template = self.decrease_message[drug.name]
                     or "%s decrease template not found"
-                message_panel:add_message(template)
+                print("TEMPLATE", template)
+                message_panel:add_message(template, GOOD_INFO)
             end
         end
 
@@ -993,7 +996,7 @@ function message_panel.load(self)
     _, self.rest_y = layout:point_at("messages")
 
     -- dont drag messages above this point
-    self.min_y = display.safe_h/2
+    self.min_y = display.safe_h/4
 
     -- panel position
     self.y = self.rest_y
@@ -1019,20 +1022,16 @@ function message_panel.draw(self)
         love.graphics.setColor(0, 1, 1)
     end
     love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
-    -- text
-    -- TODO: color text by message priority
     if self.y ~= self.rest_y then
         fonts:set_medium()
-        --love.graphics.setColor(0, 0, 0)
-        --love.graphics.printf(player.joined_messages, 3, self.y + self.text_y + 1, display.safe_w)
-        love.graphics.setColor(0, 1, 1)
-        love.graphics.printf(self.joined_messages, 4, self.y + self.text_y, display.safe_w)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
     end
 end
 
 function message_panel.update(self, dt)
     if not self.locked and not self.dragging and self.y < self.rest_y then
-        self.y = math.min(self.rest_y, self.y + (self.y * dt))
+        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
     end
 end
 
@@ -1059,13 +1058,12 @@ end
 
 function message_panel.clear_messages(self)
     self.messages = {}
-    self.joined_messages = ""
 end
 
-function message_panel.add_message(self, text, ...)
+function message_panel.add_message(self, text, color, ...)
     local msg = string.format(text, ...)
-    table.insert(self.messages, msg)
-    self.joined_messages = self.joined_messages .. msg .. "\n"
+    table.insert(self.messages, color)
+    table.insert(self.messages, msg.."\n\n")
     print("message: "..msg)
 end
 
@@ -1642,10 +1640,10 @@ function player.generate_events(self)
         local brownie_text = "Your mama made brownies with some of your %s! They were great!"
         if trenchcoat:stock_of("Hashish") > 20 then
             trenchcoat:adjust_stock("Hashish", -math.random(1, 4))
-            message_panel:add_message(brownie_text, "hash")
+            message_panel:add_message(brownie_text, BAD_INFO, "hash")
         elseif trenchcoat:stock_of("Weed") > 20 then
             trenchcoat:adjust_stock("Weed", -math.random(1, 4))
-            message_panel:add_message(brownie_text, "weed")
+            message_panel:add_message(brownie_text, BAD_INFO, "weed")
         end
     end
 
@@ -1658,7 +1656,7 @@ function player.generate_events(self)
             local flavor = util.pick(
                 "they borrow some %s from you.",
                 "you give some %s to them.")
-            message_panel:add_message("You meet a friend, "..flavor, name)
+            message_panel:add_message("You meet a friend, "..flavor, BAD_INFO, name)
         end
     end
 
@@ -1669,7 +1667,7 @@ function player.generate_events(self)
             -- lose it
             local delta = trenchcoat:adjust_stock(name, -math.random(10, 20))
             print(string.format("event: lost %d %s", delta, name))
-            message_panel:add_message("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!")
+            message_panel:add_message("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!", BAD_INFO)
         end
     end
 
@@ -1681,21 +1679,21 @@ function player.generate_events(self)
             local flavor = util.pick(
                 "You find %d units of %s on a dead dude in the subway!",
                 "You meet a friend, they lay %d units of %s on you.")
-            message_panel:add_message(flavor, delta, drug.name)
+            message_panel:add_message(flavor, GOOD_INFO, delta, drug.name)
         end
     end
 
     if mugged then
         local amount = math.random(player.cash * .1, player.cash * .25)
         player:debit_account(amount)
-        message_panel:add_message("You were mugged in the subway!")
+        message_panel:add_message("You were mugged in the subway!", BAD_INFO)
         print(string.format("event: lost $%d", amount))
     end
 
     if detour then
         local bad_thing = util.pick("have a beer.", "smoke a joint.",
             "smoke a cigar.", "smoke a Djarum.", "smoke a cigarette.")
-        message_panel:add_message("You stopped to "..bad_thing)
+        message_panel:add_message("You stopped to "..bad_thing, ZERO_INFO)
     end
 
     if subway_anecdote then
@@ -1729,10 +1727,11 @@ function player.generate_events(self)
         "Just say No... well, maybe... Ok, what the hell!",
         "Would you like a jelly baby?",
         "Drugs can be your friend!")
-        message_panel:add_message("The lady next to you on the subway said, `%s`",anecdote)
+        local thought = ""
         if math.random() < .3 then
-            message_panel:add_message("(at least, you -think- that's what she said)")
+            thought = " (at least, you -think- that's what she said)"
         end
+        message_panel:add_message("The lady next to you on the subway said, `%s` %s", ZERO_INFO, anecdote, thought)
     end
 
     if hear_music then
@@ -1755,7 +1754,7 @@ function player.generate_events(self)
         "`Kicks` by Paul Revere & the Raiders",
         "the Nixon tapes",
         "`Legalize It` by Mojo Nixon & Skid Roper")
-        message_panel:add_message("You hear someone playing %s.",good_song)
+        message_panel:add_message("You hear someone playing %s.", ZERO_INFO, good_song)
     end
 
     -- % chance of encounter for every unit of drug carried
