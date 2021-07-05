@@ -54,6 +54,7 @@ local scores_state = {}
 local active_state = {}
 local encounter_state = {}
 local loan_shark_state = {}
+local purchase_state = {}
 
 function love.load()
 
@@ -73,6 +74,7 @@ function love.load()
     jet_state:load()
     encounter_state:load()
     loan_shark_state:load()
+    purchase_state:load()
 
     menu_state:switch()
 end
@@ -1429,6 +1431,17 @@ end
 
 function play_state.update(self, dt)
 
+    if #player.purchase > 0 then
+        purchase_state:switch(table.remove(player.purchase, 1))
+        return
+    end
+
+    if player.gang_encounter then
+        encounter_state:switch(player.gang_encounter)
+        player.gang_encounter = false
+        return
+    end
+
     -- Update player stats labels
     self.cash_counter:update(dt)
     if self.cash_counter_refresh ~= self.cash_counter.value then
@@ -1445,12 +1458,6 @@ function play_state.update(self, dt)
 
     self.buttons:update(dt)
     message_panel:update(dt)
-
-    if player.gang_encounter then
-        encounter_state:switch(player.gang_encounter)
-        player.gang_encounter = false
-        return
-    end
 
     -- TODO: end game state
     if player.health < 1 then
@@ -1604,6 +1611,7 @@ function player.reset_game(self)
     self.location = LOCATIONS[1]
     self.gang_encounter = false
     self.game_over = false
+    self.purchase = {}
     trenchcoat:reset()
 end
 
@@ -1656,9 +1664,9 @@ function player.generate_events(self)
     math.randomseed(market.predictions[player.day])
 
     local brownies = math.random() < .1
-    local buy_gun = math.random() < .07
+    local buy_gun = math.random() < .08
     local buy_trenchcoat = math.random() < .07
-    local smoke_paraquat = math.random() < .05
+    local smoke_paraquat = math.random() < .03
     local find_drugs = math.random() < .07
     local give_drugs = math.random() < .07
     local dropped_drugs = math.random() < .07
@@ -1802,12 +1810,19 @@ function player.generate_events(self)
         player.gang_encounter = risk_factor
     end
 
-    play_state:update_button_texts()
+    if self.day > 5 then
+        if buy_gun then
+            table.insert(self.purchase, "gun")
+        end
+        if buy_trenchcoat then
+            table.insert(self.purchase, "trench coat")
+        end
+        if smoke_paraquat then
+            table.insert(self.purchase, "paraquat")
+        end
+    end
 
- --Would you like to buy a .38 Special/Ruger/Saturday Night Special for $0?
- --Will you buy a new trenchcoat with more pockets for $0?
- --There is some weed that smells like paraquat here! It looks good! Will you smoke it?
- --You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!
+    play_state:update_button_texts()
 
 end
 
@@ -1865,6 +1880,191 @@ end
 function player.add_gun(self)
     self.guns = self.guns + 1
     print(string.format("Got a gun. You have %d.", self.guns))
+end
+
+--                       _
+--  _ __  _   _ _ __ ___| |__   __ _ ___  ___
+-- | '_ \| | | | '__/ __| '_ \ / _` / __|/ _ \
+-- | |_) | |_| | | | (__| | | | (_| \__ \  __/
+-- | .__/ \__,_|_|  \___|_| |_|\__,_|___/\___|
+-- |_|
+--
+function purchase_state.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local run_box = layout.box["answer 1"]
+    self.buttons:button("yes", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Yes",
+        font = fonts:for_menu_button(),
+        callback = self.confirm_purchase,
+        context = self,
+        disabled = true
+    })
+
+    local run_box = layout.box["answer 2"]
+    self.buttons:button("no", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "No",
+        font = fonts:for_menu_button(),
+        callback = self.reject_purchase,
+        context = self,
+        disabled = true
+    })
+
+    local run_box = layout.box["close prompt"]
+    self.buttons:button("end game", {
+        context = self,
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Farewell",
+        font = fonts:for_menu_button(),
+        -- TODO: jmp to game end state
+        callback = self.reject_purchase,
+        context = self,
+        hidden = true
+    })
+
+end
+
+function purchase_state.switch(self, what)
+
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
+
+    self.what = what
+    self.disable_timeout = 1
+    self.title = "Purchase"
+
+    self.buttons:get("yes").hidden = false
+    self.buttons:get("no").hidden = false
+    self.buttons:get("end game").hidden = true
+
+    if what == "gun" then
+
+        self.cost = math.random(250, 850)
+        self.space_used = math.random(4, 8)
+        local name = util.pick(".38 Special", "Ruger", "Saturday Night Special")
+        local fancy_cost = util.comma_value(self.cost)
+        self.message = string.format("Would you like to buy a %s for %s?", name, fancy_cost)
+
+        -- not enough free space for this purchase
+        print(string.format("X %d %d", trenchcoat:free_space(), self.space_used))
+        if trenchcoat:free_space() < self.space_used then
+            self.cost = nil
+            print("Not enough free coat space to buy a gun.")
+        end
+
+        -- have enough guns already
+        if player.guns >= 3 then
+            self.cost = nil
+            print("Player has enough guns. Not buying another.")
+        end
+
+    elseif what == "trench coat" then
+        self.new_pockets = 20
+        self.cost = math.random(450, 1250)
+        local fancy_cost = util.comma_value(self.cost)
+        self.message = string.format("Would you like to buy a trench coat with more pockets for %s?", fancy_cost)
+
+    elseif what == "paraquat" then
+        self.cost = 0
+        self.title = "Offer"
+        self.message = "You are offered weed that smells like paraquat. It looks good! Will you smoke it?"
+
+    else
+        print(string.format("No purchase logic for %s.", what))
+        self.cost = nil
+    end
+
+    if self.cost and (player.cash < self.cost) then
+        -- not enough cash for this purchase
+        self.cost = nil
+        print(string.format("Not enough cash to buy a %s.", what))
+    end
+
+    if self.cost then
+        -- enter the purchase state
+        active_state = self
+    end
+
+end
+
+function purchase_state.update(self, dt)
+    if self.disable_timeout > 0 then
+        self.disable_timeout = math.max(0, self.disable_timeout - dt)
+        self.buttons:get("yes").disabled = self.disable_timeout > 0
+        self.buttons:get("no").disabled = self.disable_timeout > 0
+    end
+    self.buttons:update(dt)
+end
+
+function purchase_state.draw(self)
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.print(self.title, layout:padded_point_at("title"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+    fonts:set_medium()
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+    self.buttons:draw()
+end
+
+function purchase_state.keypressed(self, key)
+    self.buttons:keypressed(key)
+end
+
+function purchase_state.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function purchase_state.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function purchase_state.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function purchase_state.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function purchase_state.reject_purchase(btn)
+    play_state:switch()
+end
+
+function purchase_state.confirm_purchase(btn)
+    if btn.context.what == "gun" then
+        player:debit_account(btn.context.cost)
+        player:add_gun()
+        trenchcoat:adjust_pockets(-btn.context.space_used)
+        message_panel:add_message("You purchased a gun.", GOOD_INFO)
+        play_state:update_button_texts()
+        play_state:switch()
+    elseif btn.context.what == "trench coat" then
+        player:debit_account(btn.context.cost)
+        trenchcoat:adjust_pockets(btn.context.new_pockets)
+        message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
+        play_state:update_button_texts()
+        play_state:switch()
+    elseif btn.context.what == "paraquat" then
+        btn.context.buttons:get("yes").hidden = true
+        btn.context.buttons:get("no").hidden = true
+        btn.context.buttons:get("end game").hidden = false
+        btn.context.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
+    end
 end
 
 --  _                       _                     _
@@ -1939,11 +2139,11 @@ function trenchcoat.crc(self)
     return crc % 255
 end
 
-function trenchcoat.add_pockets(self)
-    local amt = 20
-    self.size = self.size + amt
-    self.free = self.free + amt
-    print(string.format("Got a trench coat. You now have %d pockets.", self.size))
+function trenchcoat.adjust_pockets(self, amount)
+    amount = amount or 20
+    self.size = self.size + amount
+    self.free = self.free + amount
+    print(string.format("Adjusted trench coat. You now have %d pockets.", self.size))
 end
 
 --        _   _ _
@@ -1974,7 +2174,7 @@ end
 --  \__\___||___/\__|
 
 function test.add_pockets(self)
-    trenchcoat:add_pockets()
+    trenchcoat:adjust_pockets()
 end
 
 function test.add_guns(self)
