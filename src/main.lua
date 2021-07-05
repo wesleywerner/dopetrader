@@ -1292,6 +1292,14 @@ function play_state.switch(self)
 
     active_state = self
 
+    -- update label values when entering this state.
+    -- (these dont change while on the play state)
+    self.buttons:get("bank label").text = player.bank_amount
+    self.buttons:get("debt label").text = player.debt_amount
+    self.buttons:get("guns label").text = player.guns
+    self.buttons:get("health label").text = player.health
+    self.buttons:get("day label").text = player.day
+
     -- show debt button if player has debt, hide if not in home location
     local debt_button = self.buttons:get("debt button")
     debt_button.text = player.debt_amount
@@ -1439,12 +1447,7 @@ function play_state.update(self, dt)
         self.cash_counter_refresh = self.cash_counter.value
         self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
     end
-    self.buttons:get("bank label").text = player.bank_amount
-    self.buttons:get("debt label").text = player.debt_amount
-    self.buttons:get("guns label").text = player.guns
-    self.buttons:get("health label").text = player.health
     self.buttons:get("coat label").text = trenchcoat:free_space()
-    self.buttons:get("day label").text = player.day
 
     self.buttons:update(dt)
     message_panel:update(dt)
