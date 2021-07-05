@@ -1837,26 +1837,6 @@ function player.add_day(self, new_location)
     return self.day
 end
 
-function player.accrue_debt(self)
-    if self.debt > 0 then
-        -- TODO: find out the correct loan interest rate
-        self.debt = math.floor(self.debt * 1.05)
-    end
-    self.debt_amount = util.comma_value(self.debt)
-end
-
-function player.deposit_bank(self, amount)
-    local transaction = math.min(self.cash, amount)
-    self:set_bank(self.bank + transaction)
-    self:debit_account(transaction)
-end
-
-function player.withdraw_bank(self, amount)
-    local transaction = math.min(self.bank, amount)
-    self:set_bank(self.bank - transaction)
-    self:credit_account(transaction)
-end
-
 function player.generate_events(self)
 
     -- load prediction
@@ -2052,17 +2032,49 @@ function player.sell_drug(btn)
 end
 
 function player.debit_account(self, amount)
+    local invalid_tran = "Attempt to debit %d from account, which only has %d"
     amount = math.floor(amount)
-    print(string.format("Account debited $%d.", amount))
-    self.cash = self.cash - amount
-    self.cash_amount = util.comma_value(self.cash)
+    assert(amount <= self.cash, string.format(invalid_tran, amount, self.cash))
+    if amount > 0 then
+        self.cash = self.cash - amount
+        self.cash_amount = util.comma_value(self.cash)
+        print(string.format("Account debited $%d.", amount))
+    end
 end
 
 function player.credit_account(self, amount)
     amount = math.floor(amount)
-    print(string.format("Account credited $%d.", amount))
-    self.cash = self.cash + amount
-    self.cash_amount = util.comma_value(self.cash)
+    if amount > 0 then
+        self.cash = self.cash + amount
+        self.cash_amount = util.comma_value(self.cash)
+        print(string.format("Account credited $%d.", amount))
+    end
+end
+
+function player.accrue_debt(self)
+    if self.debt > 0 then
+        -- TODO: find out the correct loan interest rate
+        self.debt = math.floor(self.debt * 1.05)
+    end
+    self.debt_amount = util.comma_value(self.debt)
+end
+
+function player.deposit_bank(self, amount)
+    local transaction = math.min(self.cash, amount)
+    if transaction > 0 then
+        self:set_bank(self.bank + transaction)
+        self:debit_account(transaction)
+        print(string.format("Deposited %d into the bank.", transaction))
+    end
+end
+
+function player.withdraw_bank(self, amount)
+    local transaction = math.min(self.bank, amount)
+    if transaction > 0 then
+        self:set_bank(self.bank - transaction)
+        self:credit_account(transaction)
+        print(string.format("Withdrawn %d from the bank.", transaction))
+    end
 end
 
 function player.crc(self)
