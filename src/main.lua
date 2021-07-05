@@ -129,25 +129,25 @@ function bank_state.load(self)
 
     local x, y, w, h = layout:box_at("answer 1")
     self.buttons:button("deposit", {
-        context = self,
         left = x,
         top = y,
         width = w,
         height = h,
         text = "Deposit",
         font = fonts:for_bank_button(),
+        context = self,
         callback = self.do_deposit
     })
 
     local x, y, w, h = layout:box_at("answer 2")
     self.buttons:button("withdraw", {
-        context = self,
         left = x,
         top = y,
         width = w,
         height = h,
         text = "Withdraw",
         font = fonts:for_bank_button(),
+        context = self,
         callback = self.do_withdraw
     })
 
@@ -164,18 +164,18 @@ function bank_state.load(self)
 
     local x, y, w, h = layout:box_at("alt close prompt")
     self.buttons:button("transact", {
-        context = self,
         left = x,
         top = y,
         width = w,
         height = h,
         text = "Transact",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.do_transact
     })
 
     local display_part = math.floor(display.safe_w  * 0.1)
-    self.slider = self.buttons:slider("slider", {
+    self.buttons:slider("slider", {
         left = display_part,
         top = math.floor(display.safe_h * 0.6),
         width = display.safe_w - display_part * 2,
@@ -243,35 +243,33 @@ function bank_state.mousemoved(self, x, y, dx, dy, istouch)
     self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
-function bank_state.exit_state(btn)
+function bank_state.exit_state(self)
     play_state:switch()
 end
 
-function bank_state.do_deposit(btn)
-    local ctx = btn.context
-    ctx.is_depositing = true
-    ctx.is_withdrawing = false
-    ctx.buttons:get("deposit").hidden = true
-    ctx.buttons:get("withdraw").hidden = true
-    ctx.buttons:get("transact").hidden = false
-    ctx.buttons:get("slider").hidden = false
-    ctx.buttons:get("slider"):set_maximum(player.cash)
+function bank_state.do_deposit(self)
+    self.is_depositing = true
+    self.is_withdrawing = false
+    self.buttons:get("deposit").hidden = true
+    self.buttons:get("withdraw").hidden = true
+    self.buttons:get("transact").hidden = false
+    self.buttons:get("slider").hidden = false
+    self.buttons:get("slider"):set_maximum(player.cash)
 end
 
-function bank_state.do_withdraw(btn)
-    local ctx = btn.context
-    ctx.is_depositing = false
-    ctx.is_withdrawing = true
-    ctx.buttons:get("deposit").hidden = true
-    ctx.buttons:get("withdraw").hidden = true
-    ctx.buttons:get("transact").hidden = false
-    ctx.buttons:get("slider").hidden = false
-    ctx.buttons:get("slider"):set_maximum(player.bank)
+function bank_state.do_withdraw(self)
+    self.is_depositing = false
+    self.is_withdrawing = true
+    self.buttons:get("deposit").hidden = true
+    self.buttons:get("withdraw").hidden = true
+    self.buttons:get("transact").hidden = false
+    self.buttons:get("slider").hidden = false
+    self.buttons:get("slider"):set_maximum(player.bank)
 end
 
-function bank_state.do_transact(btn)
-    local slider = btn.context.buttons:get("slider")
-    if btn.context.is_depositing then
+function bank_state.do_transact(self)
+    local slider = self.buttons:get("slider")
+    if self.is_depositing then
         player:deposit_bank(slider.value)
     else
         player:withdraw_bank(slider.value)
@@ -337,25 +335,25 @@ function encounter_state.load(self)
 
     local run_box = layout.box["answer 1"]
     self.buttons:button("run", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "Run",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.attempt_run
     })
 
     local run_box = layout.box["answer 2"]
     self.buttons:button("fight", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "Fight",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.attempt_fight
     })
 
@@ -486,7 +484,7 @@ end
 function encounter_state.visit_doctor()
     player:restore_health()
     player:debit_account(encounter_state.doctors_fees)
-    encounter_state:exit_state()
+    self:exit_state()
 end
 
 function encounter_state.get_shot_at(self)
@@ -507,38 +505,38 @@ function encounter_state.get_shot_at(self)
     end
 end
 
-function encounter_state.attempt_run(btn)
+function encounter_state.attempt_run(self)
     -- chance of escape is inversely proportional to number of thugs.
     -- clamp upper limit so there is always a small chance of escape.
-    local escape_chance = math.max(0.1, 0.7 - btn.context.thugs * 0.075)
+    local escape_chance = math.max(0.1, 0.7 - self.thugs * 0.075)
 
     if math.random() < escape_chance then
         print(string.format("Escaped with chance of %d%%.", escape_chance * 100))
-        btn.context:allow_exit()
-        btn.context.outcome = "You lost them in the alleys"
+        self:allow_exit()
+        self.outcome = "You lost them in the alleys"
     else
         print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
-        btn.context.outcome = "You can't lose them! " .. btn.context:get_shot_at()
+        self.outcome = "You can't lose them! " .. self:get_shot_at()
     end
 end
 
-function encounter_state.attempt_fight(btn)
+function encounter_state.attempt_fight(self)
     -- chance of hit is proportional to number of guns carried.
     local hit_chance = math.min(0.75, player.guns * 0.25)
     print(string.format("Firing with a hit chance of %d%%.", hit_chance * 100))
     if math.random() < hit_chance then
         print("Hit!")
-        btn.context.thugs = btn.context.thugs - 1
-        btn.context:set_message()
-        btn.context.outcome = "You hit one of them! " .. btn.context:get_shot_at()
-        if btn.context.thugs == 0 then
+        self.thugs = self.thugs - 1
+        self:set_message()
+        self.outcome = "You hit one of them! " .. self:get_shot_at()
+        if self.thugs == 0 then
             player:credit_account(encounter_state.cash_prize)
-            btn.context.outcome = ""
-            btn.context:allow_exit()
+            self.outcome = ""
+            self:allow_exit()
         end
     else
         print("Miss!")
-        btn.context.outcome = "You miss! " .. btn.context:get_shot_at()
+        self.outcome = "You miss! " .. self:get_shot_at()
     end
 end
 
@@ -683,11 +681,11 @@ function jet_state.update(self, dt)
     self.buttons:update(dt)
 end
 
-function jet_state.switch(btn)
-    for _, butt in pairs(jet_state.buttons.controls) do
+function jet_state.switch(self)
+    for _, butt in pairs(self.buttons.controls) do
         butt.disabled = butt.text == player.location
     end
-    active_state = jet_state
+    active_state = self
 end
 
 function jet_state.draw(self)
@@ -725,7 +723,7 @@ function jet_state.go(btn)
     play_state:next_day(btn.text)
 end
 
-function jet_state.cancel(btn)
+function jet_state.cancel(self)
     play_state:switch()
 end
 
@@ -742,64 +740,64 @@ function menu_state.load(self)
 
     local run_box = layout.box["new game"]
     self.buttons:button("new", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "New Game",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.new_game
     })
 
     local run_box = layout.box["resume game"]
     self.buttons:button("resume", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "Resume Game",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.resume_game,
         disabled = true
     })
 
     local run_box = layout.box["high scores"]
     self.buttons:button("scores", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "High Rollers",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.view_scores,
         disabled = true
     })
 
     local run_box = layout.box["options"]
     self.buttons:button("options", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "Options",
         font = fonts:for_menu_button(),
-        callback = self.view_about,
+        context = self,
+        callback = self.view_options,
         disabled = true
     })
 
     local run_box = layout.box["about"]
     self.buttons:button("about", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "About",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.view_about,
         disabled = true
     })
@@ -807,35 +805,35 @@ function menu_state.load(self)
     if DEBUG then
         local z_box = layout.box["debug 1"]
         self.buttons:button("debug cash", {
-            context = self,
             left = z_box[1],
             top = z_box[2],
             width = z_box[3],
             height = z_box[4],
             text = "$",
             font = fonts:for_player_stats(),
+            context = self,
             callback = test.add_cash
         })
         local z_box = layout.box["debug 2"]
         self.buttons:button("debug guns", {
-            context = self,
             left = z_box[1],
             top = z_box[2],
             width = z_box[3],
             height = z_box[4],
             text = "Guns",
             font = fonts:for_player_stats(),
+            context = self,
             callback = test.add_guns
         })
         local z_box = layout.box["debug 3"]
         self.buttons:button("debug pockets", {
-            context = self,
             left = z_box[1],
             top = z_box[2],
             width = z_box[3],
             height = z_box[4],
             text = "Pockets",
             font = fonts:for_player_stats(),
+            context = self,
             callback = test.add_pockets
         })
     end
@@ -882,12 +880,12 @@ function menu_state.mousemoved(self, x, y, dx, dy, istouch)
     self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
-function menu_state.new_game(btn)
+function menu_state.new_game(self)
     play_state:new_game()
     play_state:switch()
 end
 
-function menu_state.resume_game(btn)
+function menu_state.resume_game(self)
     -- load from disk if no day, otherwise resumes game in-progress
     if player.game_over then
         play_state:new_game()
@@ -926,8 +924,8 @@ function loan_shark_state.load(self)
         height = box[4],
         text = "Pay",
         font = fonts:for_menu_button(),
-        callback = self.pay_debt,
-        context = self
+        context = self,
+        callback = self.pay_debt
     })
 
     local display_part = math.floor(display.safe_w  * 0.1)
@@ -1000,9 +998,9 @@ function loan_shark_state.exit_state()
     play_state:switch()
 end
 
-function loan_shark_state.pay_debt(btn)
-    player:debit_account(btn.context.slider.value)
-    player:pay_debt(btn.context.slider.value)
+function loan_shark_state.pay_debt(self)
+    player:debit_account(self.slider.value)
+    player:pay_debt(self.slider.value)
     play_state:switch()
 end
 
@@ -1386,6 +1384,7 @@ function play_state.load(self)
         text = "Jet",
         alignment = "right",
         font = fonts:for_jet_button(),
+        context = jet_state,
         callback = jet_state.switch
     })
 
@@ -1767,11 +1766,11 @@ function play_state.remove_save(self)
     love.filesystem.remove("savegame")
 end
 
-function play_state.visit_loanshark(btn)
+function play_state.visit_loanshark(self)
     loan_shark_state:switch()
 end
 
-function play_state.visit_bank(btn)
+function play_state.visit_bank(self)
     bank_state:switch()
 end
 
@@ -2096,35 +2095,32 @@ function purchase_state.load(self)
 
     local run_box = layout.box["answer 1"]
     self.buttons:button("yes", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "Yes",
         font = fonts:for_menu_button(),
-        callback = self.confirm_purchase,
         context = self,
+        callback = self.confirm_purchase,
         disabled = true
     })
 
     local run_box = layout.box["answer 2"]
     self.buttons:button("no", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
         height = run_box[4],
         text = "No",
         font = fonts:for_menu_button(),
-        callback = self.reject_purchase,
         context = self,
+        callback = self.reject_purchase,
         disabled = true
     })
 
     local run_box = layout.box["close prompt"]
     self.buttons:button("end game", {
-        context = self,
         left = run_box[1],
         top = run_box[2],
         width = run_box[3],
@@ -2132,8 +2128,8 @@ function purchase_state.load(self)
         text = "Farewell",
         font = fonts:for_menu_button(),
         -- TODO: jmp to game end state
-        callback = self.reject_purchase,
         context = self,
+        callback = self.reject_purchase,
         hidden = true
     })
 
@@ -2241,29 +2237,29 @@ function purchase_state.mousemoved(self, x, y, dx, dy, istouch)
     self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
-function purchase_state.reject_purchase(btn)
+function purchase_state.reject_purchase(self)
     play_state:switch()
 end
 
-function purchase_state.confirm_purchase(btn)
-    if btn.context.what == "gun" then
-        player:debit_account(btn.context.cost)
+function purchase_state.confirm_purchase(self)
+    if self.what == "gun" then
+        player:debit_account(self.cost)
         player:add_gun()
-        trenchcoat:adjust_pockets(-btn.context.space_used)
+        trenchcoat:adjust_pockets(-self.space_used)
         message_panel:add_message("You purchased a gun.", GOOD_INFO)
         play_state:update_button_texts()
         play_state:switch()
-    elseif btn.context.what == "trench coat" then
-        player:debit_account(btn.context.cost)
-        trenchcoat:adjust_pockets(btn.context.new_pockets)
+    elseif self.what == "trench coat" then
+        player:debit_account(self.cost)
+        trenchcoat:adjust_pockets(self.new_pockets)
         message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
         play_state:update_button_texts()
         play_state:switch()
-    elseif btn.context.what == "paraquat" then
-        btn.context.buttons:get("yes").hidden = true
-        btn.context.buttons:get("no").hidden = true
-        btn.context.buttons:get("end game").hidden = false
-        btn.context.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
+    elseif self.what == "paraquat" then
+        self.buttons:get("yes").hidden = true
+        self.buttons:get("no").hidden = true
+        self.buttons:get("end game").hidden = false
+        self.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
     end
 end
 
