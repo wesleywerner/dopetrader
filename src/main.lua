@@ -680,7 +680,6 @@ function jet_state.switch(btn)
         butt.disabled = butt.text == player.location
     end
     active_state = jet_state
-    btn.focused = false
 end
 
 function jet_state.draw(self)

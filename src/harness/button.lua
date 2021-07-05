@@ -223,6 +223,11 @@ end
 function module_mt:mousepressed(x, y, button, istouch)
 
     if not self.disabled and not self.hidden then
+        -- retest focus if position is given
+        -- (widget collection may call without position for keyboard click)
+        if x and y then
+            self.focused = self:testFocus(x, y)
+        end
         self.down = self.focused
         if self.down then
             self.down_tics = 0.4
