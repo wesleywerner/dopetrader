@@ -135,7 +135,7 @@ function bank_state.load(self)
         width = w,
         height = h,
         text = "Deposit",
-        font = fonts:for_menu_button(),
+        font = fonts:for_bank_button(),
         callback = self.do_deposit
     })
 
@@ -147,7 +147,7 @@ function bank_state.load(self)
         width = w,
         height = h,
         text = "Withdraw",
-        font = fonts:for_menu_button(),
+        font = fonts:for_bank_button(),
         callback = self.do_withdraw
     })
 
@@ -616,6 +616,14 @@ function fonts.for_market_button(self)
 end
 
 function fonts.for_jet_button(self)
+    if display.mobile then
+        return self.medium
+    else
+        return self.large
+    end
+end
+
+function fonts.for_bank_button(self)
     if display.mobile then
         return self.medium
     else
