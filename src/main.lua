@@ -757,6 +757,16 @@ function loan_shark_state.load(self)
         context = self
     })
 
+    local display_part = math.floor(display.safe_w  * 0.1)
+    self.slider = self.buttons:slider("slider", {
+        left = display_part,
+        top = math.floor(display.safe_h * 0.6),
+        width = display.safe_w - display_part * 2,
+        height = 120,
+        font = fonts.large,
+        format_function = util.comma_value
+    })
+
 end
 
 function loan_shark_state.switch(self)
@@ -767,16 +777,9 @@ function loan_shark_state.switch(self)
         "\"Are you going to pay up, or should I call Tyre-Iron Tyrone?\"",
         "\"I hope you have my cash, chum.\"")
 
+    local maximum_value = math.min(player.debt, player.cash)
+    self.slider:set_maximum(maximum_value)
     self.debt_amount = util.comma_value(player.debt)
-    self.pay_max = math.min(player.debt, player.cash)
-    self.pay_amount = self.pay_max
-    self.pay_amount_text = util.comma_value(self.pay_amount)
-    self.slider_y = math.floor(display.safe_h / 2)
-    self.slider_x1 = 40
-    self.slider_x2 = display.safe_w - 40
-    self.slider_width = self.slider_x2 - self.slider_x1
-    self.slider_position = self.slider_x2
-
     active_state = self
 
 end
@@ -795,11 +798,6 @@ function loan_shark_state.draw(self)
     love.graphics.rectangle("line", layout:box_at("title"))
     love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
 
-    love.graphics.line(self.slider_x1, self.slider_y, self.slider_x2, self.slider_y)
-    fonts:set_large()
-    love.graphics.print("$", self.slider_position, self.slider_y - 20)
-    love.graphics.printf(self.pay_amount_text, self.slider_x1, self.slider_y + 20, self.slider_width, "center")
-
 end
 
 function loan_shark_state.keypressed(self, key)
@@ -815,22 +813,14 @@ end
 
 function loan_shark_state.mousepressed(self, x, y, button, istouch)
     self.buttons:mousepressed(x, y, button, istouch)
-    self.isdown = true
 end
 
 function loan_shark_state.mousereleased(self, x, y, button, istouch)
     self.buttons:mousereleased(x, y, button, istouch)
-    self.isdown = false
 end
 
 function loan_shark_state.mousemoved(self, x, y, dx, dy, istouch)
     self.buttons:mousemoved(x, y, dx, dy, istouch)
-    if self.isdown and math.abs(self.slider_y - y) < 60 then
-        self.slider_position = math.max(self.slider_x1, math.min(self.slider_x2, x))
-        local ratio = (self.slider_position - self.slider_x1) / self.slider_width
-        self.pay_amount = math.floor(self.pay_max * ratio)
-        self.pay_amount_text = util.comma_value(self.pay_amount)
-    end
 end
 
 function loan_shark_state.exit_state()
@@ -838,8 +828,8 @@ function loan_shark_state.exit_state()
 end
 
 function loan_shark_state.pay_debt(btn)
-    player:debit_account(btn.context.pay_amount)
-    player:pay_debt(btn.context.pay_amount)
+    player:debit_account(btn.context.slider.value)
+    player:pay_debt(btn.context.slider.value)
     play_state:switch()
 end
 

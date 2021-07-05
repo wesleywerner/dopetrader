@@ -28,6 +28,7 @@ local widgetcollection = { }
 local thispath = select('1', ...):match(".+%.") or ""
 local buttonModule = require(thispath.."button")
 local labelModule = require(thispath.."label")
+local sliderModule = require(thispath.."slider")
 
 --- Returns a new widget collection instance.
 --
@@ -179,6 +180,15 @@ end
 function widgetcollection:label(key, parameters)
 
     self.controls[key] = labelModule:new(parameters)
+    mapkeys(self)
+    focusFirst(self)
+    return self.controls[key]
+
+end
+
+function widgetcollection:slider(key, parameters)
+
+    self.controls[key] = sliderModule:new(parameters)
     mapkeys(self)
     focusFirst(self)
     return self.controls[key]

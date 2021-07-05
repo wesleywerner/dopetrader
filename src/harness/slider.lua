@@ -20,7 +20,7 @@
 --
 -- @author Wesley Werner
 -- @license GPL v3
--- @module button
+-- @module slider
 
 local module = { }
 
@@ -39,10 +39,6 @@ local module_mt = { }
 -- @tfield number top
 -- The top screen position.
 --
--- @tfield function callback
--- The function fired when this control has focus and click/touch
--- is released on it.
---
 -- @tfield string text
 -- The text of the button. This is measured (with the current font)
 -- to determine the element size.
@@ -53,10 +49,6 @@ local module_mt = { }
 -- @tfield bool focused
 -- true while the focus is over the button. This is determined
 -- while you call @{mousemoved}
---
--- @tfield bool down
--- true while a click/touch is pressed on the button. This is determined
--- while you call @{mousepressed}
 --
 -- @tfield number left
 -- The x position
@@ -69,10 +61,6 @@ local module_mt = { }
 --
 -- @tfield number height
 -- The height of the element as calculated from the measured text
---
--- @tfield function callback
--- The function fired when this control has focus and click/touch
--- is released on it.
 
 
 --- Creates a new instance.
@@ -83,15 +71,15 @@ local module_mt = { }
 -- @treturn instance
 function module:new(args)
 
-    if not args.top or not args.left or not args.text then
-        error("Button must have text, top and left")
+    if not args.top or not args.left then
+        error("Slider must have text, top and left")
     end
 
     local instance = { }
 
+    instance.symbol = "$"
     instance.alignment = "center"
     instance.text_color = {0, 1, 1}
-    instance.fill_color = {0, .2, .2}
     instance.disabled_color = {.7, .7, .7}
 
     -- copy arguments to the instance
@@ -109,21 +97,22 @@ function module:new(args)
     -- apply instance functions
     setmetatable(instance, { __index = module_mt })
 
+    instance.slider_y = instance.top + math.floor(instance.height / 2)
+    instance.slider_x1 = instance.left
+    instance.slider_x2 = instance.left + instance.width
+    instance.slider_position = instance.slider_x2
+    instance.text = instance.value
+
     -- centre text vertically by measure
     local measure_font = instance.font or love.graphics.getFont()
-    local sample_width, sample_height = love.graphics.newText(measure_font, "XXX"):getDimensions()
-    instance.y_offset = (instance.height / 2) - (sample_height / 2)
+    local font_width, font_height = love.graphics.newText(measure_font, "$"):getDimensions()
+    instance.font_height = font_height
+    instance.symbol_xoffset = math.floor(font_width / 2)
+    instance.symbol_yoffset = math.floor(font_height / 2)
+    instance.text_y = instance.slider_y - (instance.font_height * 2)
 
     local osname = love.system.getOS()
     instance.mobile = osname == "Android" or osname == "iOS"
-
-    -- pad right aligned
-    instance.title_padding = 10
-    if instance.alignment == "right" then
-        instance.right_padding = 10
-    else
-        instance.right_padding = 0
-    end
 
     return instance
 
@@ -150,43 +139,34 @@ end
 --- Placeholder function.
 -- This element does not draw anything, this is user controlled
 function module_mt.draw(self)
+
     if self.hidden then
         return
     end
+
     love.graphics.push()
+
     if self.down then
-        love.graphics.translate(1, 2)
+        love.graphics.translate(0, 2)
     end
-    if self.disabled then
-        -- no fill
-    elseif self.focused or self.down then
-        love.graphics.setColor(self.text_color)
-        love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
-    else
-        love.graphics.setColor(self.fill_color)
-        love.graphics.rectangle("fill", self.left, self.top, self.width, self.height)
-    end
-    -- border
+
     love.graphics.setColor(self.text_color)
-    love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
-    -- text color
-    if self.disabled then
-        love.graphics.setColor(self.disabled_color)
-    elseif self.focused or self.down then
-        love.graphics.setColor(0, 0, 0)
-    else
-        love.graphics.setColor(self.text_color)
-    end
-    -- prevent font printing black outlines over current canvas
-    --love.graphics.setBlendMode("alpha")
+
     if self.font then
         love.graphics.setFont(self.font)
     end
-    if self.title then
-        love.graphics.print(self.title, self.left + self.title_padding, self.top + self.y_offset)
-    end
-    love.graphics.printf(self.text, self.left, self.top + self.y_offset, self.width - self.right_padding, self.alignment)
+
+    love.graphics.line(self.slider_x1, self.slider_y, self.slider_x2, self.slider_y)
+    love.graphics.print(self.symbol, self.slider_position - self.symbol_xoffset, self.slider_y - self.symbol_yoffset)
+
+    -- border
+    --if self.focused then
+        --love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
+    --end
+
     love.graphics.pop()
+    love.graphics.printf(self.text, self.slider_x1, self.text_y, self.width, "center")
+
 end
 
 --- Placeholder function.
@@ -195,17 +175,7 @@ end
 -- @tparam number dt
 -- delta time as given by Love
 function module_mt:update(dt)
-    if self.down and self.repeating and not self.disabled and not self.hidden then
-        self.down_tics = self.down_tics - dt
-        if self.down_tics < 0 then
-            love.system.vibrate(.015)
-            for n=1, self.repeating do
-                self.callback(self)
-            end
-            self.down_tics = 0.15
-            self.has_repeated = true
-        end
-    end
+
 end
 
 --- Process mouse/touch movement.
@@ -214,6 +184,11 @@ end
 function module_mt:mousemoved(x, y, dx, dy, istouch)
 
     self.focused = self:testFocus(x, y)
+
+    if self.down and self.focused then
+        self.slider_position = math.max(self.slider_x1, math.min(self.slider_x2, x))
+        self:calculate_value_from_position()
+    end
 
 end
 
@@ -224,10 +199,11 @@ function module_mt:mousepressed(x, y, button, istouch)
 
     if not self.disabled and not self.hidden then
         self.down = self.focused
-        if self.down then
-            self.down_tics = 0.4
-            self.has_repeated = false
-        end
+    end
+
+    if self.down and self.focused then
+        self.slider_position = math.max(self.slider_x1, math.min(self.slider_x2, x))
+        self:calculate_value_from_position()
     end
 
 end
@@ -249,6 +225,24 @@ function module_mt:mousereleased(x, y, button, istouch)
     end
     self.down = false
 
+end
+
+function module_mt:set_maximum(maximum_value)
+    self.maximum = maximum_value
+    self.slider_position = self.slider_x2
+    self:calculate_value_from_position()
+end
+
+function module_mt:calculate_value_from_position()
+    local position_factor = math.ceil((self.slider_position - self.slider_x1) / 10)
+    local width_factor = math.ceil(self.width / 10)
+    local ratio = position_factor / width_factor
+    self.value = math.ceil(self.maximum * ratio)
+    if self.format_function then
+        self.text = self.format_function(self.value)
+    else
+        self.text = self.value
+    end
 end
 
 return module
