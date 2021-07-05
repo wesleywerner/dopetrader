@@ -101,7 +101,7 @@ function module:new(args)
     instance.slider_x1 = instance.left
     instance.slider_x2 = instance.left + instance.width
     instance.slider_position = instance.slider_x2
-    instance.text = instance.value
+    instance.text = instance.value or ""
 
     -- centre text vertically by measure
     local measure_font = instance.font or love.graphics.getFont()

@@ -55,6 +55,7 @@ local active_state = {}
 local encounter_state = {}
 local loan_shark_state = {}
 local purchase_state = {}
+local bank_state = {}
 
 function love.load()
 
@@ -75,6 +76,7 @@ function love.load()
     encounter_state:load()
     loan_shark_state:load()
     purchase_state:load()
+    bank_state:load()
 
     menu_state:switch()
 end
@@ -112,6 +114,169 @@ function love.draw()
         fonts:set_small()
         love.graphics.print(love.timer.getFPS(), 1, display.safe_h - 20)
     end
+end
+
+--  _                 _          _        _
+-- | |__   __ _ _ __ | | __  ___| |_ __ _| |_ ___
+-- | '_ \ / _` | '_ \| |/ / / __| __/ _` | __/ _ \
+-- | |_) | (_| | | | |   <  \__ \ || (_| | ||  __/
+-- |_.__/ \__,_|_| |_|_|\_\ |___/\__\__,_|\__\___|
+--
+function bank_state.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local x, y, w, h = layout:box_at("answer 1")
+    self.buttons:button("deposit", {
+        context = self,
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "Deposit",
+        font = fonts:for_menu_button(),
+        callback = self.do_deposit
+    })
+
+    local x, y, w, h = layout:box_at("answer 2")
+    self.buttons:button("withdraw", {
+        context = self,
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "Withdraw",
+        font = fonts:for_menu_button(),
+        callback = self.do_withdraw
+    })
+
+    local x, y, w, h = layout:box_at("close prompt")
+    self.buttons:button("close", {
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "I'm outta here",
+        font = fonts:for_menu_button(),
+        callback = self.exit_state
+    })
+
+    local x, y, w, h = layout:box_at("alt close prompt")
+    self.buttons:button("transact", {
+        context = self,
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "Transact",
+        font = fonts:for_menu_button(),
+        callback = self.do_transact
+    })
+
+    local display_part = math.floor(display.safe_w  * 0.1)
+    self.slider = self.buttons:slider("slider", {
+        left = display_part,
+        top = math.floor(display.safe_h * 0.6),
+        width = display.safe_w - display_part * 2,
+        height = 120,
+        font = fonts.large,
+        format_function = util.comma_value,
+        hidden = true
+    })
+
+end
+
+function bank_state.switch(self)
+
+    self.buttons:get("deposit").hidden = false
+    self.buttons:get("withdraw").hidden = false
+    self.buttons:get("deposit").disabled = player.cash < 1000
+    self.buttons:get("withdraw").disabled = player.bank == 0
+    self.buttons:get("transact").hidden = true
+    self.buttons:get("slider").hidden = true
+    active_state = self
+
+end
+
+function bank_state.update(self, dt)
+
+end
+
+function bank_state.draw(self)
+
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    love.graphics.print("Cash", layout:padded_point_at("title"))
+    love.graphics.printf(player.cash_amount, layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    if self.message then
+        love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+    end
+
+    self.buttons:draw()
+
+end
+
+function bank_state.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        play_state:switch()
+    end
+end
+
+function bank_state.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function bank_state.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function bank_state.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function bank_state.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function bank_state.exit_state(btn)
+    play_state:switch()
+end
+
+function bank_state.do_deposit(btn)
+    local ctx = btn.context
+    ctx.is_depositing = true
+    ctx.is_withdrawing = false
+    ctx.buttons:get("deposit").hidden = true
+    ctx.buttons:get("withdraw").hidden = true
+    ctx.buttons:get("transact").hidden = false
+    ctx.buttons:get("slider").hidden = false
+    ctx.buttons:get("slider"):set_maximum(player.cash)
+end
+
+function bank_state.do_withdraw(btn)
+    local ctx = btn.context
+    ctx.is_depositing = false
+    ctx.is_withdrawing = true
+    ctx.buttons:get("deposit").hidden = true
+    ctx.buttons:get("withdraw").hidden = true
+    ctx.buttons:get("transact").hidden = false
+    ctx.buttons:get("slider").hidden = false
+    ctx.buttons:get("slider"):set_maximum(player.bank)
+end
+
+function bank_state.do_transact(btn)
+    local slider = btn.context.buttons:get("slider")
+    if btn.context.is_depositing then
+        player:deposit_bank(slider.value)
+    else
+        player:withdraw_bank(slider.value)
+    end
+    play_state:switch()
 end
 
 --      _ _           _
@@ -396,6 +561,7 @@ function encounter_state.test_death(self)
         self:allow_exit()
         self.outcome = "They wasted you, man! What a drag!"
         love.system.vibrate(.25)
+        -- TODO: switch to end game state
     else
         love.system.vibrate(.2)
     end
@@ -1229,6 +1395,19 @@ function play_state.load(self)
         callback = self.visit_loanshark
     })
 
+    local bank_box = layout.box["bank"]
+    self.buttons:button("bank button", {
+        left = bank_box[1],
+        top = bank_box[2],
+        width = bank_box[3],
+        height = bank_box[4],
+        title = "Bank",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats(),
+        callback = self.visit_bank
+    })
+
     -- Create market name labels, buy & sell buttons
     for i=1, #market.db do
         local label_id = string.format("name %d", i)
@@ -1304,6 +1483,11 @@ function play_state.switch(self)
     local debt_button = self.buttons:get("debt button")
     debt_button.text = player.debt_amount
     debt_button.hidden = (player.debt == 0) or (player.location ~= LOCATIONS[1])
+
+    -- show bank button if player is in home location
+    local bank_button = self.buttons:get("bank button")
+    bank_button.text = player.bank_amount
+    bank_button.hidden = (player.location ~= LOCATIONS[1])
 
     message_panel:show_and_lock()
 
@@ -1576,8 +1760,12 @@ function play_state.remove_save(self)
     love.filesystem.remove("savegame")
 end
 
-function play_state.visit_loanshark(self)
+function play_state.visit_loanshark(btn)
     loan_shark_state:switch()
+end
+
+function play_state.visit_bank(btn)
+    bank_state:switch()
 end
 
 --        _
@@ -1649,6 +1837,18 @@ function player.accrue_debt(self)
         self.debt = math.floor(self.debt * 1.05)
     end
     self.debt_amount = util.comma_value(self.debt)
+end
+
+function player.deposit_bank(self, amount)
+    local transaction = math.min(self.cash, amount)
+    self:set_bank(self.bank + transaction)
+    self:debit_account(transaction)
+end
+
+function player.withdraw_bank(self, amount)
+    local transaction = math.min(self.bank, amount)
+    self:set_bank(self.bank - transaction)
+    self:credit_account(transaction)
 end
 
 function player.generate_events(self)
