@@ -129,6 +129,14 @@ function module:new(args)
 
 end
 
+function module_mt:set_font(font)
+
+    self.font = font
+    local sample_width, sample_height = love.graphics.newText(font, "Test"):getDimensions()
+    self.y_offset = (self.height / 2) - (sample_height / 2)
+
+end
+
 --- Tests if a point is over the element.
 -- Used internally by @{mousemoved}
 --

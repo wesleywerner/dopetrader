@@ -196,6 +196,24 @@ function widgetcollection:slider(key, parameters)
 end
 
 
+function widgetcollection:set_values(arg)
+
+    assert(arg.name, "No name given to set_property")
+    assert(self.controls[arg.name], string.format("%s not a valid control name", arg.name))
+
+    for property_name, value in pairs(arg) do
+        if property_name ~= "name" then
+            if property_name == "font" and self.controls[arg.name].set_font then
+                self.controls[arg.name]:set_font(value)
+            else
+                self.controls[arg.name][property_name] = value
+            end
+        end
+    end
+
+end
+
+
 --- Get the element in the collection that matches a key.
 --
 -- @tparam string key
