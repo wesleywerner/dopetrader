@@ -200,7 +200,7 @@ function module_mt:update(dt)
         if self.down_tics < 0 then
             love.system.vibrate(.015)
             for n=1, self.repeating do
-                self.callback(self)
+                self.callback(self.context or self)
             end
             self.down_tics = 0.15
             self.has_repeated = true
@@ -245,7 +245,7 @@ function module_mt:mousereleased(x, y, button, istouch)
 
     if self.down and self.focused and self.callback and not self.has_repeated then
         love.system.vibrate(.015)
-        self.callback(self)
+        self.callback(self.context or self)
     end
 
     -- unfocus for mobile
