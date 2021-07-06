@@ -787,8 +787,7 @@ function menu_state.load(self)
         text = "High Rollers",
         font = fonts:for_menu_button(),
         context = self,
-        callback = self.view_scores,
-        disabled = true
+        callback = self.view_scores
     })
 
     local run_box = layout.box["options"]
@@ -1029,28 +1028,84 @@ end
 function high_scores.load(self)
 
     self.max_entries = 10
-    self.entries = {}
 
-    -- TODO: read from file
-    local names = {"Bob", "Alice", "Kitty", "Sunshine", "Lilly", "Pepper" }
-
-    for n, person in ipairs(names) do
-        table.insert(self.entries, {
-            name=person,
-            score=math.floor(math.random(100, 1000)*math.random(1000, 10000))
-            })
+    if not self:generate_default_scores() then
+        self:read_file()
     end
 
-    self:sort()
-
+    print("High Rollers are:")
     for _, v in ipairs(self:listing()) do
-        print(v.rank, v.name, v.score)
+        print(v.rank, v.date, v.name, v.score)
     end
 
 end
 
-function high_scores.save(self)
-    -- TODO
+function high_scores.generate_default_scores(self)
+
+    local scores_exist = love.filesystem.getInfo("scores", "file") ~= nil
+    if scores_exist then
+        return false
+    end
+
+    local names = {
+        "Trippie Tim", "Pepper Pusher", "Kitty Ketamine",
+        "Sunshine Seller", "Lilly Lewd", "John E Dell" }
+
+    self.entries = {}
+
+    for n, person in ipairs(names) do
+        table.insert(self.entries, {
+            name=person,
+            date=os.time{year=1984, month=1, day=1},
+            score=math.floor(n*500000)
+            })
+    end
+
+    self:sort()
+    self:write_file()
+    return true
+
+end
+
+function high_scores.write_file(self)
+    local file = love.filesystem.newFile("scores")
+    local ok, err = file:open("w")
+    if ok then
+        for rank, e in ipairs(self.entries) do
+            local data = string.format("name=%s date=%x score=%x check=%x \n",
+                string.gsub(e.name, " ", "_"), e.date, e.score, self:crc(e))
+                file:write(data)
+        end
+        file:close()
+    end
+end
+
+function high_scores.read_file(self)
+    self.entries = {}
+    local file = love.filesystem.newFile("scores")
+    local ok, err = file:open("r")
+    if ok then
+        for line in file:lines() do
+            local key_value_matcher = string.gfind(line, "(%a+)=([%w_]+)")
+            local record = {}
+            while true do
+                local key, value = key_value_matcher()
+                if key == nil then break end
+                local dec = tonumber(value,16)
+                record[key] = dec or string.gsub(value, "_", " ")
+            end
+            if record["name"] and record["date"] and record["score"] then
+                if record["check"] ~= self:crc(record) then
+                    -- Burn!
+                    record["name"] = ("Purngre"):gsub("%a", function(c)
+                        c=c:byte()
+                        return string.char(c+(c%32<14 and 13 or -13))
+                        end)
+                end
+                table.insert(self.entries, record)
+            end
+        end
+    end
 end
 
 function high_scores.sort(self)
@@ -1066,9 +1121,12 @@ end
 
 function high_scores.add(self, person, value)
     if self:is_accepted(value) then
-        table.insert(self.entries, { name=person, score=value })
+        local entry = { name=person, score=value, date=os.time() }
+        entry["check"] = self:crc(entry)
+        table.insert(self.entries, entry)
         self:sort()
         self:cull()
+        self:write_file()
         print(string.format("Added %s to the high scores list.", person))
         return self:rank_of(person, value)
     end
@@ -1087,6 +1145,7 @@ function high_scores.listing(self)
     for rank, entrant in ipairs(self.entries) do
         table.insert(results, {
             name = entrant.name,
+            date = os.date("%d-%b-%Y", entrant.date),
             score = util.comma_value(entrant.score),
             rank = rank
         })
@@ -1110,6 +1169,10 @@ function high_scores.is_accepted(self, value)
     -- no luck chum
     return false
 
+end
+
+function high_scores.crc(self, record)
+    return (record.score + record.date) % 255
 end
 
 --  _                         _
