@@ -66,7 +66,11 @@ function love.load()
 
     -- do not prevent device from sleeping
     love.window.setDisplaySleepEnabled(true)
+
+    -- set identity for save/scores files
     love.filesystem.setIdentity("dopetrader")
+
+    love.window.setTitle("Dope Trader")
 
     fonts:load()
     high_scores:load()
