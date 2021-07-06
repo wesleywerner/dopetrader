@@ -497,7 +497,7 @@ function encounter_state.get_shot_at(self)
     if math.random() < hit_chance then
         print("You got hit!")
         player:lose_health(math.random(5, 15))
-        self:test_death()
+        love.system.vibrate(.2)
         return "They fire at you! You are hit!"
     else
         print("They miss!")
@@ -517,6 +517,7 @@ function encounter_state.attempt_run(self)
     else
         print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
         self.outcome = "You can't lose them! " .. self:get_shot_at()
+        self:test_death()
     end
 end
 
@@ -538,6 +539,7 @@ function encounter_state.attempt_fight(self)
         print("Miss!")
         self.outcome = "You miss! " .. self:get_shot_at()
     end
+    self:test_death()
 end
 
 function encounter_state.allow_exit(self)
@@ -559,9 +561,6 @@ function encounter_state.test_death(self)
         self:allow_exit()
         self.outcome = "They wasted you, man! What a drag!"
         love.system.vibrate(.25)
-        -- TODO: switch to end game state
-    else
-        love.system.vibrate(.2)
     end
 end
 
