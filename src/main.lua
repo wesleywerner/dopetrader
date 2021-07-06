@@ -37,6 +37,7 @@ local LOCATIONS = {"Bronx", "Ghetto", "Central Park",
                     "Manhattan", "Coney Island", "Brooklyn" }
 
 local display = {}
+local high_scores = {}
 local layout = {}
 local player = {}
 local market = {}
@@ -64,6 +65,7 @@ function love.load()
     love.filesystem.setIdentity("dopetrader")
 
     fonts:load()
+    high_scores:load()
     display:load()
     layout:load()
     player:load()
@@ -1003,6 +1005,98 @@ function loan_shark_state.pay_debt(self)
     play_state:switch()
 end
 
+--  _     _       _
+-- | |__ (_) __ _| |__    ___  ___ ___  _ __ ___  ___
+-- | '_ \| |/ _` | '_ \  / __|/ __/ _ \| '__/ _ \/ __|
+-- | | | | | (_| | | | | \__ \ (_| (_) | | |  __/\__ \
+-- |_| |_|_|\__, |_| |_| |___/\___\___/|_|  \___||___/
+--          |___/
+--
+function high_scores.load(self)
+
+    self.max_entries = 10
+    self.entries = {}
+
+    -- TODO: read from file
+    local names = {"Bob", "Alice", "Kitty", "Sunshine", "Lilly", "Pepper" }
+
+    for n, person in ipairs(names) do
+        table.insert(self.entries, {
+            name=person,
+            score=math.floor(math.random(100, 1000)*math.random(1000, 10000))
+            })
+    end
+
+    self:sort()
+
+    for _, v in ipairs(self:listing()) do
+        print(v.rank, v.name, v.score)
+    end
+
+end
+
+function high_scores.save(self)
+    -- TODO
+end
+
+function high_scores.sort(self)
+    table.sort(self.entries, function(a,b) return a.score > b.score end)
+end
+
+function high_scores.cull(self)
+    while #self.entries > self.max_entries do
+        local loser = table.remove(self.entries, #self.entries)
+        print(string.format("Kicked %s off the high scores list.", loser.name))
+    end
+end
+
+function high_scores.add(self, person, value)
+    if self:is_accepted(value) then
+        table.insert(self.entries, { name=person, score=value })
+        self:sort()
+        self:cull()
+        print(string.format("Added %s to the high scores list.", person))
+        return self:rank_of(person, value)
+    end
+end
+
+function high_scores.rank_of(self, person, value)
+    for rank, entrant in ipairs(self.entries) do
+        if entrant.name == person and entrant.score == value then
+            return rank
+        end
+    end
+end
+
+function high_scores.listing(self)
+    local results = {}
+    for rank, entrant in ipairs(self.entries) do
+        table.insert(results, {
+            name = entrant.name,
+            score = util.comma_value(entrant.score),
+            rank = rank
+        })
+    end
+    return results
+end
+
+function high_scores.is_accepted(self, value)
+
+    -- room for another, regardless of value
+    if #self.entries < self.max_entries then
+        return true
+    end
+
+    -- value beats the lowest on the list
+    local lowest = self.entries[#self.entries]
+    if lowest and lowest.score < value then
+        return true
+    end
+
+    -- no luck chum
+    return false
+
+end
 
 --  _                         _
 -- | | __ _ _   _  ___  _   _| |_
