@@ -827,15 +827,15 @@ function menu_state.load(self)
             callback = test.add_guns
         })
         local z_box = layout.box["debug 3"]
-        self.buttons:button("debug pockets", {
+        self.buttons:button("debug 3", {
             left = z_box[1],
             top = z_box[2],
             width = z_box[3],
             height = z_box[4],
-            text = "Pockets",
+            text = "Paraquat",
             font = fonts:for_player_stats(),
             context = self,
-            callback = test.add_pockets
+            callback = test.offer_paraquat
         })
     end
 
@@ -2510,6 +2510,10 @@ end
 
 function test.add_guns(self)
     player:add_gun()
+end
+
+function test.offer_paraquat(self)
+    table.insert(player.purchase, "paraquat")
 end
 
 function test.add_cash(self)
