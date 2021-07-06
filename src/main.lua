@@ -1650,7 +1650,15 @@ end
 
 function play_state.keypressed(self, key)
     if key == "escape" then
-        menu_state:switch()
+        if message_panel:is_locked() then
+            message_panel:unlock()
+        else
+            menu_state:switch()
+        end
+    elseif key == "return" then
+        if message_panel:is_locked() then
+            message_panel:unlock()
+        end
     elseif key == "space" then
         if message_panel:is_locked() then
             message_panel:unlock()
