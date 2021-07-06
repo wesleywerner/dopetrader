@@ -711,6 +711,10 @@ function jet_state.update(self, dt)
 end
 
 function jet_state.switch(self)
+    if player.day == #market.predictions then
+        state.game_over:switch(false)
+        return
+    end
     for _, butt in pairs(self.buttons.controls) do
         butt.disabled = butt.text == player.location
     end
@@ -1766,7 +1770,11 @@ function play_state.update_button_texts(self)
     end
 
     -- set jet button text to current location
-    self.buttons:get("jet").text = player.location
+    if player.day == #market.predictions then
+        self.buttons:get("jet").text = "End Game"
+    else
+        self.buttons:get("jet").text = player.location
+    end
 
     -- list stock not on the market
     local label_id = #market.available
