@@ -47,7 +47,10 @@ local util = {}
 local message_panel = {}
 local test = {}
 
-local state = { game_over = {}}
+local state = {
+    game_over = {},
+    scores = {}
+}
 local menu_state = {}
 local play_state = {}
 local jet_state = {}
@@ -81,6 +84,7 @@ function love.load()
     purchase_state:load()
     bank_state:load()
     state.game_over:load()
+    state.scores:load()
 
     menu_state:switch()
 end
@@ -636,6 +640,14 @@ function fonts.for_jet_button(self)
     end
 end
 
+function fonts.for_score_listing(self)
+    if display.mobile then
+        return self.small
+    else
+        return self.medium
+    end
+end
+
 function fonts.for_bank_button(self)
     if display.mobile then
         return self.medium
@@ -652,7 +664,9 @@ function fonts.for_player_stats(self)
     end
 end
 
-
+function fonts.measure(self, font)
+    return love.graphics.newText(font, "$"):getDimensions()
+end
 
 --    _      _         _        _
 --   (_) ___| |_   ___| |_ __ _| |_ ___
@@ -786,8 +800,8 @@ function menu_state.load(self)
         height = run_box[4],
         text = "High Rollers",
         font = fonts:for_menu_button(),
-        context = self,
-        callback = self.view_scores
+        context = state.scores,
+        callback = state.scores.switch
     })
 
     local run_box = layout.box["options"]
@@ -1832,11 +1846,6 @@ function play_state.update(self, dt)
     self.buttons:update(dt)
     message_panel:update(dt)
 
-    -- TODO: end game state
-    if player.health < 1 then
-        --active_state = end_game_state
-    end
-
 end
 
 function play_state.keypressed(self, key)
@@ -2337,7 +2346,6 @@ function purchase_state.load(self)
         height = run_box[4],
         text = "Farewell",
         font = fonts:for_menu_button(),
-        -- TODO: jmp to game end state
         context = self,
         callback = self.early_death,
         hidden = true
@@ -2686,22 +2694,117 @@ function state.game_over.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function state.game_over.exit_state(self)
+    local ranked = nil
     if self.enter_name then
         -- prevent exit without a name
         if self.uft8.len(self.name) == 0 then
             return
         end
-        high_scores:add(self.name, self.score)
+        ranked = high_scores:add(self.name, self.score)
     end
     -- remove the save game
     play_state:remove_save()
-    -- TODO: switch scores state
-    menu_state:switch()
+    -- show high rollers, highlighting current entry
+    state.scores:switch(ranked)
 end
 
 function state.game_over.show_mobile_keyboard(self)
     love.keyboard.setTextInput(true)
 end
+
+--  ___  ___ ___  _ __ ___  ___
+-- / __|/ __/ _ \| '__/ _ \/ __|
+-- \__ \ (_| (_) | | |  __/\__ \
+-- |___/\___\___/|_|  \___||___/
+--
+function state.scores.draw(self)
+
+    love.graphics.setColor(PRIMARY_COLOR)
+    fonts:set_large()
+    love.graphics.printf("High Rollers", layout:align_point_at("title", nil, "center"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    love.graphics.setFont(fonts:for_score_listing())
+
+    for rank = 1, self.display_rank do
+
+        local entry = self.listing[rank]
+        local y = self.listing_y + self.font_height * rank * 2
+
+        if rank == self.highlight_rank then
+            love.graphics.setColor(PRIMARY_COLOR)
+            love.graphics.rectangle("fill", 0, y, display.safe_w, self.font_height * 2)
+            love.graphics.setColor(0, 0, 0)
+        else
+            love.graphics.setColor(PRIMARY_COLOR)
+        end
+
+        love.graphics.line(0, y, display.safe_w, y)
+        love.graphics.print(string.format("%d   %s", rank, entry.name), self.name_x, y)
+        love.graphics.printf(entry.score, self.score_x, y, self.score_width, "right")
+        love.graphics.print(entry.date, self.date_x, y + self.font_height)
+
+    end
+
+end
+
+function state.scores.keypressed(self, key)
+    if key == "escape" then
+        menu_state:switch()
+    end
+end
+
+function state.scores.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.scores.load(self)
+    self.font_width, self.font_height = fonts:measure(fonts:for_score_listing())
+    -- start listing below the title
+    _, self.listing_y = layout:point_at("title")
+    -- pad listing pos by font height
+    self.listing_y = self.listing_y + self.font_height
+    -- left rank and name
+    self.rank_x = 6
+    self.name_x = 6
+    self.date_x = math.floor(self.font_width * 3)
+    -- score prints at 50% display width (but is right aligned)
+    self.score_x = math.floor(display.safe_w * 0.5)
+    -- width of alignment is remainder of display width, less some padding
+    self.score_width = display.safe_w - self.score_x - self.font_width * 2
+end
+
+function state.scores.mousemoved(self, x, y, dx, dy, istouch)
+
+end
+
+function state.scores.mousepressed(self, x, y, button, istouch)
+    -- prevent exiting until scores are listed
+    if self.display_rank == #self.listing then
+        menu_state:switch()
+    end
+end
+
+function state.scores.mousereleased(self, x, y, button, istouch)
+
+end
+
+function state.scores.switch(self, highlight_rank)
+    self.highlight_rank = highlight_rank
+    self.display_rank = 0
+    self.timer = 0.5
+    self.listing = high_scores:listing()
+    active_state = self
+end
+
+function state.scores.update(self, dt)
+    self.timer = self.timer - dt
+    if self.timer <= 0 then
+        self.timer = 0.25
+        self.display_rank = math.min(self.display_rank + 1, #self.listing)
+    end
+end
+
 
 --        _   _ _
 --  _   _| |_(_) |
