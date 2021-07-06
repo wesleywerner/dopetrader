@@ -47,6 +47,7 @@ local util = {}
 local message_panel = {}
 local test = {}
 
+local state = { game_over = {}}
 local menu_state = {}
 local play_state = {}
 local jet_state = {}
@@ -79,6 +80,7 @@ function love.load()
     loan_shark_state:load()
     purchase_state:load()
     bank_state:load()
+    state.game_over:load()
 
     menu_state:switch()
 end
@@ -89,6 +91,12 @@ end
 
 function love.keyreleased(key, scancode)
     active_state:keyreleased(key)
+end
+
+function love.textinput(t)
+    if active_state.textinput then
+        active_state:textinput(t)
+    end
 end
 
 function love.mousepressed(x, y, button, istouch)
@@ -418,7 +426,11 @@ function encounter_state.switch(self, risk_factor)
 end
 
 function encounter_state.exit_state()
-    play_state:switch()
+    if player.health < 1 then
+        state.game_over:switch(true)
+    else
+        play_state:switch()
+    end
 end
 
 function encounter_state.update(self, dt)
@@ -451,7 +463,9 @@ end
 function encounter_state.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        menu_state:switch()
+        if not self.buttons:get("close").hidden then
+            self:exit_state()
+        end
     end
 end
 
@@ -1717,11 +1731,9 @@ function play_state.next_day(self, new_location)
         player:generate_events()
         play_state:switch()
     else
-        self:remove_save()
-        -- TODO: switch to end game state
-        -- clear day flag
+        -- TODO: remove game_over = true?
         player.game_over = true
-        menu_state:switch()
+        state.game_over:switch(false)
     end
 end
 
@@ -2264,7 +2276,7 @@ function purchase_state.load(self)
         font = fonts:for_menu_button(),
         -- TODO: jmp to game end state
         context = self,
-        callback = self.reject_purchase,
+        callback = self.early_death,
         hidden = true
     })
 
@@ -2376,6 +2388,10 @@ function purchase_state.reject_purchase(self)
     play_state:switch()
 end
 
+function purchase_state.early_death(self)
+    state.game_over:switch(true)
+end
+
 function purchase_state.confirm_purchase(self)
     if self.what == "gun" then
         player:debit_account(self.cost)
@@ -2475,6 +2491,153 @@ function trenchcoat.adjust_pockets(self, amount)
     self.size = self.size + amount
     self.free = self.free + amount
     print(string.format("Adjusted trench coat. You now have %d pockets.", self.size))
+end
+
+--   __ _  __ _ _ __ ___   ___    _____   _____ _ __
+--  / _` |/ _` | '_ ` _ \ / _ \  / _ \ \ / / _ \ '__|
+-- | (_| | (_| | | | | | |  __/ | (_) \ V /  __/ |
+--  \__, |\__,_|_| |_| |_|\___|  \___/ \_/ \___|_|
+--  |___/
+--
+function state.game_over.load(self)
+
+    self.uft8 = require("utf8")
+    self.buttons = layout:create_collection("close prompt", "alt close prompt")
+
+    self.buttons:set_values{
+        name = "alt close prompt",
+        font = fonts.large,
+        context = self,
+        callback = self.exit_state
+    }
+
+    self.buttons:set_values{
+        name = "close prompt",
+        font = fonts.large,
+        context = self,
+        callback = self.show_mobile_keyboard,
+        text = "Keyboard"
+    }
+
+end
+
+function state.game_over.switch(self, rip)
+
+    -- calculate score
+    self.score = player.bank + player.cash
+    self.score_amount = util.comma_value(self.score)
+
+    local placement_outcome = "Sadly, you did not make it as a high roller."
+
+    if high_scores:is_accepted(self.score) then
+        placement_outcome = "Well done, high roller!"
+        self.enter_name = true
+        self.buttons:set_values{ name = "alt close prompt", text = "Record My Name" }
+        self.buttons:set_values{ name = "close prompt", hidden = not display.mobile }
+    else
+        self.enter_name = false
+        self.buttons:set_values{ name = "alt close prompt", text = "View High Rollers" }
+        self.buttons:set_values{ name = "close prompt", hidden = true }
+    end
+
+    -- set end game message
+    if rip then
+        self.message = "You died!\n" .. placement_outcome
+    else
+        self.message = "You survived!\n" .. placement_outcome
+    end
+
+    ---- allow text input
+    ---- (a button to show the keyboard will be visible on mobile)
+    --if not display.mobile then
+        --love.keyboard.setTextInput(true)
+    --end
+
+    self.name = ""
+
+    active_state = self
+
+end
+
+function state.game_over.update(self, dt)
+
+end
+
+function state.game_over.draw(self)
+
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    -- title
+    love.graphics.print("Score", layout:padded_point_at("title"))
+    love.graphics.printf(self.score_amount, layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    -- message
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+
+    -- name
+    if self.enter_name then
+        love.graphics.print("Your name: "..self.name, layout:point_at("answer 1"))
+    end
+
+    self.buttons:draw()
+end
+
+function state.game_over.keypressed(self, key)
+
+    self.buttons:keypressed(key)
+
+    if key == "backspace" then
+        -- get the byte offset to the last UTF-8 character in the string.
+        local byteoffset = self.uft8.offset(self.name, -1)
+        if byteoffset then
+            -- remove the last UTF-8 character.
+            -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
+            self.name = string.sub(self.name, 1, byteoffset - 1)
+        end
+    end
+
+end
+
+function state.game_over.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.game_over.textinput(self, t)
+    if self.uft8.len(self.name) < 8 then
+        self.name = self.name .. t
+    end
+end
+
+function state.game_over.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.game_over.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.game_over.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.game_over.exit_state(self)
+    if self.enter_name then
+        -- prevent exit without a name
+        if self.uft8.len(self.name) == 0 then
+            return
+        end
+        high_scores:add(self.name, self.score)
+    end
+    -- remove the save game
+    play_state:remove_save()
+    -- TODO: switch scores state
+    menu_state:switch()
+end
+
+function state.game_over.show_mobile_keyboard(self)
+    love.keyboard.setTextInput(true)
 end
 
 --        _   _ _
