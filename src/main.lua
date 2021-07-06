@@ -396,6 +396,7 @@ function encounter_state.load(self)
         text = "Patch me up, doc!",
         font = fonts:for_menu_button(),
         hidden = true,
+        context = self,
         callback = self.visit_doctor
     })
 
@@ -505,7 +506,7 @@ function encounter_state.set_message(self)
     end
 end
 
-function encounter_state.visit_doctor()
+function encounter_state.visit_doctor(self)
     player:restore_health()
     player:debit_account(encounter_state.doctors_fees)
     self:exit_state()
