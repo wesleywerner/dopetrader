@@ -2224,7 +2224,6 @@ function player.buy_drug(btn)
         local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
         player:debit_account(delta * drug.cost)
         play_state:update_button_texts()
-        print(string.format("Bought %d %s.", delta, drug.name))
     end
 end
 
@@ -2234,7 +2233,6 @@ function player.sell_drug(btn)
     if delta > 0 then
         player:credit_account(delta * drug.cost)
         play_state:update_button_texts()
-        print(string.format("Sold %d %s.", delta, drug.name))
     end
 end
 
@@ -2517,6 +2515,11 @@ function trenchcoat.adjust_stock(self, name, amount)
     local delta = new_stock - current_stock
     -- account delta into free space
     self.free = self.free - delta
+    if delta > 0 then
+        print(string.format("Added %d %s to trench coat.", delta, name))
+    else
+        print(string.format("Removed %d %s from trench coat.", -1*delta, name))
+    end
     return math.abs(delta), new_stock
 end
 
