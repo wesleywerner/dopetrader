@@ -1346,6 +1346,11 @@ function market.fluctuate(self)
     -- number of stock items on the market this turn
     local count = math.random(math.floor(#self.db/2), #self.db)
 
+    -- Last Day: Everything is on the market for sale
+    if player.day == #market.predictions then
+        count = #self.db
+    end
+
     self.available = {}
     self.is_available = {}
 
