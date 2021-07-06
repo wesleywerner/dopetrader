@@ -64,13 +64,15 @@ local bank_state = {}
 
 function love.load()
 
+    local title = "Dope Trader"
+    print(string.format("Welcome to %s!", title))
+
     -- do not prevent device from sleeping
     love.window.setDisplaySleepEnabled(true)
 
-    -- set identity for save/scores files
+    -- set window title, identity for save/score files
+    love.window.setTitle(title)
     love.filesystem.setIdentity("dopetrader")
-
-    love.window.setTitle("Dope Trader")
 
     fonts:load()
     high_scores:load()
@@ -1048,6 +1050,14 @@ end
 -- |_| |_|_|\__, |_| |_| |___/\___\___/|_|  \___||___/
 --          |___/
 --
+function high_scores.filename(self)
+    if DEBUG then
+        return "scores_debug"
+    else
+        return "scores"
+    end
+end
+
 function high_scores.load(self)
 
     self.max_entries = 10
@@ -1056,7 +1066,7 @@ function high_scores.load(self)
         self:read_file()
     end
 
-    print("High Rollers are:")
+    print("The High Rollers are:")
     for _, v in ipairs(self:listing()) do
         print(v.rank, v.date, v.name, v.score)
     end
@@ -1065,7 +1075,7 @@ end
 
 function high_scores.generate_default_scores(self)
 
-    local scores_exist = love.filesystem.getInfo("scores", "file") ~= nil
+    local scores_exist = love.filesystem.getInfo(self:filename(), "file") ~= nil
     if scores_exist then
         return false
     end
@@ -1091,7 +1101,7 @@ function high_scores.generate_default_scores(self)
 end
 
 function high_scores.write_file(self)
-    local file = love.filesystem.newFile("scores")
+    local file = love.filesystem.newFile(self:filename())
     local ok, err = file:open("w")
     if ok then
         for rank, e in ipairs(self.entries) do
@@ -1105,7 +1115,7 @@ end
 
 function high_scores.read_file(self)
     self.entries = {}
-    local file = love.filesystem.newFile("scores")
+    local file = love.filesystem.newFile(self:filename())
     local ok, err = file:open("r")
     if ok then
         for line in file:lines() do
