@@ -51,11 +51,11 @@ local test = {} -- TODO: remove test{}
 
 local state = {
     game_over = {},
+    menu = {},
     options = {},
     scores = {}
 }
 -- TODO: migrate below to above
-local menu_state = {}
 local play_state = {}
 local jet_state = {}
 local cops_state = {}
@@ -86,7 +86,6 @@ function love.load()
     market:load()
     message_panel:load()
 
-    menu_state:load()
     play_state:load()
     jet_state:load()
     encounter_state:load()
@@ -100,7 +99,7 @@ function love.load()
         state[k]:load()
     end
 
-    menu_state:switch()
+    state.menu:switch()
 end
 
 function love.keypressed(key, isrepeat)
@@ -784,171 +783,6 @@ function jet_state.go(btn)
 end
 
 function jet_state.cancel(self)
-    play_state:switch()
-end
-
---                                   _        _
---  _ __ ___   ___ _ __  _   _   ___| |_ __ _| |_ ___
--- | '_ ` _ \ / _ \ '_ \| | | | / __| __/ _` | __/ _ \
--- | | | | | |  __/ | | | |_| | \__ \ || (_| | ||  __/
--- |_| |_| |_|\___|_| |_|\__,_| |___/\__\__,_|\__\___|
---
-function menu_state.load(self)
-
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
-
-    local run_box = layout.box["new game"]
-    self.buttons:button("new", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "New Game",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.new_game
-    })
-
-    local run_box = layout.box["resume game"]
-    self.buttons:button("resume", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Resume Game",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.resume_game,
-        disabled = true
-    })
-
-    local run_box = layout.box["high scores"]
-    self.buttons:button("scores", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "High Rollers",
-        font = fonts:for_menu_button(),
-        context = state.scores,
-        callback = state.scores.switch
-    })
-
-    local run_box = layout.box["options"]
-    self.buttons:button("options", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Options",
-        font = fonts:for_menu_button(),
-        context = state.options,
-        callback = state.options.switch,
-    })
-
-    local run_box = layout.box["about"]
-    self.buttons:button("about", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "About",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.view_about,
-        disabled = true
-    })
-
-    if DEBUG then
-        local z_box = layout.box["debug 1"]
-        self.buttons:button("debug cash", {
-            left = z_box[1],
-            top = z_box[2],
-            width = z_box[3],
-            height = z_box[4],
-            text = "$",
-            font = fonts:for_player_stats(),
-            context = self,
-            callback = test.add_cash
-        })
-        local z_box = layout.box["debug 2"]
-        self.buttons:button("debug guns", {
-            left = z_box[1],
-            top = z_box[2],
-            width = z_box[3],
-            height = z_box[4],
-            text = "Guns",
-            font = fonts:for_player_stats(),
-            context = self,
-            callback = test.add_guns
-        })
-        local z_box = layout.box["debug 3"]
-        self.buttons:button("debug 3", {
-            left = z_box[1],
-            top = z_box[2],
-            width = z_box[3],
-            height = z_box[4],
-            text = "Paraquat",
-            font = fonts:for_player_stats(),
-            context = self,
-            callback = test.offer_paraquat
-        })
-    end
-
-end
-
-function menu_state.update(self, dt)
-    self.buttons:update(dt)
-end
-
-function menu_state.switch(self)
-    local savegame_exists = love.filesystem.getInfo("savegame", "file") ~= nil
-    self.buttons:get("resume").disabled = not savegame_exists
-    active_state = menu_state
-end
-
-function menu_state.draw(self)
-    fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
-    love.graphics.printf("DoPe TrAder", layout:align_point_at("menu logo", nil, "center"))
-    self.buttons:draw()
-end
-
-function menu_state.keypressed(self, key)
-    self.buttons:keypressed(key)
-    if key == "escape" then
-        love.event.quit()
-    end
-end
-
-function menu_state.keyreleased(self, key)
-    self.buttons:keyreleased(key)
-end
-
-function menu_state.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
-end
-
-function menu_state.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function menu_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function menu_state.new_game(self)
-    play_state:new_game()
-    play_state:switch()
-end
-
-function menu_state.resume_game(self)
-    -- load from disk if no day, otherwise resumes game in-progress
-    if player.game_over then
-        play_state:new_game()
-        play_state:restore_game()
-    end
     play_state:switch()
 end
 
@@ -1947,7 +1781,7 @@ function play_state.keypressed(self, key)
         if message_panel:is_locked() then
             message_panel:unlock()
         else
-            menu_state:switch()
+            state.menu:switch()
         end
     elseif key == "return" then
         if message_panel:is_locked() then
@@ -2800,6 +2634,170 @@ function state.game_over.show_mobile_keyboard(self)
     love.keyboard.setTextInput(true)
 end
 
+--  _ __ ___   ___ _ __  _   _
+-- | '_ ` _ \ / _ \ '_ \| | | |
+-- | | | | | |  __/ | | | |_| |
+-- |_| |_| |_|\___|_| |_|\__,_|
+--
+function state.menu.draw(self)
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.printf("DoPe TrAder", layout:align_point_at("menu logo", nil, "center"))
+    self.buttons:draw()
+end
+
+function state.menu.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        love.event.quit()
+    end
+end
+
+function state.menu.keyreleased(self, key)
+    self.buttons:keyreleased(key)
+end
+
+function state.menu.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local run_box = layout.box["new game"]
+    self.buttons:button("new", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "New Game",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.new_game
+    })
+
+    local run_box = layout.box["resume game"]
+    self.buttons:button("resume", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Resume Game",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.resume_game,
+        disabled = true
+    })
+
+    local run_box = layout.box["high scores"]
+    self.buttons:button("scores", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "High Rollers",
+        font = fonts:for_menu_button(),
+        context = state.scores,
+        callback = state.scores.switch
+    })
+
+    local run_box = layout.box["options"]
+    self.buttons:button("options", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Options",
+        font = fonts:for_menu_button(),
+        context = state.options,
+        callback = state.options.switch,
+    })
+
+    local run_box = layout.box["about"]
+    self.buttons:button("about", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "About",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.view_about,
+        disabled = true
+    })
+
+    if DEBUG then
+        local z_box = layout.box["debug 1"]
+        self.buttons:button("debug cash", {
+            left = z_box[1],
+            top = z_box[2],
+            width = z_box[3],
+            height = z_box[4],
+            text = "$",
+            font = fonts:for_player_stats(),
+            context = self,
+            callback = test.add_cash
+        })
+        local z_box = layout.box["debug 2"]
+        self.buttons:button("debug guns", {
+            left = z_box[1],
+            top = z_box[2],
+            width = z_box[3],
+            height = z_box[4],
+            text = "Guns",
+            font = fonts:for_player_stats(),
+            context = self,
+            callback = test.add_guns
+        })
+        local z_box = layout.box["debug 3"]
+        self.buttons:button("debug 3", {
+            left = z_box[1],
+            top = z_box[2],
+            width = z_box[3],
+            height = z_box[4],
+            text = "Paraquat",
+            font = fonts:for_player_stats(),
+            context = self,
+            callback = test.offer_paraquat
+        })
+    end
+
+end
+
+function state.menu.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.menu.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.menu.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.menu.new_game(self)
+    play_state:new_game()
+    play_state:switch()
+end
+
+function state.menu.resume_game(self)
+    -- load from disk if no day, otherwise resumes game in-progress
+    if player.game_over then
+        play_state:new_game()
+        play_state:restore_game()
+    end
+    play_state:switch()
+end
+
+function state.menu.switch(self)
+    local savegame_exists = love.filesystem.getInfo("savegame", "file") ~= nil
+    self.buttons:get("resume").disabled = not savegame_exists
+    active_state = self
+end
+
+function state.menu.update(self, dt)
+    self.buttons:update(dt)
+end
+
 --              _   _
 --   ___  _ __ | |_(_) ___  _ __  ___
 --  / _ \| '_ \| __| |/ _ \| '_ \/ __|
@@ -2816,7 +2814,7 @@ end
 
 function state.options.exit_state(self)
     options:save()
-    menu_state:switch()
+    state.menu:switch()
 end
 
 function state.options.keypressed(self, key)
@@ -2981,7 +2979,7 @@ end
 
 function state.scores.keypressed(self, key)
     if key == "escape" then
-        menu_state:switch()
+        state.menu:switch()
     end
 end
 
@@ -3012,7 +3010,7 @@ end
 function state.scores.mousepressed(self, x, y, button, istouch)
     -- prevent exiting until scores are listed
     if self.display_rank == #self.listing then
-        menu_state:switch()
+        state.menu:switch()
     end
 end
 
