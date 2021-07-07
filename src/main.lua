@@ -2883,9 +2883,15 @@ function util.key_value_pairs(line)
     return function()
         local key, value = key_value_matcher()
         if key ~= nil then
+            -- attempt conversion from hex number
             local number_from_hex = tonumber(value, 16)
+            -- convert to boolean
             value = (value == "true") and true or value
             value = (value == "false") and false or value
+            -- replace underscore
+            if not number_from_hex and type(value) == "string" then
+                value = string.gsub(value, "_", " ")
+            end
             return key, number_from_hex or value
         end
     end
