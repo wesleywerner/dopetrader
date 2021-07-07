@@ -46,7 +46,6 @@ local market = {}
 local fonts = {}
 local trenchcoat = {}
 local util = {}
-local message_panel = {}
 local test = {} -- TODO: remove test{}
 
 local state = {
@@ -55,6 +54,7 @@ local state = {
     jet = {},
     loanshark = {},
     menu = {},
+    messages = {},
     options = {},
     play = {},
     shop = {},
@@ -499,7 +499,6 @@ function love.load()
     layout:load()
     player:load()
     market:load()
-    message_panel:load()
 
     options:load()
 
@@ -581,12 +580,12 @@ function market.fluctuate(self)
                 cost = cost * math.random(3, 6)
                 local template = util.pick(unpack(self.increase_message))
                     or "%s increase template not found"
-                message_panel:add_message(template, GOOD_INFO, drug.name)
+                state.messages:add(template, GOOD_INFO, drug.name)
             elseif drug.decrease then
                 cost = math.floor(cost / math.random(3, 6))
                 local template = self.decrease_message[drug.name]
                     or "%s decrease template not found"
-                message_panel:add_message(template, GOOD_INFO)
+                state.messages:add(template, GOOD_INFO)
             end
         end
 
@@ -772,10 +771,10 @@ function player.generate_events(self)
         local brownie_text = "Your mama made brownies with some of your %s! They were great!"
         if trenchcoat:stock_of("Hashish") > 20 then
             trenchcoat:adjust_stock("Hashish", -math.random(1, 4))
-            message_panel:add_message(brownie_text, BAD_INFO, "hash")
+            state.messages:add(brownie_text, BAD_INFO, "hash")
         elseif trenchcoat:stock_of("Weed") > 20 then
             trenchcoat:adjust_stock("Weed", -math.random(1, 4))
-            message_panel:add_message(brownie_text, BAD_INFO, "weed")
+            state.messages:add(brownie_text, BAD_INFO, "weed")
         end
     end
 
@@ -788,7 +787,7 @@ function player.generate_events(self)
             local flavor = util.pick(
                 "they borrow some %s from you.",
                 "you give some %s to them.")
-            message_panel:add_message("You meet a friend, "..flavor, BAD_INFO, name)
+            state.messages:add("You meet a friend, "..flavor, BAD_INFO, name)
         end
     end
 
@@ -799,7 +798,7 @@ function player.generate_events(self)
             -- lose it
             local delta = trenchcoat:adjust_stock(name, -math.random(10, 20))
             print(string.format("Event: lost %d %s.", delta, name))
-            message_panel:add_message("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!", BAD_INFO)
+            state.messages:add("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!", BAD_INFO)
         end
     end
 
@@ -811,21 +810,21 @@ function player.generate_events(self)
             local flavor = util.pick(
                 "You find %d units of %s on a dead dude in the subway!",
                 "You meet a friend, they lay %d units of %s on you.")
-            message_panel:add_message(flavor, GOOD_INFO, delta, drug.name)
+            state.messages:add(flavor, GOOD_INFO, delta, drug.name)
         end
     end
 
     if mugged then
         local amount = math.random(player.cash * .1, player.cash * .25)
         player:debit_account(amount)
-        message_panel:add_message("You were mugged in the subway!", BAD_INFO)
+        state.messages:add("You were mugged in the subway!", BAD_INFO)
         print(string.format("Event: lost $%d.", amount))
     end
 
     if detour then
         local bad_thing = util.pick("have a beer.", "smoke a joint.",
             "smoke a cigar.", "smoke a Djarum.", "smoke a cigarette.")
-        message_panel:add_message("You stopped to "..bad_thing, ZERO_INFO)
+        state.messages:add("You stopped to "..bad_thing, ZERO_INFO)
     end
 
     if subway_anecdote then
@@ -863,7 +862,7 @@ function player.generate_events(self)
         if math.random() < .3 then
             thought = " (at least, you -think- that's what she said)"
         end
-        message_panel:add_message("The lady next to you on the subway said, `%s` %s", ZERO_INFO, anecdote, thought)
+        state.messages:add("The lady next to you on the subway said, `%s` %s", ZERO_INFO, anecdote, thought)
     end
 
     if hear_music then
@@ -886,7 +885,7 @@ function player.generate_events(self)
         "`Kicks` by Paul Revere & the Raiders",
         "the Nixon tapes",
         "`Legalize It` by Mojo Nixon & Skid Roper")
-        message_panel:add_message("You hear someone playing %s.", ZERO_INFO, good_song)
+        state.messages:add("You hear someone playing %s.", ZERO_INFO, good_song)
     end
 
     -- % chance of encounter for every unit of drug carried
@@ -920,7 +919,7 @@ end
 
 function player.load(self)
     self.game_over = true
-    message_panel:clear_messages()
+    state.messages:clear()
 end
 
 function player.lose_health(self, value)
@@ -1658,15 +1657,51 @@ function state.menu.update(self, dt)
     self.buttons:update(dt)
 end
 
---                                                                    _
---  _ __ ___   ___  ___ ___  __ _  __ _  ___   _ __   __ _ _ __   ___| |
--- | '_ ` _ \ / _ \/ __/ __|/ _` |/ _` |/ _ \ | '_ \ / _` | '_ \ / _ \ |
--- | | | | | |  __/\__ \__ \ (_| | (_| |  __/ | |_) | (_| | | | |  __/ |
--- |_| |_| |_|\___||___/___/\__,_|\__, |\___| | .__/ \__,_|_| |_|\___|_|
---                                |___/       |_|
+
+--  _ __ ___   ___  ___ ___  __ _  __ _  ___  ___
+-- | '_ ` _ \ / _ \/ __/ __|/ _` |/ _` |/ _ \/ __|
+-- | | | | | |  __/\__ \__ \ (_| | (_| |  __/\__ \
+-- |_| |_| |_|\___||___/___/\__,_|\__, |\___||___/
+--                                |___/
 --
--- TODO: migrate to state.
-function message_panel.load(self)
+function state.messages.add(self, text, color, ...)
+    local msg = string.format(text, ...)
+    table.insert(self.messages, color)
+    table.insert(self.messages, msg.."\n\n")
+    print("Message: "..msg)
+end
+
+function state.messages.clear(self)
+    self.messages = {}
+end
+
+function state.messages.draw(self)
+    -- fill
+    love.graphics.setColor(0, .3, .3)
+    love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
+    -- message indicator
+    if #self.messages == 0 then
+        love.graphics.setColor(0, 0, 0)
+    else
+        love.graphics.setColor(0, 1, 1)
+    end
+    love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
+    if self.y ~= self.rest_y then
+        fonts:set_medium()
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
+    end
+end
+
+function state.messages.is_dragging(self)
+    return self.dragging
+end
+
+function state.messages.is_locked(self)
+    return self.locked
+end
+
+function state.messages.load(self)
 
     -- message box layout
     _, self.rest_y = layout:point_at("messages")
@@ -1687,35 +1722,13 @@ function message_panel.load(self)
 
 end
 
-function message_panel.draw(self)
-    -- fill
-    love.graphics.setColor(0, .3, .3)
-    love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
-    -- message indicator
-    if #self.messages == 0 then
-        love.graphics.setColor(0, 0, 0)
-    else
-        love.graphics.setColor(0, 1, 1)
-    end
-    love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
-    if self.y ~= self.rest_y then
-        fonts:set_medium()
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
-    end
-end
-
-function message_panel.update(self, dt)
-    if not self.locked and not self.dragging and self.y < self.rest_y then
-        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
-        display:request_fast_fps()
-    end
+function state.messages.mousemoved(self, x, y, dx, dy, istouch)
     if self.dragging then
-        display:request_fast_fps()
+        self.y = math.max(self.min_y, math.min(self.rest_y, y))
     end
 end
 
-function message_panel.mousepressed(self, x, y, button, istouch)
+function state.messages.mousepressed(self, x, y, button, istouch)
     if self:is_locked() then
         self:unlock()
     end
@@ -1724,46 +1737,31 @@ function message_panel.mousepressed(self, x, y, button, istouch)
     end
 end
 
-function message_panel.mousereleased(self, x, y, button, istouch)
+function state.messages.mousereleased(self, x, y, button, istouch)
     if self.dragging then
         self.dragging = nil
     end
 end
 
-function message_panel.mousemoved(self, x, y, dx, dy, istouch)
-    if self.dragging then
-        self.y = math.max(self.min_y, math.min(self.rest_y, y))
-    end
-end
-
-function message_panel.clear_messages(self)
-    self.messages = {}
-end
-
-function message_panel.add_message(self, text, color, ...)
-    local msg = string.format(text, ...)
-    table.insert(self.messages, color)
-    table.insert(self.messages, msg.."\n\n")
-    print("Message: "..msg)
-end
-
-function message_panel.is_dragging(self)
-    return self.dragging
-end
-
-function message_panel.show_and_lock(self)
+function state.messages.show_and_lock(self)
     if #self.messages > 0 then
         self.y = self.min_y
         self.locked = true
     end
 end
 
-function message_panel.is_locked(self)
-    return self.locked
+function state.messages.unlock(self)
+    self.locked = false
 end
 
-function message_panel.unlock(self)
-    self.locked = false
+function state.messages.update(self, dt)
+    if not self.locked and not self.dragging and self.y < self.rest_y then
+        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
+        display:request_fast_fps()
+    end
+    if self.dragging then
+        display:request_fast_fps()
+    end
 end
 
 --              _   _
@@ -1918,30 +1916,30 @@ end
 function state.play.draw(self)
 
     self.buttons:draw()
-    message_panel:draw()
+    state.messages:draw()
 
 end
 
 function state.play.keypressed(self, key)
     if key == "escape" then
-        if message_panel:is_locked() then
-            message_panel:unlock()
+        if state.messages:is_locked() then
+            state.messages:unlock()
         else
             state.menu:switch()
         end
     elseif key == "return" then
-        if message_panel:is_locked() then
-            message_panel:unlock()
+        if state.messages:is_locked() then
+            state.messages:unlock()
         end
     elseif key == "space" then
-        if message_panel:is_locked() then
-            message_panel:unlock()
+        if state.messages:is_locked() then
+            state.messages:unlock()
         else
-            message_panel:show_and_lock()
+            state.messages:show_and_lock()
         end
     end
     -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
+    if (state.messages:is_dragging() or state.messages:is_locked()) then
         return
     end
     self.buttons:keypressed(key)
@@ -2128,34 +2126,34 @@ function state.play.load(self)
 end
 
 function state.play.mousemoved(self, x, y, dx, dy, istouch)
-    message_panel:mousemoved(x, y, dx, dy, istouch)
+    state.messages:mousemoved(x, y, dx, dy, istouch)
     -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
+    if (state.messages:is_dragging() or state.messages:is_locked()) then
         return
     end
     self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
 function state.play.mousepressed(self, x, y, button, istouch)
-    message_panel:mousepressed(x, y, button, istouch)
+    state.messages:mousepressed(x, y, button, istouch)
     -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
+    if (state.messages:is_dragging() or state.messages:is_locked()) then
         return
     end
     self.buttons:mousepressed(x, y, button, istouch)
 end
 
 function state.play.mousereleased(self, x, y, button, istouch)
-    message_panel:mousereleased(x, y, button, istouch)
+    state.messages:mousereleased(x, y, button, istouch)
     -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
+    if (state.messages:is_dragging() or state.messages:is_locked()) then
         return
     end
     self.buttons:mousereleased(x, y, button, istouch)
 end
 
 function state.play.new_game(self)
-    message_panel:clear_messages()
+    state.messages:clear()
     player:reset_game()
     market:initialize_predictions()
     market:fluctuate()
@@ -2165,7 +2163,7 @@ end
 
 function state.play.next_day(self, new_location)
     if player:add_day(new_location) <= #market.predictions then
-        message_panel:clear_messages()
+        state.messages:clear()
         player:accrue_debt()
         market:fluctuate()
         self:update_button_texts()
@@ -2282,7 +2280,7 @@ function state.play.switch(self)
     bank_button.text = player.bank_amount
     bank_button.hidden = (player.location ~= LOCATIONS[1])
 
-    message_panel:show_and_lock()
+    state.messages:show_and_lock()
 
     -- animate player cash value
     if not self.cash_counter then
@@ -2320,7 +2318,7 @@ function state.play.update(self, dt)
     self.buttons:get("coat label").text = trenchcoat:free_space()
 
     self.buttons:update(dt)
-    message_panel:update(dt)
+    state.messages:update(dt)
 
 end
 
@@ -2597,13 +2595,13 @@ function state.shop.purchase(self)
         player:debit_account(self.cost)
         player:add_gun()
         trenchcoat:adjust_pockets(-self.space_used)
-        message_panel:add_message("You purchased a gun.", GOOD_INFO)
+        state.messages:add("You purchased a gun.", GOOD_INFO)
         state.play:update_button_texts()
         state.play:switch()
     elseif self.what == "trench coat" then
         player:debit_account(self.cost)
         trenchcoat:adjust_pockets(self.new_pockets)
-        message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
+        state.messages:add("You purchased a new trench coat.", GOOD_INFO)
         state.play:update_button_texts()
         state.play:switch()
     elseif self.what == "paraquat" then
