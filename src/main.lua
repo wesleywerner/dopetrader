@@ -55,13 +55,10 @@ local state = {
     menu = {},
     options = {},
     play = {},
-    scores = {}
+    scores = {},
+    thugs = {}
 }
 -- TODO: migrate below to above
-local cops_state = {}
-local scores_state = {}
-local active_state = {}
-local encounter_state = {}
 local loan_shark_state = {}
 local purchase_state = {}
 local bank_state = {}
@@ -86,7 +83,6 @@ function love.load()
     market:load()
     message_panel:load()
 
-    encounter_state:load()
     loan_shark_state:load()
     purchase_state:load()
     bank_state:load()
@@ -345,255 +341,6 @@ end
 
 function display.request_fast_fps(self)
     self.fast_fps = true
-end
-
---                                   _
---   ___ _ __   ___ ___  _   _ _ __ | |_ ___ _ __
---  / _ \ '_ \ / __/ _ \| | | | '_ \| __/ _ \ '__|
--- |  __/ | | | (_| (_) | |_| | | | | ||  __/ |
---  \___|_| |_|\___\___/ \__,_|_| |_|\__\___|_|
---
-function encounter_state.load(self)
-
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
-
-    local run_box = layout.box["answer 1"]
-    self.buttons:button("run", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Run",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.attempt_run
-    })
-
-    local run_box = layout.box["answer 2"]
-    self.buttons:button("fight", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Fight",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.attempt_fight
-    })
-
-    local run_box = layout.box["close prompt"]
-    self.buttons:button("close", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "I'm outta here",
-        font = fonts:for_menu_button(),
-        hidden = true,
-        callback = self.exit_state
-    })
-
-    local run_box = layout.box["alt close prompt"]
-    self.buttons:button("doctor", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Patch me up, doc!",
-        font = fonts:for_menu_button(),
-        hidden = true,
-        context = self,
-        callback = self.visit_doctor
-    })
-
-end
-
-function encounter_state.switch(self, risk_factor)
-
-    -- load prediction
-    math.randomseed(market.predictions[player.day])
-
-    local upper_thugs = 20 * risk_factor
-    self.thugs = math.random(1, upper_thugs)
-    print(string.format("Encounter picked %d out of %d thugs, from risk factor %d%%.", self.thugs, upper_thugs, risk_factor * 100))
-
-    self.cash_prize = (math.random() * 1000) + self.thugs * 1000
-    print(string.format("You can earn $%d if you win this fight.", self.cash_prize))
-
-    self.doctors_fees = 1000
-    self:set_message()
-    self.outcome = ""
-
-    self.buttons:get("fight").hidden = false
-    self.buttons:get("fight").disabled = player.guns == 0
-    self.buttons:get("close").hidden = true
-    self.buttons:get("run").hidden = false
-    self.buttons:get("doctor").hidden = true
-
-    -- watch player health as a spinning number
-    local dr = require("harness.digitroller")
-    self.health_counter = dr:new({
-        subject = player,
-        target = "health"
-    })
-
-    active_state = self
-end
-
-function encounter_state.exit_state()
-    if player.health < 1 then
-        state.game_over:switch(true)
-    else
-        state.play:switch()
-    end
-end
-
-function encounter_state.update(self, dt)
-    if self.health_counter_refresh ~= self.health_counter.value then
-        self.health_counter_refresh = self.health_counter.value
-        display:request_fast_fps()
-    end
-    self.health_counter:update(dt)
-end
-
-function encounter_state.draw(self)
-
-    fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
-
-    love.graphics.print("Health", layout:padded_point_at("title"))
-    love.graphics.printf(math.floor(self.health_counter.value), layout:align_point_at("title",nil,"right"))
-    love.graphics.rectangle("line", layout:box_at("title"))
-
-    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
-
-    if self.outcome then
-        love.graphics.printf(self.outcome, layout:align_point_at("response", nil, "center"))
-    end
-
-    self.buttons:draw()
-
-end
-
-function encounter_state.keypressed(self, key)
-    self.buttons:keypressed(key)
-    if key == "escape" then
-        if not self.buttons:get("close").hidden then
-            self:exit_state()
-        end
-    end
-end
-
-function encounter_state.keyreleased(self, key, scancode)
-    self.buttons:keyreleased(key)
-end
-
-function encounter_state.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
-end
-
-function encounter_state.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function encounter_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function encounter_state.set_message(self)
-    if self.thugs == 0 then
-        self.message = string.format("You fought them off!\nYou found $%d on the body.", self.cash_prize)
-    elseif self.thugs == 1 then
-        self.message = string.format("A gang leader is chasing you!")
-    elseif self.thugs == 2 then
-        self.message = string.format("A gang leader and one of his thugs are chasing you!")
-    else
-        self.message = string.format("A gang leader and %d of his thugs are chasing you!", self.thugs - 1)
-    end
-end
-
-function encounter_state.visit_doctor(self)
-    player:restore_health()
-    player:debit_account(encounter_state.doctors_fees)
-    self:exit_state()
-end
-
-function encounter_state.get_shot_at(self)
-    if self.thugs == 0 then
-        return ""
-    end
-    -- chance of being hit is proportional to number of thugs
-    local hit_chance = math.min(0.6, self.thugs * 0.2)
-    print(string.format("Thugs fire with a hit chance of %d%%.", hit_chance * 100))
-    if math.random() < hit_chance then
-        print("You got hit!")
-        player:lose_health(math.random(5, 15))
-        love.system.vibrate(.2)
-        return "They fire at you! You are hit!"
-    else
-        print("They miss!")
-        return "They fire at you, and miss!"
-    end
-end
-
-function encounter_state.attempt_run(self)
-    -- chance of escape is inversely proportional to number of thugs.
-    -- clamp upper limit so there is always a small chance of escape.
-    local escape_chance = math.max(0.1, 0.7 - self.thugs * 0.075)
-
-    if math.random() < escape_chance then
-        print(string.format("Escaped with chance of %d%%.", escape_chance * 100))
-        self:allow_exit()
-        self.outcome = "You lost them in the alleys"
-    else
-        print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
-        self.outcome = "You can't lose them! " .. self:get_shot_at()
-        self:test_death()
-    end
-end
-
-function encounter_state.attempt_fight(self)
-    -- chance of hit is proportional to number of guns carried.
-    local hit_chance = math.min(0.75, player.guns * 0.25)
-    print(string.format("Firing with a hit chance of %d%%.", hit_chance * 100))
-    if math.random() < hit_chance then
-        print("Hit!")
-        self.thugs = self.thugs - 1
-        self:set_message()
-        self.outcome = "You hit one of them! " .. self:get_shot_at()
-        if self.thugs == 0 then
-            player:credit_account(encounter_state.cash_prize)
-            self.outcome = ""
-            self:allow_exit()
-        end
-    else
-        print("Miss!")
-        self.outcome = "You miss! " .. self:get_shot_at()
-    end
-    self:test_death()
-end
-
-function encounter_state.allow_exit(self)
-    self.buttons:get("close").hidden = false
-    self.buttons:get("run").hidden = true
-    self.buttons:get("fight").hidden = true
-
-    if self.thugs == 0 and player.health < 100 then
-        self.doctors_fees = (math.random() * 1000) + 1500
-        if self.doctors_fees <= player.cash then
-            self.buttons:get("doctor").hidden = false
-            self.outcome = string.format("Visit a clinic to patch you up for $%d?", self.doctors_fees)
-        end
-    end
-end
-
-function encounter_state.test_death(self)
-    if player.health < 1 then
-        self:allow_exit()
-        self.outcome = "They wasted you, man! What a drag!"
-        love.system.vibrate(.25)
-    end
 end
 
 --   __             _
@@ -2826,7 +2573,7 @@ function state.play.update(self, dt)
     end
 
     if player.gang_encounter then
-        encounter_state:switch(player.gang_encounter)
+        state.thugs:switch(player.gang_encounter)
         player.gang_encounter = false
         return
     end
@@ -3024,6 +2771,256 @@ function state.scores.update(self, dt)
         self.timer = 0.25
         self.display_rank = math.min(self.display_rank + 1, #self.listing)
     end
+end
+
+--  _   _
+-- | |_| |__  _   _  __ _ ___
+-- | __| '_ \| | | |/ _` / __|
+-- | |_| | | | |_| | (_| \__ \
+--  \__|_| |_|\__,_|\__, |___/
+--                  |___/
+--
+function state.thugs.allow_exit(self)
+    self.buttons:get("close").hidden = false
+    self.buttons:get("run").hidden = true
+    self.buttons:get("fight").hidden = true
+
+    if self.thugs == 0 and player.health < 100 then
+        self.doctors_fees = (math.random() * 1000) + 1500
+        if self.doctors_fees <= player.cash then
+            self.buttons:get("doctor").hidden = false
+            self.outcome = string.format("Visit a clinic to patch you up for $%d?", self.doctors_fees)
+        end
+    end
+end
+
+function state.thugs.attempt_fight(self)
+    -- chance of hit is proportional to number of guns carried.
+    local hit_chance = math.min(0.75, player.guns * 0.25)
+    print(string.format("Firing with a hit chance of %d%%.", hit_chance * 100))
+    if math.random() < hit_chance then
+        print("Hit!")
+        self.thugs = self.thugs - 1
+        self:set_message()
+        self.outcome = "You hit one of them! " .. self:get_shot_at()
+        if self.thugs == 0 then
+            player:credit_account(self.cash_prize)
+            self.outcome = ""
+            self:allow_exit()
+        end
+    else
+        print("Miss!")
+        self.outcome = "You miss! " .. self:get_shot_at()
+    end
+    self:test_death()
+end
+
+function state.thugs.attempt_run(self)
+    -- chance of escape is inversely proportional to number of thugs.
+    -- clamp upper limit so there is always a small chance of escape.
+    local escape_chance = math.max(0.1, 0.7 - self.thugs * 0.075)
+
+    if math.random() < escape_chance then
+        print(string.format("Escaped with chance of %d%%.", escape_chance * 100))
+        self:allow_exit()
+        self.outcome = "You lost them in the alleys"
+    else
+        print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
+        self.outcome = "You can't lose them! " .. self:get_shot_at()
+        self:test_death()
+    end
+end
+
+function state.thugs.draw(self)
+
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    love.graphics.print("Health", layout:padded_point_at("title"))
+    love.graphics.printf(math.floor(self.health_counter.value), layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+
+    if self.outcome then
+        love.graphics.printf(self.outcome, layout:align_point_at("response", nil, "center"))
+    end
+
+    self.buttons:draw()
+
+end
+
+function state.thugs.exit_state()
+    if player.health < 1 then
+        state.game_over:switch(true)
+    else
+        state.play:switch()
+    end
+end
+
+function state.thugs.get_shot_at(self)
+    if self.thugs == 0 then
+        return ""
+    end
+    -- chance of being hit is proportional to number of thugs
+    local hit_chance = math.min(0.6, self.thugs * 0.2)
+    print(string.format("Thugs fire with a hit chance of %d%%.", hit_chance * 100))
+    if math.random() < hit_chance then
+        print("You got hit!")
+        player:lose_health(math.random(5, 15))
+        love.system.vibrate(.2)
+        return "They fire at you! You are hit!"
+    else
+        print("They miss!")
+        return "They fire at you, and miss!"
+    end
+end
+
+function state.thugs.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        if not self.buttons:get("close").hidden then
+            self:exit_state()
+        end
+    end
+end
+
+function state.thugs.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.thugs.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local run_box = layout.box["answer 1"]
+    self.buttons:button("run", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Run",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.attempt_run
+    })
+
+    local run_box = layout.box["answer 2"]
+    self.buttons:button("fight", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Fight",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.attempt_fight
+    })
+
+    local run_box = layout.box["close prompt"]
+    self.buttons:button("close", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "I'm outta here",
+        font = fonts:for_menu_button(),
+        hidden = true,
+        callback = self.exit_state
+    })
+
+    local run_box = layout.box["alt close prompt"]
+    self.buttons:button("doctor", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Patch me up, doc!",
+        font = fonts:for_menu_button(),
+        hidden = true,
+        context = self,
+        callback = self.visit_doctor
+    })
+
+end
+
+function state.thugs.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.thugs.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.thugs.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.thugs.set_message(self)
+    if self.thugs == 0 then
+        self.message = string.format("You fought them off!\nYou found $%d on the body.", self.cash_prize)
+    elseif self.thugs == 1 then
+        self.message = string.format("A gang leader is chasing you!")
+    elseif self.thugs == 2 then
+        self.message = string.format("A gang leader and one of his thugs are chasing you!")
+    else
+        self.message = string.format("A gang leader and %d of his thugs are chasing you!", self.thugs - 1)
+    end
+end
+
+function state.thugs.switch(self, risk_factor)
+
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
+
+    local upper_thugs = 20 * risk_factor
+    self.thugs = math.random(1, upper_thugs)
+    print(string.format("Encounter picked %d out of %d thugs, from risk factor %d%%.", self.thugs, upper_thugs, risk_factor * 100))
+
+    self.cash_prize = (math.random() * 1000) + self.thugs * 1000
+    print(string.format("You can earn $%d if you win this fight.", self.cash_prize))
+
+    self.doctors_fees = 1000
+    self:set_message()
+    self.outcome = ""
+
+    self.buttons:get("fight").hidden = false
+    self.buttons:get("fight").disabled = player.guns == 0
+    self.buttons:get("close").hidden = true
+    self.buttons:get("run").hidden = false
+    self.buttons:get("doctor").hidden = true
+
+    -- watch player health as a spinning number
+    local dr = require("harness.digitroller")
+    self.health_counter = dr:new({
+        subject = player,
+        target = "health"
+    })
+
+    active_state = self
+end
+
+function state.thugs.test_death(self)
+    if player.health < 1 then
+        self:allow_exit()
+        self.outcome = "They wasted you, man! What a drag!"
+        love.system.vibrate(.25)
+    end
+end
+
+function state.thugs.update(self, dt)
+    if self.health_counter_refresh ~= self.health_counter.value then
+        self.health_counter_refresh = self.health_counter.value
+        display:request_fast_fps()
+    end
+    self.health_counter:update(dt)
+end
+
+function state.thugs.visit_doctor(self)
+    player:restore_health()
+    player:debit_account(self.doctors_fees)
+    self:exit_state()
 end
 
 
