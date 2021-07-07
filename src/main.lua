@@ -928,7 +928,7 @@ function menu_state.resume_game(self)
     -- load from disk if no day, otherwise resumes game in-progress
     if player.game_over then
         play_state:new_game()
-        play_state:load_from_file()
+        play_state:restore_game()
     end
     play_state:switch()
 end
@@ -1850,7 +1850,7 @@ function play_state.next_day(self, new_location)
         player:accrue_debt()
         market:fluctuate()
         self:update_button_texts()
-        self:save_to_file()
+        self:save_game()
         player:generate_events()
         play_state:switch()
     else
@@ -1950,69 +1950,81 @@ function play_state.mousemoved(self, x, y, dx, dy, istouch)
     self.buttons:mousemoved(x, y, dx, dy, istouch)
 end
 
-function play_state.load_from_file(self)
-    message_panel:clear_messages()
-    print("Loading state from file.")
-    local file = love.filesystem.newFile("savegame")
-    local ok, err = file:open("r")
-    local other = {}
-    if ok then
-        local contents, size = file:read()
-        file:close()
-        if size > 0 then
-            local ite = string.gfind(contents, "(%a+)=([%w_]+)")
-            while true do
-                local key, value = ite()
-                if key == nil then break end
-                local dec = tonumber(value,16)
-                if player[key] ~= nil then
-                    player[key] = dec or value
-                else
-                    other[key] = dec
-                end
-            end
-            trenchcoat:reset()
-            trenchcoat.size = other.coat
-            trenchcoat.free = trenchcoat.size
-            for _, item in ipairs(market.db) do
-                for k, v in pairs(other) do
-                    if k == item.name then
-                        trenchcoat:adjust_stock(k, v)
-                    end
-                end
-            end
-            local crc = util.crc(player, trenchcoat)
-            if crc ~= other.crc then
-                print(string.format("crc mismatch! %d <> %d.", other.crc, crc))
-            end
-            player.location = string.gsub(player.location, "_", " ")
-            player:set_cash()
-            player:set_bank()
-            player:set_debt()
-            market:initialize_predictions()
-            market:fluctuate()
-            player:generate_events()
+function play_state.restore_game(self)
+
+    print("Loading saved game...")
+
+    for line in util.read_file("savegame") do
+
+        -- read record
+        local record = {}
+        for key, value in util.key_value_pairs(line) do
+            record[key] = value
         end
+
+        -- Put on the correct trench coat
+        trenchcoat:reset(record.coat)
+
+        for key, value in pairs(record) do
+
+            -- apply player values
+            if player[key] ~= nil then
+                player[key] = value
+            end
+
+            -- apply trench coat values
+            for _, item in ipairs(market.db) do
+                if key == item.name then
+                    trenchcoat:adjust_stock(key, value)
+                end
+            end
+
+        end
+
+        -- format player cash, bank, debt amounts
+        player:set_cash()
+        player:set_bank()
+        player:set_debt()
+
+        -- recreate the market from player.seed, fluctuate the market
+        market:initialize_predictions()
+        market:fluctuate()
+
+        -- regenerate predicted events
+        player:generate_events()
+
+        -- sanity check
+        local check = util.crc(record)
+        if check ~= record.crc then
+            print("CRC fail")
+        end
+
     end
+
 end
 
-function play_state.save_to_file(self)
-    local file = love.filesystem.newFile("savegame")
-    local ok, err = file:open("w")
-    if ok then
-        local data = string.format([[
-            seed=%x cash=%x bank=%x debt=%x
-            guns=%x health=%x coat=%x day=%x
-            location=%s crc=%x]],
-            player.seed, player.cash, player.bank, player.debt,
-            player.guns, player.health, trenchcoat.size, player.day,
-            string.gsub(player.location, " ", "_"), util.crc(player, trenchcoat))
-        for _, item in ipairs(market.db) do
-            data = data .. string.format(" %s=%x", item.name, trenchcoat:stock_of(item.name))
-        end
-        local contents, err = file:write(data)
-        file:close()
+function play_state.save_game(self)
+
+    -- build save state
+    local savestate = {
+        seed = player.seed,
+        cash = player.cash,
+        bank = player.bank,
+        debt = player.debt,
+        guns = player.guns,
+        health = player.health,
+        coat = trenchcoat.size,
+        day = player.day,
+        location = player.location
+    }
+
+    -- include stock
+    for _, item in ipairs(market.db) do
+        savestate[item.name] = trenchcoat:stock_of(item.name)
     end
+
+    util.write_file("savegame", {savestate})
+
 end
 
 function play_state.remove_save(self)
@@ -2035,12 +2047,13 @@ end
 -- |_|            |___/
 --
 function player.load(self)
-    self.cash = 0
+    self:reset_game()
     self.game_over = true
     message_panel:clear_messages()
 end
 
 function player.reset_game(self)
+    -- TODO: rename to reset()
     self.seed = os.time()
     self.day = 1
     self:set_cash(2000)
@@ -2408,7 +2421,6 @@ function purchase_state.switch(self, what)
         self.message = string.format("Would you like to buy a %s for %s?", name, fancy_cost)
 
         -- not enough free space for this purchase
-        print(string.format("X %d %d", trenchcoat:free_space(), self.space_used))
         if trenchcoat:free_space() < self.space_used then
             self.cost = nil
             print("Not enough free coat space to buy a gun.")
@@ -2524,14 +2536,15 @@ end
 -- | |_| | |  __/ | | | (__| | | | (_| (_) | (_| | |_
 --  \__|_|  \___|_| |_|\___|_| |_|\___\___/ \__,_|\__|
 --
-function trenchcoat.reset(self)
+function trenchcoat.reset(self, size)
     for k, v in pairs(self) do
         if type(v) == "number" then
             self[k] = nil
         end
     end
-    self.size = 100
+    self.size = size or 100
     self.free = self.size
+    print(string.format("Reset trench coat to %d pockets", self.size))
 end
 
 function trenchcoat.adjust_stock(self, name, amount)
@@ -2874,6 +2887,33 @@ function util.read_file(filename)
         if seek <= #content then
             return content[seek]
         end
+    end
+end
+
+function util.write_file(filename, entries)
+    local file = love.filesystem.newFile(filename)
+    local ok, err = file:open("w")
+    if ok then
+        for _, entry in ipairs(entries) do
+            -- embed crc
+            entry.crc = util.crc(entry)
+            -- add each key value pair
+            local data = ""
+            for key, v in pairs(entry) do
+                if type(v) == "string" then
+                    -- replace space with underscore
+                    data = data .. string.format("%s=%s ", key, string.gsub(v, " ", "_"))
+                elseif type(v) == "number" then
+                    -- encode as hex
+                    data = data .. string.format("%s=%x ", key, v)
+                elseif type(v) == "boolean" then
+                    data = data .. string.format("%s=%s ", key, tostring(v))
+                end
+            end
+            -- write with new line
+            file:write(data.." \n")
+        end
+        file:close()
     end
 end
 
