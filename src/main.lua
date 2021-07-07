@@ -56,11 +56,11 @@ local state = {
     menu = {},
     options = {},
     play = {},
+    shop = {},
     scores = {},
     thugs = {}
 }
 -- TODO: migrate below to above
-local purchase_state = {}
 local bank_state = {}
 
 function love.load()
@@ -83,7 +83,6 @@ function love.load()
     market:load()
     message_panel:load()
 
-    purchase_state:load()
     bank_state:load()
     options:load()
 
@@ -1259,189 +1258,6 @@ function player.add_gun(self)
     print(string.format("Got a gun. You have %d.", self.guns))
 end
 
---                       _
---  _ __  _   _ _ __ ___| |__   __ _ ___  ___
--- | '_ \| | | | '__/ __| '_ \ / _` / __|/ _ \
--- | |_) | |_| | | | (__| | | | (_| \__ \  __/
--- | .__/ \__,_|_|  \___|_| |_|\__,_|___/\___|
--- |_|
---
-function purchase_state.load(self)
-
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
-
-    local run_box = layout.box["answer 1"]
-    self.buttons:button("yes", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Yes",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.confirm_purchase,
-        disabled = true
-    })
-
-    local run_box = layout.box["answer 2"]
-    self.buttons:button("no", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "No",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.reject_purchase,
-        disabled = true
-    })
-
-    local run_box = layout.box["close prompt"]
-    self.buttons:button("end game", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "Farewell",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.early_death,
-        hidden = true
-    })
-
-end
-
-function purchase_state.switch(self, what)
-
-    -- load prediction
-    math.randomseed(market.predictions[player.day])
-
-    self.what = what
-    self.disable_timeout = 1
-    self.title = "Purchase"
-
-    self.buttons:get("yes").hidden = false
-    self.buttons:get("no").hidden = false
-    self.buttons:get("end game").hidden = true
-
-    if what == "gun" then
-
-        self.cost = math.random(250, 850)
-        self.space_used = math.random(4, 8)
-        local name = util.pick(".38 Special", "Ruger", "Saturday Night Special")
-        local fancy_cost = util.comma_value(self.cost)
-        self.message = string.format("Would you like to buy a %s for %s?", name, fancy_cost)
-
-        -- not enough free space for this purchase
-        if trenchcoat:free_space() < self.space_used then
-            self.cost = nil
-            print("Not enough free coat space to buy a gun.")
-        end
-
-        -- have enough guns already
-        if player.guns >= 3 then
-            self.cost = nil
-            print("Player has enough guns. Not buying another.")
-        end
-
-    elseif what == "trench coat" then
-        self.new_pockets = 20
-        self.cost = math.random(450, 1250)
-        local fancy_cost = util.comma_value(self.cost)
-        self.message = string.format("Would you like to buy a trench coat with more pockets for %s?", fancy_cost)
-
-    elseif what == "paraquat" then
-        self.cost = 0
-        self.title = "Offer"
-        self.message = "You are offered weed that smells like paraquat. It looks good! Will you smoke it?"
-
-    else
-        print(string.format("No purchase logic for %s.", what))
-        self.cost = nil
-    end
-
-    if self.cost and (player.cash < self.cost) then
-        -- not enough cash for this purchase
-        self.cost = nil
-        print(string.format("Not enough cash to buy a %s.", what))
-    end
-
-    if self.cost then
-        -- enter the purchase state
-        active_state = self
-    end
-
-end
-
-function purchase_state.update(self, dt)
-    if self.disable_timeout > 0 then
-        self.disable_timeout = math.max(0, self.disable_timeout - dt)
-        self.buttons:get("yes").disabled = self.disable_timeout > 0
-        self.buttons:get("no").disabled = self.disable_timeout > 0
-    end
-    self.buttons:update(dt)
-end
-
-function purchase_state.draw(self)
-    fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
-    love.graphics.print(self.title, layout:padded_point_at("title"))
-    love.graphics.rectangle("line", layout:box_at("title"))
-    fonts:set_medium()
-    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
-    self.buttons:draw()
-end
-
-function purchase_state.keypressed(self, key)
-    self.buttons:keypressed(key)
-end
-
-function purchase_state.keyreleased(self, key, scancode)
-    self.buttons:keyreleased(key)
-end
-
-function purchase_state.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
-end
-
-function purchase_state.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function purchase_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function purchase_state.reject_purchase(self)
-    state.play:switch()
-end
-
-function purchase_state.early_death(self)
-    state.game_over:switch(true)
-end
-
-function purchase_state.confirm_purchase(self)
-    if self.what == "gun" then
-        player:debit_account(self.cost)
-        player:add_gun()
-        trenchcoat:adjust_pockets(-self.space_used)
-        message_panel:add_message("You purchased a gun.", GOOD_INFO)
-        state.play:update_button_texts()
-        state.play:switch()
-    elseif self.what == "trench coat" then
-        player:debit_account(self.cost)
-        trenchcoat:adjust_pockets(self.new_pockets)
-        message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
-        state.play:update_button_texts()
-        state.play:switch()
-    elseif self.what == "paraquat" then
-        self.buttons:get("yes").hidden = true
-        self.buttons:get("no").hidden = true
-        self.buttons:get("end game").hidden = false
-        self.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
-    end
-end
 
 --  _                       _                     _
 -- | |_ _ __ ___ _ __   ___| |__   ___ ___   __ _| |_
@@ -2563,7 +2379,7 @@ end
 function state.play.update(self, dt)
 
     if #player.purchase > 0 then
-        purchase_state:switch(table.remove(player.purchase, 1))
+        state.shop:switch(table.remove(player.purchase, 1))
         return
     end
 
@@ -2766,6 +2582,186 @@ function state.scores.update(self, dt)
         self.timer = 0.25
         self.display_rank = math.min(self.display_rank + 1, #self.listing)
     end
+end
+
+--      _
+--  ___| |__   ___  _ __
+-- / __| '_ \ / _ \| '_ \
+-- \__ \ | | | (_) | |_) |
+-- |___/_| |_|\___/| .__/
+--                 |_|
+--
+function state.shop.confirm_purchase(self)
+    if self.what == "gun" then
+        player:debit_account(self.cost)
+        player:add_gun()
+        trenchcoat:adjust_pockets(-self.space_used)
+        message_panel:add_message("You purchased a gun.", GOOD_INFO)
+        state.play:update_button_texts()
+        state.play:switch()
+    elseif self.what == "trench coat" then
+        player:debit_account(self.cost)
+        trenchcoat:adjust_pockets(self.new_pockets)
+        message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
+        state.play:update_button_texts()
+        state.play:switch()
+    elseif self.what == "paraquat" then
+        self.buttons:get("yes").hidden = true
+        self.buttons:get("no").hidden = true
+        self.buttons:get("end game").hidden = false
+        self.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
+    end
+end
+
+function state.shop.draw(self)
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.print(self.title, layout:padded_point_at("title"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+    fonts:set_medium()
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+    self.buttons:draw()
+end
+
+function state.shop.early_death(self)
+    state.game_over:switch(true)
+end
+
+function state.shop.keypressed(self, key)
+    self.buttons:keypressed(key)
+end
+
+function state.shop.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.shop.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local run_box = layout.box["answer 1"]
+    self.buttons:button("yes", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Yes",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.confirm_purchase,
+        disabled = true
+    })
+
+    local run_box = layout.box["answer 2"]
+    self.buttons:button("no", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "No",
+        font = fonts:for_menu_button(),
+        context = state.play,
+        callback = state.play.switch,
+        disabled = true
+    })
+
+    local run_box = layout.box["close prompt"]
+    self.buttons:button("end game", {
+        left = run_box[1],
+        top = run_box[2],
+        width = run_box[3],
+        height = run_box[4],
+        text = "Farewell",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.early_death,
+        hidden = true
+    })
+
+end
+
+function state.shop.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.shop.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.shop.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.shop.switch(self, what)
+
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
+
+    self.what = what
+    self.disable_timeout = 1
+    self.title = "Purchase"
+
+    self.buttons:get("yes").hidden = false
+    self.buttons:get("no").hidden = false
+    self.buttons:get("end game").hidden = true
+
+    if what == "gun" then
+
+        self.cost = math.random(250, 850)
+        self.space_used = math.random(4, 8)
+        local name = util.pick(".38 Special", "Ruger", "Saturday Night Special")
+        local fancy_cost = util.comma_value(self.cost)
+        self.message = string.format("Would you like to buy a %s for %s?", name, fancy_cost)
+
+        -- not enough free space for this purchase
+        if trenchcoat:free_space() < self.space_used then
+            self.cost = nil
+            print("Not enough free coat space to buy a gun.")
+        end
+
+        -- have enough guns already
+        if player.guns >= 3 then
+            self.cost = nil
+            print("Player has enough guns. Not buying another.")
+        end
+
+    elseif what == "trench coat" then
+        self.new_pockets = 20
+        self.cost = math.random(450, 1250)
+        local fancy_cost = util.comma_value(self.cost)
+        self.message = string.format("Would you like to buy a trench coat with more pockets for %s?", fancy_cost)
+
+    elseif what == "paraquat" then
+        self.cost = 0
+        self.title = "Offer"
+        self.message = "You are offered weed that smells like paraquat. It looks good! Will you smoke it?"
+
+    else
+        print(string.format("No purchase logic for %s.", what))
+        self.cost = nil
+    end
+
+    if self.cost and (player.cash < self.cost) then
+        -- not enough cash for this purchase
+        self.cost = nil
+        print(string.format("Not enough cash to buy a %s.", what))
+    end
+
+    if self.cost then
+        -- enter the purchase state
+        active_state = self
+    end
+
+end
+
+function state.shop.update(self, dt)
+    if self.disable_timeout > 0 then
+        self.disable_timeout = math.max(0, self.disable_timeout - dt)
+        self.buttons:get("yes").disabled = self.disable_timeout > 0
+        self.buttons:get("no").disabled = self.disable_timeout > 0
+    end
+    self.buttons:update(dt)
 end
 
 --  _   _
