@@ -1701,15 +1701,6 @@ function play_state.load(self)
         })
     end
 
-    -- animate player cash value
-    local dr = require("harness.digitroller")
-    self.cash_counter_refresh = 0
-    self.cash_counter = dr:new({
-        duration = 2,
-        subject = player,
-        target = "cash"
-    })
-
 end
 
 function play_state.switch(self)
@@ -1735,6 +1726,17 @@ function play_state.switch(self)
     bank_button.hidden = (player.location ~= LOCATIONS[1])
 
     message_panel:show_and_lock()
+
+    -- animate player cash value
+    if not self.cash_counter then
+        local dr = require("harness.digitroller")
+        self.cash_counter_refresh = 0
+        self.cash_counter = dr:new({
+            duration = 2,
+            subject = player,
+            target = "cash"
+        })
+    end
 
 end
 
@@ -2038,7 +2040,6 @@ end
 -- |_|            |___/
 --
 function player.load(self)
-    self:reset_game()
     self.game_over = true
     message_panel:clear_messages()
 end
