@@ -36,17 +36,16 @@ local ZERO_INFO = {.5, 1, 1}
 local LOCATIONS = {"Bronx", "Ghetto", "Central Park",
                     "Manhattan", "Coney Island", "Brooklyn" }
 
--- TODO: sort
 local display = {}
+local fonts = {}
 local high_scores = {}
 local layout = {}
+local market = {}
 local options = {}
 local player = {}
-local market = {}
-local fonts = {}
+local test = {}
 local trenchcoat = {}
 local util = {}
-local test = {} -- TODO: remove test{}
 
 local state = {
     bank = {},
@@ -3119,17 +3118,25 @@ end
 --  \__\___||___/\__|
 
 function test.add_pockets(self)
-    trenchcoat:adjust_pockets()
+    if player.cash then
+        trenchcoat:adjust_pockets()
+    end
 end
 
 function test.add_guns(self)
-    player:add_gun()
+    if player.guns then
+        player:add_gun()
+    end
 end
 
 function test.offer_paraquat(self)
-    table.insert(player.purchase, "paraquat")
+    if player.purchase then
+        table.insert(player.purchase, "paraquat")
+    end
 end
 
 function test.add_cash(self)
-    player:credit_account(25000)
+    if player.cash then
+        player:credit_account(25000)
+    end
 end
