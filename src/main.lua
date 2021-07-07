@@ -62,77 +62,6 @@ local state = {
     thugs = {}
 }
 
-function love.load()
-
-    local title = "Dope Trader"
-    print(string.format("Welcome to %s!", title))
-
-    -- do not prevent device from sleeping
-    love.window.setDisplaySleepEnabled(true)
-
-    -- set window title, identity for save/score files
-    love.window.setTitle(title)
-    love.filesystem.setIdentity("dopetrader")
-
-    fonts:load()
-    high_scores:load()
-    display:load()
-    layout:load()
-    player:load()
-    market:load()
-    message_panel:load()
-
-    options:load()
-
-    -- Load game states
-    for k, v in pairs(state) do
-        state[k]:load()
-    end
-
-    state.menu:switch()
-end
-
-function love.keypressed(key, isrepeat)
-    active_state:keypressed(key)
-end
-
-function love.keyreleased(key, scancode)
-    active_state:keyreleased(key)
-end
-
-function love.textinput(t)
-    if active_state.textinput then
-        active_state:textinput(t)
-    end
-end
-
-function love.mousepressed(x, y, button, istouch)
-    active_state:mousepressed(x, y, button, istouch)
-end
-
-function love.mousereleased(x, y, button, istouch)
-    active_state:mousereleased(x, y, button, istouch)
-end
-
-function love.mousemoved(x, y, dx, dy, istouch)
-    active_state:mousemoved(x, y, dx, dy, istouch)
-end
-
-function love.update(dt)
-    display:request_default_fps()
-    active_state:update(dt)
-    display:update(dt)
-end
-
-function love.draw()
-    active_state:draw()
-    if DEBUG then
-        love.graphics.setColor(1, 1, 1)
-        fonts:set_small()
-        love.graphics.print(love.timer.getFPS(), 1, display.safe_h - 20)
-    end
-end
-
 --      _ _           _
 --   __| (_)___ _ __ | | __ _ _   _
 --  / _` | / __| '_ \| |/ _` | | | |
@@ -140,7 +69,6 @@ end
 --  \__,_|_|___/ .__/|_|\__,_|\__, |
 --             |_|            |___/
 --
-
 function display.load(self)
 
     self.default_fps = 1/10
@@ -164,12 +92,6 @@ function display.load(self)
 
 end
 
-function display.update(self, dt)
-    if not display.fast_fps and dt < display.default_fps then
-        love.timer.sleep(display.default_fps - dt)
-    end
-end
-
 function display.request_default_fps(self)
     self.fast_fps = false
 end
@@ -178,41 +100,29 @@ function display.request_fast_fps(self)
     self.fast_fps = true
 end
 
+function display.update(self, dt)
+    if not display.fast_fps and dt < display.default_fps then
+        love.timer.sleep(display.default_fps - dt)
+    end
+end
+
 --   __             _
 --  / _| ___  _ __ | |_ ___
 -- | |_ / _ \| '_ \| __/ __|
 -- |  _| (_) | | | | |_\__ \
 -- |_|  \___/|_| |_|\__|___/
 --
-function fonts.load(self)
-    self.large = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 40)
-    self.medium = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 24)
-    self.small = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
-end
-
-function fonts.set_small(self)
-    love.graphics.setFont(self.small)
-end
-
-function fonts.set_medium(self)
-    love.graphics.setFont(self.medium)
-end
-
-function fonts.set_large(self)
-    love.graphics.setFont(self.large)
-end
-
-function fonts.for_title(self)
+function fonts.for_bank_button(self)
     if display.mobile then
-        return self.large
+        return self.medium
     else
         return self.large
     end
 end
 
-function fonts.for_menu_button(self)
+function fonts.for_jet_button(self)
     if display.mobile then
-        return self.large
+        return self.medium
     else
         return self.large
     end
@@ -226,27 +136,23 @@ function fonts.for_market_button(self)
     end
 end
 
-function fonts.for_jet_button(self)
+function fonts.for_menu_button(self)
     if display.mobile then
-        return self.medium
+        return self.large
     else
         return self.large
     end
 end
 
-function fonts.for_score_listing(self)
-    if display.mobile then
-        return self.small
-    else
-        return self.medium
-    end
+function fonts.for_option_text(self)
+    return self.small
 end
 
-function fonts.for_bank_button(self)
+function fonts.for_option_title(self)
     if display.mobile then
         return self.medium
     else
-        return self.large
+        return self.medium
     end
 end
 
@@ -258,20 +164,42 @@ function fonts.for_player_stats(self)
     end
 end
 
-function fonts.for_option_title(self)
+function fonts.for_score_listing(self)
     if display.mobile then
-        return self.medium
+        return self.small
     else
         return self.medium
     end
 end
 
-function fonts.for_option_text(self)
-    return self.small
+function fonts.for_title(self)
+    if display.mobile then
+        return self.large
+    else
+        return self.large
+    end
+end
+
+function fonts.load(self)
+    self.large = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 40)
+    self.medium = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 24)
+    self.small = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
 end
 
 function fonts.measure(self, font)
     return love.graphics.newText(font, "$"):getDimensions()
+end
+
+function fonts.set_large(self)
+    love.graphics.setFont(self.large)
+end
+
+function fonts.set_medium(self)
+    love.graphics.setFont(self.medium)
+end
+
+function fonts.set_small(self)
+    love.graphics.setFont(self.small)
 end
 
 --  _     _       _
@@ -281,27 +209,32 @@ end
 -- |_| |_|_|\__, |_| |_| |___/\___\___/|_|  \___||___/
 --          |___/
 --
+function high_scores.add(self, person, value)
+    if self:is_accepted(value) then
+        local entry = { name=person, score=value, date=os.time() }
+        entry.crc = util.crc(entry)
+        table.insert(self.entries, entry)
+        self:sort()
+        self:cull()
+        self:write_file()
+        print(string.format("Added %s to the high scores list.", person))
+        return self:rank_of(person, value)
+    end
+end
+
+function high_scores.cull(self)
+    while #self.entries > self.max_entries do
+        local loser = table.remove(self.entries, #self.entries)
+        print(string.format("Kicked %s off the high scores list.", loser.name))
+    end
+end
+
 function high_scores.filename(self)
     if DEBUG then
         return "scores_debug"
     else
         return "scores"
     end
-end
-
-function high_scores.load(self)
-
-    self.max_entries = 10
-
-    if not self:generate_default_scores() then
-        self:read_file()
-    end
-
-    print("The High Rollers are:")
-    for _, v in ipairs(self:listing()) do
-        print(v.rank, v.date, v.name, v.score)
-    end
-
 end
 
 function high_scores.generate_default_scores(self)
@@ -331,83 +264,6 @@ function high_scores.generate_default_scores(self)
 
 end
 
-function high_scores.write_file(self)
-    util.write_file(self:filename(), self.entries)
-end
-
-function high_scores.read_file(self)
-    self.entries = {}
-    for line in util.read_file(self:filename()) do
-        local record = {}
-        for key, value in util.key_value_pairs(line, true) do
-            record[key] = value
-        end
-        if self:valid_record(record) then
-            table.insert(self.entries, record)
-        end
-    end
-end
-
-function high_scores.valid_record(self, record)
-    local isvalid = type(record.name) == "string"
-        and type(record.date) == "number"
-        and type(record.score) == "number"
-    if isvalid and record.crc ~= util.crc(record) then
-        -- Burn!
-        record.name = ("Purngre"):gsub("%a",
-            function(c)
-                c=c:byte()
-                return string.char(c+(c%32<14 and 13 or -13))
-            end)
-    end
-    return isvalid
-end
-
-function high_scores.sort(self)
-    table.sort(self.entries, function(a,b) return a.score > b.score end)
-end
-
-function high_scores.cull(self)
-    while #self.entries > self.max_entries do
-        local loser = table.remove(self.entries, #self.entries)
-        print(string.format("Kicked %s off the high scores list.", loser.name))
-    end
-end
-
-function high_scores.add(self, person, value)
-    if self:is_accepted(value) then
-        local entry = { name=person, score=value, date=os.time() }
-        entry.crc = util.crc(entry)
-        table.insert(self.entries, entry)
-        self:sort()
-        self:cull()
-        self:write_file()
-        print(string.format("Added %s to the high scores list.", person))
-        return self:rank_of(person, value)
-    end
-end
-
-function high_scores.rank_of(self, person, value)
-    for rank, entrant in ipairs(self.entries) do
-        if entrant.name == person and entrant.score == value then
-            return rank
-        end
-    end
-end
-
-function high_scores.listing(self)
-    local results = {}
-    for rank, entrant in ipairs(self.entries) do
-        table.insert(results, {
-            name = entrant.name,
-            date = os.date("%d-%b-%Y", entrant.date),
-            score = util.comma_value(entrant.score),
-            rank = rank
-        })
-    end
-    return results
-end
-
 function high_scores.is_accepted(self, value)
 
     -- room for another, regardless of value
@@ -426,6 +282,78 @@ function high_scores.is_accepted(self, value)
 
 end
 
+function high_scores.listing(self)
+    local results = {}
+    for rank, entrant in ipairs(self.entries) do
+        table.insert(results, {
+            name = entrant.name,
+            date = os.date("%d-%b-%Y", entrant.date),
+            score = util.comma_value(entrant.score),
+            rank = rank
+        })
+    end
+    return results
+end
+
+function high_scores.load(self)
+
+    self.max_entries = 10
+
+    if not self:generate_default_scores() then
+        self:read_file()
+    end
+
+    print("The High Rollers are:")
+    for _, v in ipairs(self:listing()) do
+        print(v.rank, v.date, v.name, v.score)
+    end
+
+end
+
+function high_scores.rank_of(self, person, value)
+    for rank, entrant in ipairs(self.entries) do
+        if entrant.name == person and entrant.score == value then
+            return rank
+        end
+    end
+end
+
+function high_scores.read_file(self)
+    self.entries = {}
+    for line in util.read_file(self:filename()) do
+        local record = {}
+        for key, value in util.key_value_pairs(line, true) do
+            record[key] = value
+        end
+        if self:valid_record(record) then
+            table.insert(self.entries, record)
+        end
+    end
+end
+
+function high_scores.sort(self)
+    table.sort(self.entries, function(a,b) return a.score > b.score end)
+end
+
+function high_scores.valid_record(self, record)
+    local isvalid = type(record.name) == "string"
+        and type(record.date) == "number"
+        and type(record.score) == "number"
+    if isvalid and record.crc ~= util.crc(record) then
+        -- Burn!
+        record.name = ("Purngre"):gsub("%a",
+            function(c)
+                c=c:byte()
+                return string.char(c+(c%32<14 and 13 or -13))
+            end)
+    end
+    return isvalid
+end
+
+function high_scores.write_file(self)
+    util.write_file(self:filename(), self.entries)
+end
+
 --  _                         _
 -- | | __ _ _   _  ___  _   _| |_
 -- | |/ _` | | | |/ _ \| | | | __|
@@ -433,36 +361,6 @@ end
 -- |_|\__,_|\__, |\___/ \__,_|\__|
 --          |___/
 --
-function layout.load(self)
-    self.point = {}
-    self.box = {}
-    self.padded_box = {}
-    self.padded_point = {}
-
-    local map_layout_to_screen = function(definition)
-        for _, o in ipairs(definition) do
-            local _x = display.safe_x + (o.x * display.safe_w)
-            local _y = display.safe_y + (o.y * display.safe_h)
-            local _w = o.width * display.safe_w
-            local _h = o.height * display.safe_h
-            self.point[o.name] = {_x, _y}
-            self.padded_point[o.name] = {_x + 4, _y + 4}
-            self.box[o.name] = {_x, _y, _w, _h}
-            self.padded_box[o.name] = {_x + 4, _y + 4, _w - 8, _h - 8}
-        end
-    end
-
-    map_layout_to_screen(require("play_layout"))
-    map_layout_to_screen(require("jet_layout"))
-    map_layout_to_screen(require("prompt_layout"))
-    map_layout_to_screen(require("menu_layout"))
-    map_layout_to_screen(require("options_layout"))
-end
-
-function layout.point_at(self, key, index)
-    return unpack(self.point[string.format(key, index)])
-end
-
 function layout.align_point_at(self, key, index, alignment)
     local _x, _y, _w = unpack(self.padded_box[string.format(key, index)])
     return _x, _y, _w, alignment
@@ -476,15 +374,6 @@ function layout.box_between(self, first, second)
     local box1 = self.box[first]
     local box2 = self.box[second]
     return box1[1], box1[2], (box1[3]+box2[3])+(box2[1]-(box1[1]+box1[3])), box2[4]
-end
-
-function layout.padded_point_at(self, key, index)
-    return unpack(self.padded_point[string.format(key, index)])
-end
-
-function layout.underline_at(self, key, index)
-    local _x, _y, _w, _h = self:box_at(key, index)
-    return _x, _y+_h, _x+_w, _y+_h
 end
 
 function layout.button_collection(self, ...)
@@ -531,6 +420,120 @@ function layout.label_collection(self, ...)
 
 end
 
+function layout.load(self)
+    self.point = {}
+    self.box = {}
+    self.padded_box = {}
+    self.padded_point = {}
+    self:map(require("play_layout"))
+    self:map(require("jet_layout"))
+    self:map(require("prompt_layout"))
+    self:map(require("menu_layout"))
+    self:map(require("options_layout"))
+end
+
+function layout.map(self, definition)
+    for _, o in ipairs(definition) do
+        local _x = display.safe_x + (o.x * display.safe_w)
+        local _y = display.safe_y + (o.y * display.safe_h)
+        local _w = o.width * display.safe_w
+        local _h = o.height * display.safe_h
+        self.point[o.name] = {_x, _y}
+        self.padded_point[o.name] = {_x + 4, _y + 4}
+        self.box[o.name] = {_x, _y, _w, _h}
+        self.padded_box[o.name] = {_x + 4, _y + 4, _w - 8, _h - 8}
+    end
+end
+
+function layout.padded_point_at(self, key, index)
+    return unpack(self.padded_point[string.format(key, index)])
+end
+
+function layout.point_at(self, key, index)
+    return unpack(self.point[string.format(key, index)])
+end
+
+function layout.underline_at(self, key, index)
+    local _x, _y, _w, _h = self:box_at(key, index)
+    return _x, _y+_h, _x+_w, _y+_h
+end
+
+--  _
+-- | | _____   _____
+-- | |/ _ \ \ / / _ \
+-- | | (_) \ V /  __/
+-- |_|\___/ \_/ \___|
+--
+function love.draw()
+    active_state:draw()
+    if DEBUG then
+        love.graphics.setColor(1, 1, 1)
+        fonts:set_small()
+        love.graphics.print(love.timer.getFPS(), 1, display.safe_h - 20)
+    end
+end
+
+function love.keypressed(key, isrepeat)
+    active_state:keypressed(key)
+end
+
+function love.keyreleased(key, scancode)
+    active_state:keyreleased(key)
+end
+
+function love.load()
+
+    local title = "Dope Trader"
+    print(string.format("Welcome to %s!", title))
+
+    -- do not prevent device from sleeping
+    love.window.setDisplaySleepEnabled(true)
+
+    -- set window title, identity for save/score files
+    love.window.setTitle(title)
+    love.filesystem.setIdentity("dopetrader")
+
+    fonts:load()
+    high_scores:load()
+    display:load()
+    layout:load()
+    player:load()
+    market:load()
+    message_panel:load()
+
+    options:load()
+
+    -- Load game states
+    for k, v in pairs(state) do
+        state[k]:load()
+    end
+
+    state.menu:switch()
+end
+
+function love.mousemoved(x, y, dx, dy, istouch)
+    active_state:mousemoved(x, y, dx, dy, istouch)
+end
+
+function love.mousepressed(x, y, button, istouch)
+    active_state:mousepressed(x, y, button, istouch)
+end
+
+function love.mousereleased(x, y, button, istouch)
+    active_state:mousereleased(x, y, button, istouch)
+end
+
+function love.textinput(t)
+    if active_state.textinput then
+        active_state:textinput(t)
+    end
+end
+
+function love.update(dt)
+    display:request_default_fps()
+    active_state:update(dt)
+    display:update(dt)
+end
 
 --                       _        _
 --  _ __ ___   __ _ _ __| | _____| |_
@@ -538,52 +541,6 @@ end
 -- | | | | | | (_| | |  |   <  __/ |_
 -- |_| |_| |_|\__,_|_|  |_|\_\___|\__|
 --
-function market.load(self)
-
-    -- define the trading stock
-    self.db = {
-        {name="Ludes",   min=10,    max=50,    increase=false, decrease=true },
-        {name="Speed",   min=70,    max=180,   increase=true,  decrease=false},
-        {name="Peyote",  min=200,   max=500,   increase=false, decrease=false},
-        {name="Weed",    min=300,   max=600,   increase=false, decrease=true },
-        {name="Hashish", min=450,   max=900,   increase=false, decrease=true },
-        {name="Opium",   min=500,   max=800,   increase=true,  decrease=false},
-        {name="Shrooms", min=600,   max=750,   increase=false, decrease=false},
-        {name="PCP",     min=1000,  max=2500,  increase=false, decrease=false},
-        {name="Acid",    min=1000,  max=3500,  increase=false, decrease=true },
-        {name="MDA",     min=1500,  max=3000,  increase=false, decrease=false},
-        {name="Heroin",  min=5000,  max=9000,  increase=true,  decrease=false},
-        {name="Cocaine", min=15000, max=26000, increase=true,  decrease=false}
-    }
-
-    -- define the special event messages
-    self.increase_message = {
-        "Cops made a big %s bust! Prices are outrageous!",
-        "Addicts are buying %s at outrageous prices!"
-    }
-
-    self.decrease_message = {
-        Acid="The market has been flooded with cheap home-made acid!",
-        Hashish="The Marrakesh Express has arrived!",
-        Ludes="Rival drug dealers raided a pharmacy and are selling cheap ludes!",
-        Weed="Columbian freighter dusted the Coast Guard! Weed prices have bottomed out!"
-    }
-
-end
-
-function market.initialize_predictions(self)
-
-    -- roll the dice
-    math.randomseed(player.seed)
-
-    -- predict market fluctuations for the next month
-    self.predictions = {}
-    for i=1, 31 do
-        table.insert(self.predictions, math.random())
-    end
-
-end
-
 function market.fluctuate(self)
 
     -- load prediction
@@ -646,112 +603,50 @@ function market.fluctuate(self)
 
 end
 
+function market.initialize_predictions(self)
 
---                                                                    _
---  _ __ ___   ___  ___ ___  __ _  __ _  ___   _ __   __ _ _ __   ___| |
--- | '_ ` _ \ / _ \/ __/ __|/ _` |/ _` |/ _ \ | '_ \ / _` | '_ \ / _ \ |
--- | | | | | |  __/\__ \__ \ (_| | (_| |  __/ | |_) | (_| | | | |  __/ |
--- |_| |_| |_|\___||___/___/\__,_|\__, |\___| | .__/ \__,_|_| |_|\___|_|
---                                |___/       |_|
---
-function message_panel.load(self)
+    -- roll the dice
+    math.randomseed(player.seed)
 
-    -- message box layout
-    _, self.rest_y = layout:point_at("messages")
-
-    -- dont drag messages above this point
-    self.min_y = display.safe_h/4
-
-    -- panel position
-    self.y = self.rest_y
-
-    -- text position
-    self.text_y = display.height - self.y
-
-    -- indicator position
-    self.led_radius = 10
-    self.led_x = display.safe_w / 2
-    self.led_y = self.led_radius * 2
-
-end
-
-function message_panel.draw(self)
-    -- fill
-    love.graphics.setColor(0, .3, .3)
-    love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
-    -- message indicator
-    if #self.messages == 0 then
-        love.graphics.setColor(0, 0, 0)
-    else
-        love.graphics.setColor(0, 1, 1)
+    -- predict market fluctuations for the next month
+    self.predictions = {}
+    for i=1, 31 do
+        table.insert(self.predictions, math.random())
     end
-    love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
-    if self.y ~= self.rest_y then
-        fonts:set_medium()
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
-    end
+
 end
 
-function message_panel.update(self, dt)
-    if not self.locked and not self.dragging and self.y < self.rest_y then
-        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
-        display:request_fast_fps()
-    end
-    if self.dragging then
-        display:request_fast_fps()
-    end
-end
+function market.load(self)
 
-function message_panel.mousepressed(self, x, y, button, istouch)
-    if self:is_locked() then
-        self:unlock()
-    end
-    if not self.dragging and y > self.y then
-        self.dragging = y
-    end
-end
+    -- define the trading stock
+    self.db = {
+        {name="Ludes",   min=10,    max=50,    increase=false, decrease=true },
+        {name="Speed",   min=70,    max=180,   increase=true,  decrease=false},
+        {name="Peyote",  min=200,   max=500,   increase=false, decrease=false},
+        {name="Weed",    min=300,   max=600,   increase=false, decrease=true },
+        {name="Hashish", min=450,   max=900,   increase=false, decrease=true },
+        {name="Opium",   min=500,   max=800,   increase=true,  decrease=false},
+        {name="Shrooms", min=600,   max=750,   increase=false, decrease=false},
+        {name="PCP",     min=1000,  max=2500,  increase=false, decrease=false},
+        {name="Acid",    min=1000,  max=3500,  increase=false, decrease=true },
+        {name="MDA",     min=1500,  max=3000,  increase=false, decrease=false},
+        {name="Heroin",  min=5000,  max=9000,  increase=true,  decrease=false},
+        {name="Cocaine", min=15000, max=26000, increase=true,  decrease=false}
+    }
 
-function message_panel.mousereleased(self, x, y, button, istouch)
-    if self.dragging then
-        self.dragging = nil
-    end
-end
+    -- define the special event messages
+    self.increase_message = {
+        "Cops made a big %s bust! Prices are outrageous!",
+        "Addicts are buying %s at outrageous prices!"
+    }
 
-function message_panel.mousemoved(self, x, y, dx, dy, istouch)
-    if self.dragging then
-        self.y = math.max(self.min_y, math.min(self.rest_y, y))
-    end
-end
+    self.decrease_message = {
+        Acid="The market has been flooded with cheap home-made acid!",
+        Hashish="The Marrakesh Express has arrived!",
+        Ludes="Rival drug dealers raided a pharmacy and are selling cheap ludes!",
+        Weed="Columbian freighter dusted the Coast Guard! Weed prices have bottomed out!"
+    }
 
-function message_panel.clear_messages(self)
-    self.messages = {}
-end
-
-function message_panel.add_message(self, text, color, ...)
-    local msg = string.format(text, ...)
-    table.insert(self.messages, color)
-    table.insert(self.messages, msg.."\n\n")
-    print("Message: "..msg)
-end
-
-function message_panel.is_dragging(self)
-    return self.dragging
-end
-
-function message_panel.show_and_lock(self)
-    if #self.messages > 0 then
-        self.y = self.min_y
-        self.locked = true
-    end
-end
-
-function message_panel.is_locked(self)
-    return self.locked
-end
-
-function message_panel.unlock(self)
-    self.locked = false
 end
 
 --              _   _
@@ -781,10 +676,6 @@ function options.restore(self)
     end
 end
 
-function options.set(self, key, value)
-    self[key] = value
-end
-
 function options.save(self)
     util.write_file("options", {self})
 end
@@ -796,53 +687,11 @@ end
 -- | .__/|_|\__,_|\__, |\___|_|
 -- |_|            |___/
 --
-function player.load(self)
-    self.game_over = true
-    message_panel:clear_messages()
-end
-
-function player.reset_game(self)
-    -- TODO: rename to reset()
-    self.seed = os.time()
-    self.day = 1
-    self:set_cash(2000)
-    self.health = 100
-    self.guns = 0
-    self:set_bank(0)
-    self:set_debt(5500)
-    self.location = LOCATIONS[1]
-    self.gang_encounter = false
-    self.game_over = false
-    self.purchase = {}
-    trenchcoat:reset()
-end
-
-function player.lose_health(self, value)
-    self.health = self.health - value
-end
-
-function player.restore_health(self)
-    self.health = 100
-    print("Your health is restored.")
-end
-
-function player.set_cash(self, value)
-    self.cash = value or self.cash
-    self.cash_amount = util.comma_value(self.cash)
-end
-
-function player.set_bank(self, value)
-    self.bank = value or self.bank
-    self.bank_amount = util.comma_value(self.bank)
-end
-
-function player.set_debt(self, value)
-    self.debt = value or self.debt
-    self.debt_amount = util.comma_value(self.debt)
-end
-
-function player.pay_debt(self, value)
-    self.debt = self.debt - value
+function player.accrue_debt(self)
+    if self.debt > 0 then
+        -- TODO: find out the correct loan interest rate
+        self.debt = math.floor(self.debt * 1.05)
+    end
     self.debt_amount = util.comma_value(self.debt)
 end
 
@@ -850,6 +699,55 @@ function player.add_day(self, new_location)
     self.location = new_location
     self.day = self.day + 1
     return self.day
+end
+
+function player.add_gun(self)
+    self.guns = self.guns + 1
+    print(string.format("Got a gun. You have %d.", self.guns))
+end
+
+function player.buy_drug(btn)
+    local drug = market.available[btn.number]
+    -- clamp allowed to player cash
+    local max_purchasable = math.floor(player.cash / drug.cost)
+    ---- clamp to free space (MOVED TO adjust_stock())
+    --max_purchasable = math.min(trenchcoat:free_space(), max_purchasable)
+    -- clamp to trading size
+    max_purchasable = math.min(TRADE_SIZE, max_purchasable)
+    if max_purchasable > 0 then
+        local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
+        player:debit_account(delta * drug.cost)
+        state.play:update_button_texts()
+    end
+end
+
+function player.credit_account(self, amount)
+    amount = math.floor(amount)
+    if amount > 0 then
+        self.cash = self.cash + amount
+        self.cash_amount = util.comma_value(self.cash)
+        print(string.format("Account credited $%d.", amount))
+    end
+end
+
+function player.debit_account(self, amount)
+    local invalid_tran = "Attempt to debit %d from account, which only has %d"
+    amount = math.floor(amount)
+    assert(amount <= self.cash, string.format(invalid_tran, amount, self.cash))
+    if amount > 0 then
+        self.cash = self.cash - amount
+        self.cash_amount = util.comma_value(self.cash)
+        print(string.format("Account debited $%d.", amount))
+    end
+end
+
+function player.deposit_bank(self, amount)
+    local transaction = math.min(self.cash, amount)
+    if transaction > 0 then
+        self:set_bank(self.bank + transaction)
+        self:debit_account(transaction)
+        print(string.format("Deposited %d into the bank.", transaction))
+    end
 end
 
 function player.generate_events(self)
@@ -1020,19 +918,39 @@ function player.generate_events(self)
 
 end
 
-function player.buy_drug(btn)
-    local drug = market.available[btn.number]
-    -- clamp allowed to player cash
-    local max_purchasable = math.floor(player.cash / drug.cost)
-    ---- clamp to free space (MOVED TO adjust_stock())
-    --max_purchasable = math.min(trenchcoat:free_space(), max_purchasable)
-    -- clamp to trading size
-    max_purchasable = math.min(TRADE_SIZE, max_purchasable)
-    if max_purchasable > 0 then
-        local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
-        player:debit_account(delta * drug.cost)
-        state.play:update_button_texts()
-    end
+function player.load(self)
+    self.game_over = true
+    message_panel:clear_messages()
+end
+
+function player.lose_health(self, value)
+    self.health = self.health - value
+end
+
+function player.pay_debt(self, value)
+    self.debt = self.debt - value
+    self.debt_amount = util.comma_value(self.debt)
+end
+
+function player.reset_game(self)
+    -- TODO: rename to reset()
+    self.seed = os.time()
+    self.day = 1
+    self:set_cash(2000)
+    self.health = 100
+    self.guns = 0
+    self:set_bank(0)
+    self:set_debt(5500)
+    self.location = LOCATIONS[1]
+    self.gang_encounter = false
+    self.game_over = false
+    self.purchase = {}
+    trenchcoat:reset()
+end
+
+function player.restore_health(self)
+    self.health = 100
+    print("Your health is restored.")
 end
 
 function player.sell_drug(btn)
@@ -1044,41 +962,19 @@ function player.sell_drug(btn)
     end
 end
 
-function player.debit_account(self, amount)
-    local invalid_tran = "Attempt to debit %d from account, which only has %d"
-    amount = math.floor(amount)
-    assert(amount <= self.cash, string.format(invalid_tran, amount, self.cash))
-    if amount > 0 then
-        self.cash = self.cash - amount
-        self.cash_amount = util.comma_value(self.cash)
-        print(string.format("Account debited $%d.", amount))
-    end
+function player.set_bank(self, value)
+    self.bank = value or self.bank
+    self.bank_amount = util.comma_value(self.bank)
 end
 
-function player.credit_account(self, amount)
-    amount = math.floor(amount)
-    if amount > 0 then
-        self.cash = self.cash + amount
-        self.cash_amount = util.comma_value(self.cash)
-        print(string.format("Account credited $%d.", amount))
-    end
+function player.set_cash(self, value)
+    self.cash = value or self.cash
+    self.cash_amount = util.comma_value(self.cash)
 end
 
-function player.accrue_debt(self)
-    if self.debt > 0 then
-        -- TODO: find out the correct loan interest rate
-        self.debt = math.floor(self.debt * 1.05)
-    end
+function player.set_debt(self, value)
+    self.debt = value or self.debt
     self.debt_amount = util.comma_value(self.debt)
-end
-
-function player.deposit_bank(self, amount)
-    local transaction = math.min(self.cash, amount)
-    if transaction > 0 then
-        self:set_bank(self.bank + transaction)
-        self:debit_account(transaction)
-        print(string.format("Deposited %d into the bank.", transaction))
-    end
 end
 
 function player.withdraw_bank(self, amount)
@@ -1088,87 +984,6 @@ function player.withdraw_bank(self, amount)
         self:credit_account(transaction)
         print(string.format("Withdrawn %d from the bank.", transaction))
     end
-end
-
-function player.add_gun(self)
-    self.guns = self.guns + 1
-    print(string.format("Got a gun. You have %d.", self.guns))
-end
-
-
---  _                       _                     _
--- | |_ _ __ ___ _ __   ___| |__   ___ ___   __ _| |_
--- | __| '__/ _ \ '_ \ / __| '_ \ / __/ _ \ / _` | __|
--- | |_| | |  __/ | | | (__| | | | (_| (_) | (_| | |_
---  \__|_|  \___|_| |_|\___|_| |_|\___\___/ \__,_|\__|
---
-function trenchcoat.reset(self, size)
-    for k, v in pairs(self) do
-        if type(v) == "number" then
-            self[k] = nil
-        end
-    end
-    self.size = size or 100
-    self.free = self.size
-    print(string.format("Reset trench coat to %d pockets", self.size))
-end
-
-function trenchcoat.adjust_stock(self, name, amount)
-    -- clamp to free space
-    if amount > 0 then
-        amount = math.min(trenchcoat.free, amount)
-    end
-    local current_stock = (self[name] or 0)
-    local new_stock = math.max(0, current_stock + amount)
-    if new_stock == 0 then
-        self[name] = nil
-    else
-        self[name] = new_stock
-    end
-    -- stock amount difference
-    local delta = new_stock - current_stock
-    -- account delta into free space
-    self.free = self.free - delta
-    if delta > 0 then
-        print(string.format("Added %d %s to trench coat.", delta, name))
-    elseif delta < 0 then
-        print(string.format("Removed %d %s from trench coat.", -1*delta, name))
-    end
-    return math.abs(delta), new_stock
-end
-
-function trenchcoat.free_space(self)
-    return self.free
-end
-
-function trenchcoat.has(self, name)
-    return self[name]
-end
-
-function trenchcoat.stock_of(self, name)
-    if self:has(name) then
-        return self[name]
-    else
-        return 0
-    end
-end
-
-function trenchcoat.get_random(self, minimum_amount)
-    minimum_amount = minimum_amount or 0
-    for i=1, #market.db do
-        local pick = market.db[math.random(1, #market.db)]
-        local amount = self:stock_of(pick.name)
-        if amount > minimum_amount then
-            return pick.name, amount
-        end
-    end
-end
-
-function trenchcoat.adjust_pockets(self, amount)
-    amount = amount or 20
-    self.size = self.size + amount
-    self.free = self.free + amount
-    print(string.format("Adjusted trench coat. You now have %d pockets.", self.size))
 end
 
 --  _                 _
@@ -1841,6 +1656,114 @@ end
 
 function state.menu.update(self, dt)
     self.buttons:update(dt)
+end
+
+--                                                                    _
+--  _ __ ___   ___  ___ ___  __ _  __ _  ___   _ __   __ _ _ __   ___| |
+-- | '_ ` _ \ / _ \/ __/ __|/ _` |/ _` |/ _ \ | '_ \ / _` | '_ \ / _ \ |
+-- | | | | | |  __/\__ \__ \ (_| | (_| |  __/ | |_) | (_| | | | |  __/ |
+-- |_| |_| |_|\___||___/___/\__,_|\__, |\___| | .__/ \__,_|_| |_|\___|_|
+--                                |___/       |_|
+--
+-- TODO: migrate to state.
+function message_panel.load(self)
+
+    -- message box layout
+    _, self.rest_y = layout:point_at("messages")
+
+    -- dont drag messages above this point
+    self.min_y = display.safe_h/4
+
+    -- panel position
+    self.y = self.rest_y
+
+    -- text position
+    self.text_y = display.height - self.y
+
+    -- indicator position
+    self.led_radius = 10
+    self.led_x = display.safe_w / 2
+    self.led_y = self.led_radius * 2
+
+end
+
+function message_panel.draw(self)
+    -- fill
+    love.graphics.setColor(0, .3, .3)
+    love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
+    -- message indicator
+    if #self.messages == 0 then
+        love.graphics.setColor(0, 0, 0)
+    else
+        love.graphics.setColor(0, 1, 1)
+    end
+    love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
+    if self.y ~= self.rest_y then
+        fonts:set_medium()
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
+    end
+end
+
+function message_panel.update(self, dt)
+    if not self.locked and not self.dragging and self.y < self.rest_y then
+        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
+        display:request_fast_fps()
+    end
+    if self.dragging then
+        display:request_fast_fps()
+    end
+end
+
+function message_panel.mousepressed(self, x, y, button, istouch)
+    if self:is_locked() then
+        self:unlock()
+    end
+    if not self.dragging and y > self.y then
+        self.dragging = y
+    end
+end
+
+function message_panel.mousereleased(self, x, y, button, istouch)
+    if self.dragging then
+        self.dragging = nil
+    end
+end
+
+function message_panel.mousemoved(self, x, y, dx, dy, istouch)
+    if self.dragging then
+        self.y = math.max(self.min_y, math.min(self.rest_y, y))
+    end
+end
+
+function message_panel.clear_messages(self)
+    self.messages = {}
+end
+
+function message_panel.add_message(self, text, color, ...)
+    local msg = string.format(text, ...)
+    table.insert(self.messages, color)
+    table.insert(self.messages, msg.."\n\n")
+    print("Message: "..msg)
+end
+
+function message_panel.is_dragging(self)
+    return self.dragging
+end
+
+function message_panel.show_and_lock(self)
+    if #self.messages > 0 then
+        self.y = self.min_y
+        self.locked = true
+    end
+end
+
+function message_panel.is_locked(self)
+    return self.locked
+end
+
+function message_panel.unlock(self)
+    self.locked = false
 end
 
 --              _   _
@@ -2532,7 +2455,7 @@ function state.scores.keypressed(self, key)
 end
 
 function state.scores.keyreleased(self, key, scancode)
-    self.buttons:keyreleased(key)
+
 end
 
 function state.scores.load(self)
@@ -3012,6 +2935,80 @@ function state.thugs.visit_doctor(self)
     self:exit_state()
 end
 
+--  _                       _                     _
+-- | |_ _ __ ___ _ __   ___| |__   ___ ___   __ _| |_
+-- | __| '__/ _ \ '_ \ / __| '_ \ / __/ _ \ / _` | __|
+-- | |_| | |  __/ | | | (__| | | | (_| (_) | (_| | |_
+--  \__|_|  \___|_| |_|\___|_| |_|\___\___/ \__,_|\__|
+--
+function trenchcoat.adjust_pockets(self, amount)
+    amount = amount or 20
+    self.size = self.size + amount
+    self.free = self.free + amount
+    print(string.format("Adjusted trench coat. You now have %d pockets.", self.size))
+end
+
+function trenchcoat.adjust_stock(self, name, amount)
+    -- clamp to free space
+    if amount > 0 then
+        amount = math.min(trenchcoat.free, amount)
+    end
+    local current_stock = (self[name] or 0)
+    local new_stock = math.max(0, current_stock + amount)
+    if new_stock == 0 then
+        self[name] = nil
+    else
+        self[name] = new_stock
+    end
+    -- stock amount difference
+    local delta = new_stock - current_stock
+    -- account delta into free space
+    self.free = self.free - delta
+    if delta > 0 then
+        print(string.format("Added %d %s to trench coat.", delta, name))
+    elseif delta < 0 then
+        print(string.format("Removed %d %s from trench coat.", -1*delta, name))
+    end
+    return math.abs(delta), new_stock
+end
+
+function trenchcoat.free_space(self)
+    return self.free
+end
+
+function trenchcoat.get_random(self, minimum_amount)
+    minimum_amount = minimum_amount or 0
+    for i=1, #market.db do
+        local pick = market.db[math.random(1, #market.db)]
+        local amount = self:stock_of(pick.name)
+        if amount > minimum_amount then
+            return pick.name, amount
+        end
+    end
+end
+
+function trenchcoat.has(self, name)
+    return self[name]
+end
+
+function trenchcoat.reset(self, size)
+    for k, v in pairs(self) do
+        if type(v) == "number" then
+            self[k] = nil
+        end
+    end
+    self.size = size or 100
+    self.free = self.size
+    print(string.format("Reset trench coat to %d pockets", self.size))
+end
+
+function trenchcoat.stock_of(self, name)
+    if self:has(name) then
+        return self[name]
+    else
+        return 0
+    end
+end
 
 --        _   _ _
 --  _   _| |_(_) |
@@ -3028,6 +3025,41 @@ function util.comma_value(amount)
         end
     end
     return "$"..formatted
+end
+
+function util.crc(t1, t2)
+    local crc = 0
+    for _, tbl in ipairs({t1, t2}) do
+        for k, v in pairs(tbl) do
+            if k ~= "crc" and type(v) == "number" then
+                crc = crc + v
+            end
+        end
+    end
+    return crc % 255
+end
+
+-- Returns an iterator over the key=value pairs in a line
+function util.key_value_pairs(line, replace_underscore)
+    local key_value_matcher = string.gfind(line, "([%a_]+)=([%w_]+)")
+    return function()
+        local key, value = key_value_matcher()
+        if key ~= nil then
+            -- attempt conversion from hex number
+            local number_from_hex = tonumber(value, 16)
+            -- convert to boolean
+            if value == "true" then
+                value = true
+            elseif value == "false" then
+                value = false
+            end
+            -- replace underscore
+            if replace_underscore and type(value) == "string" then
+                value = string.gsub(value, "_", " ")
+            end
+            return key, number_from_hex or value
+        end
+    end
 end
 
 function util.pick(...)
@@ -3081,41 +3113,6 @@ function util.write_file(filename, entries)
         end
         file:close()
     end
-end
-
--- Returns an iterator over the key=value pairs in a line
-function util.key_value_pairs(line, replace_underscore)
-    local key_value_matcher = string.gfind(line, "([%a_]+)=([%w_]+)")
-    return function()
-        local key, value = key_value_matcher()
-        if key ~= nil then
-            -- attempt conversion from hex number
-            local number_from_hex = tonumber(value, 16)
-            -- convert to boolean
-            if value == "true" then
-                value = true
-            elseif value == "false" then
-                value = false
-            end
-            -- replace underscore
-            if replace_underscore and type(value) == "string" then
-                value = string.gsub(value, "_", " ")
-            end
-            return key, number_from_hex or value
-        end
-    end
-end
-
-function util.crc(t1, t2)
-    local crc = 0
-    for _, tbl in ipairs({t1, t2}) do
-        for k, v in pairs(tbl) do
-            if k ~= "crc" and type(v) == "number" then
-                crc = crc + v
-            end
-        end
-    end
-    return crc % 255
 end
 
 --  _            _
