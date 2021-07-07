@@ -53,10 +53,10 @@ local state = {
     game_over = {},
     menu = {},
     options = {},
+    play = {},
     scores = {}
 }
 -- TODO: migrate below to above
-local play_state = {}
 local jet_state = {}
 local cops_state = {}
 local scores_state = {}
@@ -86,7 +86,6 @@ function love.load()
     market:load()
     message_panel:load()
 
-    play_state:load()
     jet_state:load()
     encounter_state:load()
     loan_shark_state:load()
@@ -250,7 +249,7 @@ end
 function bank_state.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        play_state:switch()
+        state.play:switch()
     end
 end
 
@@ -271,7 +270,7 @@ function bank_state.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function bank_state.exit_state(self)
-    play_state:switch()
+    state.play:switch()
 end
 
 function bank_state.do_deposit(self)
@@ -301,7 +300,7 @@ function bank_state.do_transact(self)
     else
         player:withdraw_bank(slider.value)
     end
-    play_state:switch()
+    state.play:switch()
 end
 
 --      _ _           _
@@ -447,7 +446,7 @@ function encounter_state.exit_state()
     if player.health < 1 then
         state.game_over:switch(true)
     else
-        play_state:switch()
+        state.play:switch()
     end
 end
 
@@ -757,7 +756,7 @@ end
 function jet_state.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        play_state:switch()
+        state.play:switch()
     end
 end
 
@@ -779,11 +778,11 @@ end
 
 function jet_state.go(btn)
     -- TODO: flashing "subway" text with animated train across the screen
-    play_state:next_day(btn.text)
+    state.play:next_day(btn.text)
 end
 
 function jet_state.cancel(self)
-    play_state:switch()
+    state.play:switch()
 end
 
 --  _                 _       _                _
@@ -866,7 +865,7 @@ end
 function loan_shark_state.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        play_state:switch()
+        state.play:switch()
     end
 end
 
@@ -887,13 +886,13 @@ function loan_shark_state.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function loan_shark_state.exit_state()
-    play_state:switch()
+    state.play:switch()
 end
 
 function loan_shark_state.pay_debt(self)
     player:debit_account(self.slider.value)
     player:pay_debt(self.slider.value)
-    play_state:switch()
+    state.play:switch()
 end
 
 --  _     _       _
@@ -1411,516 +1410,6 @@ function options.save(self)
     util.write_file("options", {self})
 end
 
---        _                   _        _
---  _ __ | | __ _ _   _   ___| |_ __ _| |_ ___
--- | '_ \| |/ _` | | | | / __| __/ _` | __/ _ \
--- | |_) | | (_| | |_| | \__ \ || (_| | ||  __/
--- | .__/|_|\__,_|\__, | |___/\__\__,_|\__\___|
--- |_|            |___/
---
-function play_state.load(self)
-
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
-
-    -- Create player stat labels
-    local cash_box = layout.box["cash"]
-    self.buttons:label("cash label", {
-        left = cash_box[1],
-        top = cash_box[2],
-        width = cash_box[3],
-        height = cash_box[4],
-        title = "Cash",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local bank_box = layout.box["bank"]
-    self.buttons:label("bank label", {
-        left = bank_box[1],
-        top = bank_box[2],
-        width = bank_box[3],
-        height = bank_box[4],
-        title = "Bank",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local debt_box = layout.box["debt"]
-    self.buttons:label("debt label", {
-        left = debt_box[1],
-        top = debt_box[2],
-        width = debt_box[3],
-        height = debt_box[4],
-        title = "Debt",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local guns_box = layout.box["guns"]
-    self.buttons:label("guns label", {
-        left = guns_box[1],
-        top = guns_box[2],
-        width = guns_box[3],
-        height = guns_box[4],
-        title = "Guns",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local coat_box = layout.box["free"]
-    self.buttons:label("coat label", {
-        left = coat_box[1],
-        top = coat_box[2],
-        width = coat_box[3],
-        height = coat_box[4],
-        title = "Coat",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local health_box = layout.box["health"]
-    self.buttons:label("health label", {
-        left = health_box[1],
-        top = health_box[2],
-        width = health_box[3],
-        height = health_box[4],
-        title = "Health",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local day_box = layout.box["day"]
-    self.buttons:label("day label", {
-        left = day_box[1],
-        top = day_box[2],
-        width = day_box[3],
-        height = day_box[4],
-        title = "Day",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-
-    -- create jet & debt buttons
-    local jet_box = layout.box["jet"]
-    self.buttons:button("jet", {
-        left = jet_box[1],
-        top = jet_box[2],
-        width = jet_box[3],
-        height = jet_box[4],
-        text = "Jet",
-        alignment = "right",
-        font = fonts:for_jet_button(),
-        context = jet_state,
-        callback = jet_state.switch
-    })
-
-    local debt_box = layout.box["debt"]
-    self.buttons:button("debt button", {
-        left = debt_box[1],
-        top = debt_box[2],
-        width = debt_box[3],
-        height = debt_box[4],
-        title = "Debt",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats(),
-        callback = self.visit_loanshark
-    })
-
-    local bank_box = layout.box["bank"]
-    self.buttons:button("bank button", {
-        left = bank_box[1],
-        top = bank_box[2],
-        width = bank_box[3],
-        height = bank_box[4],
-        title = "Bank",
-        text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats(),
-        callback = self.visit_bank
-    })
-
-    -- Create market name labels, buy & sell buttons
-    for i=1, #market.db do
-        local label_id = string.format("name %d", i)
-        local sell_id = string.format("sell %d", i)
-        local buy_id = string.format("buy %d", i)
-        local _x, _y, _w, _h = layout:box_at("name %d", i)
-        self.buttons:label(label_id, {
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = "",
-            title = "-",
-            alignment = "left",
-            font = fonts:for_market_button()
-        })
-        local _x, _y, _w, _h = layout:box_at("sell %d", i)
-        self.buttons:button(sell_id, {
-            repeating = 10,
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = "",
-            title = "Sell",
-            number = i,
-            id = sell_id,
-            alignment = "right",
-            callback = player.sell_drug,
-            font = fonts:for_market_button()
-        })
-        local _x, _y, _w, _h = layout:box_at("buy %d", i)
-        self.buttons:button(buy_id, {
-            repeating = 10,
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = "",
-            title = "Buy",
-            number = i,
-            id = buy_id,
-            alignment = "right",
-            callback = player.buy_drug,
-            font = fonts:for_market_button()
-        })
-    end
-
-end
-
-function play_state.switch(self)
-
-    active_state = self
-
-    -- update label values when entering this state.
-    -- (these dont change while on the play state)
-    self.buttons:get("bank label").text = player.bank_amount
-    self.buttons:get("debt label").text = player.debt_amount
-    self.buttons:get("guns label").text = player.guns
-    self.buttons:get("health label").text = player.health
-    self.buttons:get("day label").text = player.day
-
-    -- show debt button if player has debt, hide if not in home location
-    local debt_button = self.buttons:get("debt button")
-    debt_button.text = player.debt_amount
-    debt_button.hidden = (player.debt == 0) or (player.location ~= LOCATIONS[1])
-
-    -- show bank button if player is in home location
-    local bank_button = self.buttons:get("bank button")
-    bank_button.text = player.bank_amount
-    bank_button.hidden = (player.location ~= LOCATIONS[1])
-
-    message_panel:show_and_lock()
-
-    -- animate player cash value
-    if not self.cash_counter then
-        local dr = require("harness.digitroller")
-        self.cash_counter_refresh = 0
-        self.cash_counter = dr:new({
-            duration = 2,
-            subject = player,
-            target = "cash"
-        })
-    end
-
-end
-
-function play_state.update_button_texts(self)
-
-    local not_for_sale = {}
-
-    for i=1, #market.db do
-
-        local label_id = string.format("name %d", i)
-        local sell_id = string.format("sell %d", i)
-        local buy_id = string.format("buy %d", i)
-        local market_item = market.available[i]
-        local sell_btn = self.buttons:get(sell_id)
-        local buy_btn = self.buttons:get(buy_id)
-        local label = self.buttons:get(label_id)
-
-        -- reset button state
-        sell_btn.hidden = false
-        sell_btn.disabled = false
-        buy_btn.hidden = false
-        buy_btn.disabled = false
-
-        -- item is on the market
-        if market_item then
-            local stock_amt = trenchcoat:stock_of(market_item.name)
-            -- set player stock as sell text
-            label.title = market_item.name
-            label.hidden = false
-            sell_btn.text = stock_amt
-            sell_btn.title = "Sell"
-            buy_btn.text = market_item.cost_amount
-            buy_btn.title = "Buy"
-            -- player has no stock to sell, hide the button
-            if stock_amt == 0 then
-                sell_btn.hidden = true
-            end
-            -- player cannot afford 1 unit, disable the button
-            if market_item.cost > player.cash then
-                buy_btn.disabled = true
-            end
-            -- no space left to carry, disable the button
-            if trenchcoat:free_space() == 0 then
-                buy_btn.disabled = true
-            end
-        else
-            -- not on the market, hide the buy and sell buttons
-            buy_btn.hidden = true
-            sell_btn.hidden = true
-            label.hidden = true
-        end
-
-        -- list this drug in the not-for-sale list
-        local drug = market.db[i]
-        if not market.is_available[drug.name] and trenchcoat:has(drug.name) then
-            table.insert(not_for_sale, {
-                name = drug.name,
-                stock = trenchcoat:stock_of(drug.name)
-            })
-        end
-
-    end
-
-    -- set jet button text to current location
-    if player.day == #market.predictions then
-        self.buttons:get("jet").text = "End Game"
-    else
-        self.buttons:get("jet").text = player.location
-    end
-
-    -- list stock not on the market
-    local label_id = #market.available
-    for _, item in ipairs(not_for_sale) do
-        label_id = label_id + 1
-        local label = self.buttons:get(string.format("name %d", label_id))
-        label.title = item.name
-        label.hidden = false
-        local buy_btn = self.buttons:get(string.format("buy %d", label_id))
-        buy_btn.title = ""
-        buy_btn.text = ""
-        buy_btn.disabled = true
-        buy_btn.hidden = false
-        local sell_btn = self.buttons:get(string.format("sell %d", label_id))
-        sell_btn.title = "no sale"
-        sell_btn.text = item.stock
-        sell_btn.disabled = true
-        sell_btn.hidden = false
-    end
-
-end
-
-function play_state.new_game(self)
-    message_panel:clear_messages()
-    player:reset_game()
-    market:initialize_predictions()
-    market:fluctuate()
-    self:update_button_texts()
-    player:generate_events()
-end
-
-function play_state.next_day(self, new_location)
-    if player:add_day(new_location) <= #market.predictions then
-        message_panel:clear_messages()
-        player:accrue_debt()
-        market:fluctuate()
-        self:update_button_texts()
-        self:save_game()
-        player:generate_events()
-        play_state:switch()
-    else
-        -- TODO: remove game_over = true?
-        player.game_over = true
-        state.game_over:switch(false)
-    end
-end
-
-function play_state.draw(self)
-
-    self.buttons:draw()
-    message_panel:draw()
-
-end
-
-function play_state.update(self, dt)
-
-    if #player.purchase > 0 then
-        purchase_state:switch(table.remove(player.purchase, 1))
-        return
-    end
-
-    if player.gang_encounter then
-        encounter_state:switch(player.gang_encounter)
-        player.gang_encounter = false
-        return
-    end
-
-    -- Update player stats labels
-    self.cash_counter:update(dt)
-    if self.cash_counter_refresh ~= self.cash_counter.value then
-        display:request_fast_fps()
-        self.cash_counter_refresh = self.cash_counter.value
-        self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
-    end
-    self.buttons:get("coat label").text = trenchcoat:free_space()
-
-    self.buttons:update(dt)
-    message_panel:update(dt)
-
-end
-
-function play_state.keypressed(self, key)
-    if key == "escape" then
-        if message_panel:is_locked() then
-            message_panel:unlock()
-        else
-            state.menu:switch()
-        end
-    elseif key == "return" then
-        if message_panel:is_locked() then
-            message_panel:unlock()
-        end
-    elseif key == "space" then
-        if message_panel:is_locked() then
-            message_panel:unlock()
-        else
-            message_panel:show_and_lock()
-        end
-    end
-    -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
-        return
-    end
-    self.buttons:keypressed(key)
-end
-
-function play_state.keyreleased(self, key)
-    self.buttons:keyreleased(key)
-end
-
-function play_state.mousepressed(self, x, y, button, istouch)
-    message_panel:mousepressed(x, y, button, istouch)
-    -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
-        return
-    end
-    self.buttons:mousepressed(x, y, button, istouch)
-end
-
-function play_state.mousereleased(self, x, y, button, istouch)
-    message_panel:mousereleased(x, y, button, istouch)
-    -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
-        return
-    end
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function play_state.mousemoved(self, x, y, dx, dy, istouch)
-    message_panel:mousemoved(x, y, dx, dy, istouch)
-    -- stop processing further when dragging or locked message panel
-    if (message_panel:is_dragging() or message_panel:is_locked()) then
-        return
-    end
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function play_state.restore_game(self)
-
-    print("Loading saved game...")
-
-    for line in util.read_file("savegame") do
-
-        -- read record
-        local record = {}
-        for key, value in util.key_value_pairs(line, true) do
-            record[key] = value
-        end
-
-        -- Put on the correct trench coat
-        trenchcoat:reset(record.coat)
-
-        for key, value in pairs(record) do
-
-            -- apply player values
-            if player[key] ~= nil then
-                player[key] = value
-            end
-
-            -- apply trench coat values
-            for _, item in ipairs(market.db) do
-                if key == item.name then
-                    trenchcoat:adjust_stock(key, value)
-                end
-            end
-
-        end
-
-        -- format player cash, bank, debt amounts
-        player:set_cash()
-        player:set_bank()
-        player:set_debt()
-
-        -- recreate the market from player.seed, fluctuate the market
-        market:initialize_predictions()
-        market:fluctuate()
-
-        -- regenerate predicted events
-        player:generate_events()
-
-        -- sanity check
-        local check = util.crc(record)
-        if check ~= record.crc then
-            print("CRC fail")
-        end
-
-    end
-
-end
-
-function play_state.save_game(self)
-
-    -- build save state
-    local savestate = {
-        seed = player.seed,
-        cash = player.cash,
-        bank = player.bank,
-        debt = player.debt,
-        guns = player.guns,
-        health = player.health,
-        coat = trenchcoat.size,
-        day = player.day,
-        location = player.location
-    }
-
-    -- include stock
-    for _, item in ipairs(market.db) do
-        savestate[item.name] = trenchcoat:stock_of(item.name)
-    end
-
-    util.write_file("savegame", {savestate})
-
-end
-
-function play_state.remove_save(self)
-    love.filesystem.remove("savegame")
-end
-
-function play_state.visit_loanshark(self)
-    loan_shark_state:switch()
-end
-
-function play_state.visit_bank(self)
-    bank_state:switch()
-end
-
 --        _
 --  _ __ | | __ _ _   _  ___ _ __
 -- | '_ \| |/ _` | | | |/ _ \ '__|
@@ -2148,7 +1637,7 @@ function player.generate_events(self)
         end
     end
 
-    play_state:update_button_texts()
+    state.play:update_button_texts()
 
 end
 
@@ -2163,7 +1652,7 @@ function player.buy_drug(btn)
     if max_purchasable > 0 then
         local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
         player:debit_account(delta * drug.cost)
-        play_state:update_button_texts()
+        state.play:update_button_texts()
     end
 end
 
@@ -2172,7 +1661,7 @@ function player.sell_drug(btn)
     local delta, current_stock = trenchcoat:adjust_stock(drug.name, -TRADE_SIZE)
     if delta > 0 then
         player:credit_account(delta * drug.cost)
-        play_state:update_button_texts()
+        state.play:update_button_texts()
     end
 end
 
@@ -2382,7 +1871,7 @@ function purchase_state.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function purchase_state.reject_purchase(self)
-    play_state:switch()
+    state.play:switch()
 end
 
 function purchase_state.early_death(self)
@@ -2395,14 +1884,14 @@ function purchase_state.confirm_purchase(self)
         player:add_gun()
         trenchcoat:adjust_pockets(-self.space_used)
         message_panel:add_message("You purchased a gun.", GOOD_INFO)
-        play_state:update_button_texts()
-        play_state:switch()
+        state.play:update_button_texts()
+        state.play:switch()
     elseif self.what == "trench coat" then
         player:debit_account(self.cost)
         trenchcoat:adjust_pockets(self.new_pockets)
         message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
-        play_state:update_button_texts()
-        play_state:switch()
+        state.play:update_button_texts()
+        state.play:switch()
     elseif self.what == "paraquat" then
         self.buttons:get("yes").hidden = true
         self.buttons:get("no").hidden = true
@@ -2625,7 +2114,7 @@ function state.game_over.exit_state(self)
         ranked = high_scores:add(self.name, self.score)
     end
     -- remove the save game
-    play_state:remove_save()
+    state.play:remove_save()
     -- show high rollers, highlighting current entry
     state.scores:switch(ranked)
 end
@@ -2775,17 +2264,17 @@ function state.menu.mousereleased(self, x, y, button, istouch)
 end
 
 function state.menu.new_game(self)
-    play_state:new_game()
-    play_state:switch()
+    state.play:new_game()
+    state.play:switch()
 end
 
 function state.menu.resume_game(self)
     -- load from disk if no day, otherwise resumes game in-progress
     if player.game_over then
-        play_state:new_game()
-        play_state:restore_game()
+        state.play:new_game()
+        state.play:restore_game()
     end
-    play_state:switch()
+    state.play:switch()
 end
 
 function state.menu.switch(self)
@@ -2940,6 +2429,509 @@ function state.options.update(self, dt)
 
 end
 
+--        _                   _        _
+--  _ __ | | __ _ _   _   ___| |_ __ _| |_ ___
+-- | '_ \| |/ _` | | | | / __| __/ _` | __/ _ \
+-- | |_) | | (_| | |_| | \__ \ || (_| | ||  __/
+-- | .__/|_|\__,_|\__, | |___/\__\__,_|\__\___|
+-- |_|            |___/
+--
+function state.play.draw(self)
+
+    self.buttons:draw()
+    message_panel:draw()
+
+end
+
+function state.play.keypressed(self, key)
+    if key == "escape" then
+        if message_panel:is_locked() then
+            message_panel:unlock()
+        else
+            state.menu:switch()
+        end
+    elseif key == "return" then
+        if message_panel:is_locked() then
+            message_panel:unlock()
+        end
+    elseif key == "space" then
+        if message_panel:is_locked() then
+            message_panel:unlock()
+        else
+            message_panel:show_and_lock()
+        end
+    end
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:keypressed(key)
+end
+
+function state.play.keyreleased(self, key)
+    self.buttons:keyreleased(key)
+end
+
+function state.play.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    -- Create player stat labels
+    local cash_box = layout.box["cash"]
+    self.buttons:label("cash label", {
+        left = cash_box[1],
+        top = cash_box[2],
+        width = cash_box[3],
+        height = cash_box[4],
+        title = "Cash",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+    local bank_box = layout.box["bank"]
+    self.buttons:label("bank label", {
+        left = bank_box[1],
+        top = bank_box[2],
+        width = bank_box[3],
+        height = bank_box[4],
+        title = "Bank",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+    local debt_box = layout.box["debt"]
+    self.buttons:label("debt label", {
+        left = debt_box[1],
+        top = debt_box[2],
+        width = debt_box[3],
+        height = debt_box[4],
+        title = "Debt",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+    local guns_box = layout.box["guns"]
+    self.buttons:label("guns label", {
+        left = guns_box[1],
+        top = guns_box[2],
+        width = guns_box[3],
+        height = guns_box[4],
+        title = "Guns",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+    local coat_box = layout.box["free"]
+    self.buttons:label("coat label", {
+        left = coat_box[1],
+        top = coat_box[2],
+        width = coat_box[3],
+        height = coat_box[4],
+        title = "Coat",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+    local health_box = layout.box["health"]
+    self.buttons:label("health label", {
+        left = health_box[1],
+        top = health_box[2],
+        width = health_box[3],
+        height = health_box[4],
+        title = "Health",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+    local day_box = layout.box["day"]
+    self.buttons:label("day label", {
+        left = day_box[1],
+        top = day_box[2],
+        width = day_box[3],
+        height = day_box[4],
+        title = "Day",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats()
+    })
+
+    -- create jet & debt buttons
+    local jet_box = layout.box["jet"]
+    self.buttons:button("jet", {
+        left = jet_box[1],
+        top = jet_box[2],
+        width = jet_box[3],
+        height = jet_box[4],
+        text = "Jet",
+        alignment = "right",
+        font = fonts:for_jet_button(),
+        context = jet_state,
+        callback = jet_state.switch
+    })
+
+    local debt_box = layout.box["debt"]
+    self.buttons:button("debt button", {
+        left = debt_box[1],
+        top = debt_box[2],
+        width = debt_box[3],
+        height = debt_box[4],
+        title = "Debt",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats(),
+        context = loan_shark_state,
+        callback = loan_shark_state.switch
+    })
+
+    local bank_box = layout.box["bank"]
+    self.buttons:button("bank button", {
+        left = bank_box[1],
+        top = bank_box[2],
+        width = bank_box[3],
+        height = bank_box[4],
+        title = "Bank",
+        text = "0",
+        alignment = "right",
+        font = fonts:for_player_stats(),
+        context = bank_state,
+        callback = bank_state.switch
+    })
+
+    -- Create market name labels, buy & sell buttons
+    for i=1, #market.db do
+        local label_id = string.format("name %d", i)
+        local sell_id = string.format("sell %d", i)
+        local buy_id = string.format("buy %d", i)
+        local _x, _y, _w, _h = layout:box_at("name %d", i)
+        self.buttons:label(label_id, {
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = "",
+            title = "-",
+            alignment = "left",
+            font = fonts:for_market_button()
+        })
+        local _x, _y, _w, _h = layout:box_at("sell %d", i)
+        self.buttons:button(sell_id, {
+            repeating = 10,
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = "",
+            title = "Sell",
+            number = i,
+            id = sell_id,
+            alignment = "right",
+            callback = player.sell_drug,
+            font = fonts:for_market_button()
+        })
+        local _x, _y, _w, _h = layout:box_at("buy %d", i)
+        self.buttons:button(buy_id, {
+            repeating = 10,
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = "",
+            title = "Buy",
+            number = i,
+            id = buy_id,
+            alignment = "right",
+            callback = player.buy_drug,
+            font = fonts:for_market_button()
+        })
+    end
+
+end
+
+function state.play.mousemoved(self, x, y, dx, dy, istouch)
+    message_panel:mousemoved(x, y, dx, dy, istouch)
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.play.mousepressed(self, x, y, button, istouch)
+    message_panel:mousepressed(x, y, button, istouch)
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.play.mousereleased(self, x, y, button, istouch)
+    message_panel:mousereleased(x, y, button, istouch)
+    -- stop processing further when dragging or locked message panel
+    if (message_panel:is_dragging() or message_panel:is_locked()) then
+        return
+    end
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.play.new_game(self)
+    message_panel:clear_messages()
+    player:reset_game()
+    market:initialize_predictions()
+    market:fluctuate()
+    self:update_button_texts()
+    player:generate_events()
+end
+
+function state.play.next_day(self, new_location)
+    if player:add_day(new_location) <= #market.predictions then
+        message_panel:clear_messages()
+        player:accrue_debt()
+        market:fluctuate()
+        self:update_button_texts()
+        self:save_game()
+        player:generate_events()
+        state.play:switch()
+    else
+        -- TODO: remove game_over = true?
+        player.game_over = true
+        state.game_over:switch(false)
+    end
+end
+
+function state.play.remove_save(self)
+    love.filesystem.remove("savegame")
+end
+
+function state.play.restore_game(self)
+
+    print("Loading saved game...")
+
+    for line in util.read_file("savegame") do
+
+        -- read record
+        local record = {}
+        for key, value in util.key_value_pairs(line, true) do
+            record[key] = value
+        end
+
+        -- Put on the correct trench coat
+        trenchcoat:reset(record.coat)
+
+        for key, value in pairs(record) do
+
+            -- apply player values
+            if player[key] ~= nil then
+                player[key] = value
+            end
+
+            -- apply trench coat values
+            for _, item in ipairs(market.db) do
+                if key == item.name then
+                    trenchcoat:adjust_stock(key, value)
+                end
+            end
+
+        end
+
+        -- format player cash, bank, debt amounts
+        player:set_cash()
+        player:set_bank()
+        player:set_debt()
+
+        -- recreate the market from player.seed, fluctuate the market
+        market:initialize_predictions()
+        market:fluctuate()
+
+        -- regenerate predicted events
+        player:generate_events()
+
+        -- sanity check
+        local check = util.crc(record)
+        if check ~= record.crc then
+            print("CRC fail")
+        end
+
+    end
+
+end
+
+function state.play.save_game(self)
+
+    -- build save state
+    local savestate = {
+        seed = player.seed,
+        cash = player.cash,
+        bank = player.bank,
+        debt = player.debt,
+        guns = player.guns,
+        health = player.health,
+        coat = trenchcoat.size,
+        day = player.day,
+        location = player.location
+    }
+
+    -- include stock
+    for _, item in ipairs(market.db) do
+        savestate[item.name] = trenchcoat:stock_of(item.name)
+    end
+
+    util.write_file("savegame", {savestate})
+
+end
+
+function state.play.switch(self)
+
+    active_state = self
+
+    -- update label values when entering this state.
+    -- (these dont change while on the play state)
+    self.buttons:get("bank label").text = player.bank_amount
+    self.buttons:get("debt label").text = player.debt_amount
+    self.buttons:get("guns label").text = player.guns
+    self.buttons:get("health label").text = player.health
+    self.buttons:get("day label").text = player.day
+
+    -- show debt button if player has debt, hide if not in home location
+    local debt_button = self.buttons:get("debt button")
+    debt_button.text = player.debt_amount
+    debt_button.hidden = (player.debt == 0) or (player.location ~= LOCATIONS[1])
+
+    -- show bank button if player is in home location
+    local bank_button = self.buttons:get("bank button")
+    bank_button.text = player.bank_amount
+    bank_button.hidden = (player.location ~= LOCATIONS[1])
+
+    message_panel:show_and_lock()
+
+    -- animate player cash value
+    if not self.cash_counter then
+        local dr = require("harness.digitroller")
+        self.cash_counter_refresh = 0
+        self.cash_counter = dr:new({
+            duration = 2,
+            subject = player,
+            target = "cash"
+        })
+    end
+
+end
+
+function state.play.update(self, dt)
+
+    if #player.purchase > 0 then
+        purchase_state:switch(table.remove(player.purchase, 1))
+        return
+    end
+
+    if player.gang_encounter then
+        encounter_state:switch(player.gang_encounter)
+        player.gang_encounter = false
+        return
+    end
+
+    -- Update player stats labels
+    self.cash_counter:update(dt)
+    if self.cash_counter_refresh ~= self.cash_counter.value then
+        display:request_fast_fps()
+        self.cash_counter_refresh = self.cash_counter.value
+        self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
+    end
+    self.buttons:get("coat label").text = trenchcoat:free_space()
+
+    self.buttons:update(dt)
+    message_panel:update(dt)
+
+end
+
+function state.play.update_button_texts(self)
+
+    local not_for_sale = {}
+
+    for i=1, #market.db do
+
+        local label_id = string.format("name %d", i)
+        local sell_id = string.format("sell %d", i)
+        local buy_id = string.format("buy %d", i)
+        local market_item = market.available[i]
+        local sell_btn = self.buttons:get(sell_id)
+        local buy_btn = self.buttons:get(buy_id)
+        local label = self.buttons:get(label_id)
+
+        -- reset button state
+        sell_btn.hidden = false
+        sell_btn.disabled = false
+        buy_btn.hidden = false
+        buy_btn.disabled = false
+
+        -- item is on the market
+        if market_item then
+            local stock_amt = trenchcoat:stock_of(market_item.name)
+            -- set player stock as sell text
+            label.title = market_item.name
+            label.hidden = false
+            sell_btn.text = stock_amt
+            sell_btn.title = "Sell"
+            buy_btn.text = market_item.cost_amount
+            buy_btn.title = "Buy"
+            -- player has no stock to sell, hide the button
+            if stock_amt == 0 then
+                sell_btn.hidden = true
+            end
+            -- player cannot afford 1 unit, disable the button
+            if market_item.cost > player.cash then
+                buy_btn.disabled = true
+            end
+            -- no space left to carry, disable the button
+            if trenchcoat:free_space() == 0 then
+                buy_btn.disabled = true
+            end
+        else
+            -- not on the market, hide the buy and sell buttons
+            buy_btn.hidden = true
+            sell_btn.hidden = true
+            label.hidden = true
+        end
+
+        -- list this drug in the not-for-sale list
+        local drug = market.db[i]
+        if not market.is_available[drug.name] and trenchcoat:has(drug.name) then
+            table.insert(not_for_sale, {
+                name = drug.name,
+                stock = trenchcoat:stock_of(drug.name)
+            })
+        end
+
+    end
+
+    -- set jet button text to current location
+    if player.day == #market.predictions then
+        self.buttons:get("jet").text = "End Game"
+    else
+        self.buttons:get("jet").text = player.location
+    end
+
+    -- list stock not on the market
+    local label_id = #market.available
+    for _, item in ipairs(not_for_sale) do
+        label_id = label_id + 1
+        local label = self.buttons:get(string.format("name %d", label_id))
+        label.title = item.name
+        label.hidden = false
+        local buy_btn = self.buttons:get(string.format("buy %d", label_id))
+        buy_btn.title = ""
+        buy_btn.text = ""
+        buy_btn.disabled = true
+        buy_btn.hidden = false
+        local sell_btn = self.buttons:get(string.format("sell %d", label_id))
+        sell_btn.title = "no sale"
+        sell_btn.text = item.stock
+        sell_btn.disabled = true
+        sell_btn.hidden = false
+    end
+
+end
 
 --  ___  ___ ___  _ __ ___  ___
 -- / __|/ __/ _ \| '__/ _ \/ __|
