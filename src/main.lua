@@ -1105,8 +1105,8 @@ function high_scores.write_file(self)
     local ok, err = file:open("w")
     if ok then
         for rank, e in ipairs(self.entries) do
-            local data = string.format("name=%s date=%x score=%x check=%x \n",
-                string.gsub(e.name, " ", "_"), e.date, e.score, self:crc(e))
+            local data = string.format("name=%s date=%x score=%x crc=%x \n",
+                string.gsub(e.name, " ", "_"), e.date, e.score, util.crc(e))
                 file:write(data)
         end
         file:close()
@@ -1130,7 +1130,7 @@ function high_scores.valid_record(self, record)
     local isvalid = type(record.name) == "string"
         and type(record.date) == "number"
         and type(record.score) == "number"
-    if isvalid and record.check ~= self:crc(record) then
+    if isvalid and record.crc ~= util.crc(record) then
         -- Burn!
         record.name = ("Purngre"):gsub("%a",
             function(c)
@@ -1155,7 +1155,7 @@ end
 function high_scores.add(self, person, value)
     if self:is_accepted(value) then
         local entry = { name=person, score=value, date=os.time() }
-        entry["check"] = self:crc(entry)
+        entry.crc = util.crc(entry)
         table.insert(self.entries, entry)
         self:sort()
         self:cull()
@@ -1202,10 +1202,6 @@ function high_scores.is_accepted(self, value)
     -- no luck chum
     return false
 
-end
-
-function high_scores.crc(self, record)
-    return (record.score + record.date) % 255
 end
 
 --  _                         _
@@ -1963,9 +1959,9 @@ function play_state.load_from_file(self)
                     end
                 end
             end
-            local crc = player:crc()
-            if crc ~= other.check then
-                print(string.format("crc mismatch! %d <> %d.", other.check, crc))
+            local crc = util.crc(player, trenchcoat)
+            if crc ~= other.crc then
+                print(string.format("crc mismatch! %d <> %d.", other.crc, crc))
             end
             player.location = string.gsub(player.location, "_", " ")
             player:set_cash()
@@ -1985,10 +1981,10 @@ function play_state.save_to_file(self)
         local data = string.format([[
             seed=%x cash=%x bank=%x debt=%x
             guns=%x health=%x coat=%x day=%x
-            location=%s check=%x]],
+            location=%s crc=%x]],
             player.seed, player.cash, player.bank, player.debt,
             player.guns, player.health, trenchcoat.size, player.day,
-            string.gsub(player.location, " ", "_"), player:crc())
+            string.gsub(player.location, " ", "_"), util.crc(player, trenchcoat))
         for _, item in ipairs(market.db) do
             data = data .. string.format(" %s=%x", item.name, trenchcoat:stock_of(item.name))
         end
@@ -2310,17 +2306,6 @@ function player.withdraw_bank(self, amount)
     end
 end
 
-function player.crc(self)
-    local crc = 0
-    for k, v in pairs(self) do
-        if type(v) == "number" then
-            crc = crc + v
-        end
-    end
-    --return crc % 255
-    return (trenchcoat:crc() + crc) % 255
-end
-
 function player.add_gun(self)
     self.guns = self.guns + 1
     print(string.format("Got a gun. You have %d.", self.guns))
@@ -2545,7 +2530,7 @@ function trenchcoat.adjust_stock(self, name, amount)
     self.free = self.free - delta
     if delta > 0 then
         print(string.format("Added %d %s to trench coat.", delta, name))
-    else
+    elseif delta < 0 then
         print(string.format("Removed %d %s from trench coat.", -1*delta, name))
     end
     return math.abs(delta), new_stock
@@ -2576,16 +2561,6 @@ function trenchcoat.get_random(self, minimum_amount)
             return pick.name, amount
         end
     end
-end
-
-function trenchcoat.crc(self)
-    local crc = 0
-    for k, v in pairs(self) do
-        if k ~= "free" and type(v) == "number" then
-            crc = crc + v
-        end
-    end
-    return crc % 255
 end
 
 function trenchcoat.adjust_pockets(self, amount)
@@ -2889,27 +2864,21 @@ function util.key_value_pairs(line)
             local number_from_hex = tonumber(value, 16)
             value = (value == "true") and true or value
             value = (value == "false") and false or value
-            --if value == "true" then
-                --value = true
-            --elseif value == "false" then
-                --value = false
-            --end
             return key, number_from_hex or value
         end
-
-        --if ok then
-            --for line in file:lines() do
-                ---- TODO: make reusable iterator out of gfind, tonumber, gsub
-                --local record = {}
-                --while true do
-                    --local key, value = key_value_matcher()
-                    --if key == nil then break end
-                    --local dec = tonumber(value,16)
-                    --record[key] = dec or string.gsub(value, "_", " ")
-                --end
-            --end
-        --end
     end
+end
+
+function util.crc(t1, t2)
+    local crc = 0
+    for _, tbl in ipairs({t1, t2}) do
+        for k, v in pairs(tbl) do
+            if k ~= "crc" and type(v) == "number" then
+                crc = crc + v
+            end
+        end
+    end
+    return crc % 255
 end
 
 --  _            _
