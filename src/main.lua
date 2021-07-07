@@ -1108,7 +1108,7 @@ function high_scores.read_file(self)
     self.entries = {}
     for line in util.read_file(self:filename()) do
         local record = {}
-        for key, value in util.key_value_pairs(line) do
+        for key, value in util.key_value_pairs(line, true) do
             record[key] = value
         end
         if self:valid_record(record) then
@@ -1951,7 +1951,7 @@ function play_state.restore_game(self)
 
         -- read record
         local record = {}
-        for key, value in util.key_value_pairs(line) do
+        for key, value in util.key_value_pairs(line, true) do
             record[key] = value
         end
 
@@ -2910,18 +2910,21 @@ function util.write_file(filename, entries)
 end
 
 -- Returns an iterator over the key=value pairs in a line
-function util.key_value_pairs(line)
-    local key_value_matcher = string.gfind(line, "(%a+)=([%w_]+)")
+function util.key_value_pairs(line, replace_underscore)
+    local key_value_matcher = string.gfind(line, "([%a_]+)=([%w_]+)")
     return function()
         local key, value = key_value_matcher()
         if key ~= nil then
             -- attempt conversion from hex number
             local number_from_hex = tonumber(value, 16)
             -- convert to boolean
-            value = (value == "true") and true or value
-            value = (value == "false") and false or value
+            if value == "true" then
+                value = true
+            elseif value == "false" then
+                value = false
+            end
             -- replace underscore
-            if not number_from_hex and type(value) == "string" then
+            if replace_underscore and type(value) == "string" then
                 value = string.gsub(value, "_", " ")
             end
             return key, number_from_hex or value
