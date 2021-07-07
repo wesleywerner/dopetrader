@@ -1101,16 +1101,7 @@ function high_scores.generate_default_scores(self)
 end
 
 function high_scores.write_file(self)
-    local file = love.filesystem.newFile(self:filename())
-    local ok, err = file:open("w")
-    if ok then
-        for rank, e in ipairs(self.entries) do
-            local data = string.format("name=%s date=%x score=%x crc=%x \n",
-                string.gsub(e.name, " ", "_"), e.date, e.score, util.crc(e))
-                file:write(data)
-        end
-        file:close()
-    end
+    util.write_file(self:filename(), self.entries)
 end
 
 function high_scores.read_file(self)
