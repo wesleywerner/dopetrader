@@ -1667,6 +1667,7 @@ end
 function state.messages.clear(self)
     self.messages = {}
     self.has_displayed = false
+    self.y = self.rest_y
 end
 
 function state.messages.draw(self)
