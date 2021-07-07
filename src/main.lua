@@ -2589,28 +2589,6 @@ end
 -- |___/_| |_|\___/| .__/
 --                 |_|
 --
-function state.shop.confirm_purchase(self)
-    if self.what == "gun" then
-        player:debit_account(self.cost)
-        player:add_gun()
-        trenchcoat:adjust_pockets(-self.space_used)
-        message_panel:add_message("You purchased a gun.", GOOD_INFO)
-        state.play:update_button_texts()
-        state.play:switch()
-    elseif self.what == "trench coat" then
-        player:debit_account(self.cost)
-        trenchcoat:adjust_pockets(self.new_pockets)
-        message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
-        state.play:update_button_texts()
-        state.play:switch()
-    elseif self.what == "paraquat" then
-        self.buttons:get("yes").hidden = true
-        self.buttons:get("no").hidden = true
-        self.buttons:get("end game").hidden = false
-        self.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
-    end
-end
-
 function state.shop.draw(self)
     fonts:set_large()
     love.graphics.setColor(PRIMARY_COLOR)
@@ -2647,7 +2625,7 @@ function state.shop.load(self)
         text = "Yes",
         font = fonts:for_menu_button(),
         context = self,
-        callback = self.confirm_purchase,
+        callback = self.purchase,
         disabled = true
     })
 
@@ -2689,6 +2667,28 @@ end
 
 function state.shop.mousereleased(self, x, y, button, istouch)
     self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.shop.purchase(self)
+    if self.what == "gun" then
+        player:debit_account(self.cost)
+        player:add_gun()
+        trenchcoat:adjust_pockets(-self.space_used)
+        message_panel:add_message("You purchased a gun.", GOOD_INFO)
+        state.play:update_button_texts()
+        state.play:switch()
+    elseif self.what == "trench coat" then
+        player:debit_account(self.cost)
+        trenchcoat:adjust_pockets(self.new_pockets)
+        message_panel:add_message("You purchased a new trench coat.", GOOD_INFO)
+        state.play:update_button_texts()
+        state.play:switch()
+    elseif self.what == "paraquat" then
+        self.buttons:get("yes").hidden = true
+        self.buttons:get("no").hidden = true
+        self.buttons:get("end game").hidden = false
+        self.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
+    end
 end
 
 function state.shop.switch(self, what)
