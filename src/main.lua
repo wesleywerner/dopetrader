@@ -1666,6 +1666,7 @@ end
 
 function state.messages.clear(self)
     self.messages = {}
+    self.has_displayed = false
 end
 
 function state.messages.draw(self)
@@ -1755,9 +1756,10 @@ function state.messages.mousereleased(self, x, y, button, istouch)
 end
 
 function state.messages.show_and_lock(self)
-    if #self.messages > 0 then
+    if not self.has_displayed and #self.messages > 0 then
         self.y = self.min_y
         self.locked = true
+        self.has_displayed = true
     end
 end
 
