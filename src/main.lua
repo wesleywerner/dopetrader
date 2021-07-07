@@ -36,21 +36,25 @@ local ZERO_INFO = {.5, 1, 1}
 local LOCATIONS = {"Bronx", "Ghetto", "Central Park",
                     "Manhattan", "Coney Island", "Brooklyn" }
 
+-- TODO: sort
 local display = {}
 local high_scores = {}
 local layout = {}
+local options = {}
 local player = {}
 local market = {}
 local fonts = {}
 local trenchcoat = {}
 local util = {}
 local message_panel = {}
-local test = {}
+local test = {} -- TODO: remove test{}
 
 local state = {
     game_over = {},
+    options = {},
     scores = {}
 }
+-- TODO: migrate below to above
 local menu_state = {}
 local play_state = {}
 local jet_state = {}
@@ -89,8 +93,12 @@ function love.load()
     loan_shark_state:load()
     purchase_state:load()
     bank_state:load()
-    state.game_over:load()
-    state.scores:load()
+    options:load()
+
+    -- Load game states
+    for k, v in pairs(state) do
+        state[k]:load()
+    end
 
     menu_state:switch()
 end
@@ -671,6 +679,18 @@ function fonts.for_player_stats(self)
     end
 end
 
+function fonts.for_option_title(self)
+    if display.mobile then
+        return self.medium
+    else
+        return self.medium
+    end
+end
+
+function fonts.for_option_text(self)
+    return self.small
+end
+
 function fonts.measure(self, font)
     return love.graphics.newText(font, "$"):getDimensions()
 end
@@ -823,9 +843,8 @@ function menu_state.load(self)
         height = run_box[4],
         text = "Options",
         font = fonts:for_menu_button(),
-        context = self,
-        callback = self.view_options,
-        disabled = true
+        context = state.options,
+        callback = state.options.switch,
     })
 
     local run_box = layout.box["about"]
@@ -1225,6 +1244,7 @@ function layout.load(self)
     map_layout_to_screen(require("jet_layout"))
     map_layout_to_screen(require("prompt_layout"))
     map_layout_to_screen(require("menu_layout"))
+    map_layout_to_screen(require("options_layout"))
 end
 
 function layout.point_at(self, key, index)
@@ -1255,7 +1275,7 @@ function layout.underline_at(self, key, index)
     return _x, _y+_h, _x+_w, _y+_h
 end
 
-function layout.create_collection(self, ...)
+function layout.button_collection(self, ...)
 
     local names = {...}
 
@@ -1520,6 +1540,41 @@ end
 
 function message_panel.unlock(self)
     self.locked = false
+end
+
+--              _   _
+--   ___  _ __ | |_(_) ___  _ __  ___
+--  / _ \| '_ \| __| |/ _ \| '_ \/ __|
+-- | (_) | |_) | |_| | (_) | | | \__ \
+--  \___/| .__/ \__|_|\___/|_| |_|___/
+--       |_|
+--
+function options.load(self)
+
+    -- default options
+    self.vibrate = true
+    self.adaptive_fps = true
+    self.sound = true
+
+    -- restore from file, if present
+    self:restore()
+
+end
+
+function options.restore(self)
+    for line in util.read_file("options") do
+        for key, value in util.key_value_pairs(line, false) do
+            self[key] = value
+        end
+    end
+end
+
+function options.set(self, key, value)
+    self[key] = value
+end
+
+function options.save(self)
+    util.write_file("options", {self})
 end
 
 --        _                   _        _
@@ -2606,7 +2661,7 @@ end
 function state.game_over.load(self)
 
     self.uft8 = require("utf8")
-    self.buttons = layout:create_collection("close prompt", "alt close prompt")
+    self.buttons = layout:button_collection("close prompt", "alt close prompt")
 
     self.buttons:set_values{
         name = "alt close prompt",
@@ -2744,6 +2799,149 @@ end
 function state.game_over.show_mobile_keyboard(self)
     love.keyboard.setTextInput(true)
 end
+
+--              _   _
+--   ___  _ __ | |_(_) ___  _ __  ___
+--  / _ \| '_ \| __| |/ _ \| '_ \/ __|
+-- | (_) | |_) | |_| | (_) | | | \__ \
+--  \___/| .__/ \__|_|\___/|_| |_|___/
+--       |_|
+--
+function state.options.draw(self)
+
+    self.labels:draw()
+    self.buttons:draw()
+
+end
+
+function state.options.exit_state(self)
+    options:save()
+    menu_state:switch()
+end
+
+function state.options.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        self:exit_state()
+    end
+end
+
+function state.options.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.options.load(self)
+
+    self.labels = layout:label_collection(
+        "option heading", "option 1 title", "option 2 title", "option 3 title",
+        "option 1 text", "option 2 text", "option 3 text")
+
+    self.buttons = layout:button_collection(
+        "option 1 btn", "option 2 btn", "option 3 btn", "option close")
+
+    -- title
+    self.labels:set_values{
+        name = "option heading",
+        font = fonts:for_title(),
+        text = "Game Options"
+    }
+
+    -- close button
+    self.buttons:set_values{
+        name = "option close",
+        font = fonts:for_title(),
+        text = "Done",
+        context = self,
+        callback = self.exit_state
+    }
+
+    -- Vibration
+    self.labels:set_values{
+        name = "option 1 title",
+        font = fonts:for_option_title(),
+        text = "Vibes"
+    }
+    self.labels:set_values{
+        name = "option 1 text",
+        font = fonts:for_option_text(),
+        text = "Vibrates your phone on game events"
+    }
+    self.buttons:set_values{
+        name = "option 1 btn",
+        setting = "vibrate",
+        font = fonts:for_title(),
+        text = options.vibrate and "On" or "Off",
+        callback = self.set_option
+    }
+
+    -- Sounds
+    self.labels:set_values{
+        name = "option 2 title",
+        font = fonts:for_option_title(),
+        text = "Sounds"
+    }
+    self.labels:set_values{
+        name = "option 2 text",
+        font = fonts:for_option_text(),
+        text = "Play sounds on game events"
+    }
+    self.buttons:set_values{
+        name = "option 2 btn",
+        setting = "sound",
+        font = fonts:for_title(),
+        text = options.sound and "On" or "Off",
+        callback = self.set_option,
+        disabled = false
+    }
+
+    -- Frame rate limiter
+    self.labels:set_values{
+        name = "option 3 title",
+        font = fonts:for_option_title(),
+        text = "Performance"
+    }
+    self.labels:set_values{
+        name = "option 3 text",
+        font = fonts:for_option_text(),
+        text = "Adaptive frame rate to save battery on mobile devices"
+    }
+    self.buttons:set_values{
+        name = "option 3 btn",
+        setting = "adaptive_fps",
+        font = fonts:for_title(),
+        text = options.adaptive_fps and "On" or "Off",
+        callback = self.set_option,
+        disabled = false
+    }
+
+end
+
+function state.options.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.options.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.options.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.options.set_option(btn)
+    btn.text = (btn.text == "On") and "Off" or "On"
+    options[btn.setting] = btn.text == "On"
+    print(string.format("Toggled %s %s", btn.setting, tostring(options[btn.setting])))
+end
+
+function state.options.switch(self)
+    active_state = self
+end
+
+function state.options.update(self, dt)
+
+end
+
 
 --  ___  ___ ___  _ __ ___  ___
 -- / __|/ __/ _ \| '__/ _ \/ __|
