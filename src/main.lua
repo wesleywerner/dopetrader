@@ -68,10 +68,26 @@ local state = {
 --  \__,_|_|___/ .__/|_|\__,_|\__, |
 --             |_|            |___/
 --
+function display.set_adaptive(self, toggle)
+    self.is_adaptive = toggle
+    if not toggle then
+        self:request_fast_fps()
+    end
+end
+
+function display.dont_idle(self)
+    self.idle_timeout = 5
+    self.is_idle = false
+end
+
 function display.load(self)
 
-    self.default_fps = 1/10
-    self.fast_fps = false
+    self.idle_fps = 1/3
+    self.normal_fps = 1/10
+    self.fast_fps = 1/40
+    self:use_normal_fps()
+
+    self.idle_timeout = 0
 
     display.dpi = love.graphics.getDPIScale()
 
@@ -91,17 +107,43 @@ function display.load(self)
 
 end
 
-function display.request_default_fps(self)
-    self.fast_fps = false
+function display.use_normal_fps(self)
+    if not self.is_adaptive then
+        return
+    end
+    if not self.is_idle then
+        self.current_fps = self.normal_fps
+    end
+end
+
+function display.use_idle_fps(self)
+    if not self.is_adaptive then
+        return
+    end
+    self.is_idle = true
+    self.current_fps = self.idle_fps
 end
 
 function display.request_fast_fps(self)
-    self.fast_fps = true
+    if not self.is_adaptive then
+        return
+    end
+    if not self.is_idle then
+        self.current_fps = self.fast_fps
+    end
 end
 
 function display.update(self, dt)
-    if not display.fast_fps and dt < display.default_fps then
-        love.timer.sleep(display.default_fps - dt)
+    if not self.is_adaptive then
+        return
+    end
+    if dt < self.current_fps then
+        love.timer.sleep(self.current_fps - dt)
+    end
+    if self.idle_timeout < 1 then
+        self:use_idle_fps()
+    else
+        self.idle_timeout = self.idle_timeout - dt
     end
 end
 
@@ -469,6 +511,7 @@ function love.draw()
 end
 
 function love.keypressed(key, isrepeat)
+    display:dont_idle()
     active_state:keypressed(key)
 end
 
@@ -494,8 +537,9 @@ function love.load()
     layout:load()
     player:load()
     market:load()
-
     options:load()
+
+    display:set_adaptive(options.adaptive_fps)
 
     -- Load game states
     for k, v in pairs(state) do
@@ -506,10 +550,12 @@ function love.load()
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
+    display:dont_idle()
     active_state:mousemoved(x, y, dx, dy, istouch)
 end
 
 function love.mousepressed(x, y, button, istouch)
+    display:dont_idle()
     active_state:mousepressed(x, y, button, istouch)
 end
 
@@ -524,7 +570,7 @@ function love.textinput(t)
 end
 
 function love.update(dt)
-    display:request_default_fps()
+    display:use_normal_fps()
     active_state:update(dt)
     display:update(dt)
 end
@@ -1786,6 +1832,10 @@ function state.options.draw(self)
     self.labels:draw()
     self.buttons:draw()
 
+    fonts:set_small()
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.print(love.timer.getFPS().." FPS", layout:padded_point_at("option 3 title"))
+
 end
 
 function state.options.exit_state(self)
@@ -1872,12 +1922,12 @@ function state.options.load(self)
     self.labels:set_values{
         name = "option 3 title",
         font = fonts:for_option_title(),
-        text = "Performance"
+        text = "Battery"
     }
     self.labels:set_values{
         name = "option 3 text",
         font = fonts:for_option_text(),
-        text = "Adaptive frame rate to save battery on mobile devices"
+        text = "Enables adaptive performance, saving battery on mobile devices"
     }
     self.buttons:set_values{
         name = "option 3 btn",
@@ -1905,6 +1955,9 @@ end
 function state.options.set_option(btn)
     btn.text = (btn.text == "On") and "Off" or "On"
     options[btn.setting] = btn.text == "On"
+    if btn.setting == "adaptive_fps" then
+        display:set_adaptive(options.adaptive_fps)
+    end
     print(string.format("Toggled %s %s", btn.setting, tostring(options[btn.setting])))
 end
 
