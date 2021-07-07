@@ -1701,6 +1701,24 @@ function state.messages.is_locked(self)
     return self.locked
 end
 
+function state.messages.keypressed(self, key)
+    if key == "escape" then
+        if state.messages:is_locked() then
+            state.messages:unlock()
+        end
+    elseif key == "return" then
+        if state.messages:is_locked() then
+            state.messages:unlock()
+        end
+    elseif key == "space" then
+        if state.messages:is_locked() then
+            state.messages:unlock()
+        else
+            state.messages:show_and_lock()
+        end
+    end
+end
+
 function state.messages.load(self)
 
     -- message box layout
@@ -1922,22 +1940,11 @@ end
 
 function state.play.keypressed(self, key)
     if key == "escape" then
-        if state.messages:is_locked() then
-            state.messages:unlock()
-        else
+        if not state.messages:is_locked() then
             state.menu:switch()
         end
-    elseif key == "return" then
-        if state.messages:is_locked() then
-            state.messages:unlock()
-        end
-    elseif key == "space" then
-        if state.messages:is_locked() then
-            state.messages:unlock()
-        else
-            state.messages:show_and_lock()
-        end
     end
+    state.messages:keypressed(key)
     -- stop processing further when dragging or locked message panel
     if (state.messages:is_dragging() or state.messages:is_locked()) then
         return
