@@ -918,7 +918,6 @@ function player.generate_events(self)
 end
 
 function player.load(self)
-    self.game_over = true
     state.messages:clear()
 end
 
@@ -941,7 +940,7 @@ function player.reset(self)
     self:set_debt(5500)
     self.location = LOCATIONS[1]
     self.gang_encounter = false
-    self.game_over = false
+    self.in_progress = true
     self.purchase = {}
     trenchcoat:reset()
 end
@@ -1247,6 +1246,9 @@ end
 
 function state.game_over.switch(self, rip)
 
+    -- flag game no longer in progress
+    player.in_progress = false
+
     -- calculate score
     self.score = player.bank + player.cash
     self.score_amount = util.comma_value(self.score)
@@ -1271,14 +1273,7 @@ function state.game_over.switch(self, rip)
         self.message = "You survived!\n" .. placement_outcome
     end
 
-    ---- allow text input
-    ---- (a button to show the keyboard will be visible on mobile)
-    --if not display.mobile then
-        --love.keyboard.setTextInput(true)
-    --end
-
     self.name = ""
-
     active_state = self
 
 end
@@ -1639,7 +1634,7 @@ end
 
 function state.menu.resume_game(self)
     -- load from disk if no day, otherwise resumes game in-progress
-    if player.game_over then
+    if not player.in_progress then
         state.play:new_game()
         state.play:restore_game()
     end
@@ -2177,8 +2172,6 @@ function state.play.next_day(self, new_location)
         player:generate_events()
         state.play:switch()
     else
-        -- TODO: remove game_over = true?
-        player.game_over = true
         state.game_over:switch(false)
     end
 end
