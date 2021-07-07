@@ -1338,6 +1338,62 @@ end
 --  \__, |\__,_|_| |_| |_|\___|  \___/ \_/ \___|_|
 --  |___/
 --
+function state.game_over.draw(self)
+
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    -- title
+    love.graphics.print("Score", layout:padded_point_at("title"))
+    love.graphics.printf(self.score_amount, layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    -- message
+    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+
+    -- name
+    if self.enter_name then
+        love.graphics.print("Your name: "..self.name, layout:point_at("answer 1"))
+    end
+
+    self.buttons:draw()
+end
+
+function state.game_over.exit_state(self)
+    local ranked = nil
+    if self.enter_name then
+        -- prevent exit without a name
+        if self.uft8.len(self.name) == 0 then
+            return
+        end
+        ranked = high_scores:add(self.name, self.score)
+    end
+    -- remove the save game
+    state.play:remove_save()
+    -- show high rollers, highlighting current entry
+    state.scores:switch(ranked)
+end
+
+function state.game_over.keypressed(self, key)
+
+    self.buttons:keypressed(key)
+
+    if key == "backspace" then
+        -- get the byte offset to the last UTF-8 character in the string.
+        local byteoffset = self.uft8.offset(self.name, -1)
+        if byteoffset then
+            -- remove the last UTF-8 character.
+            -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
+            self.name = string.sub(self.name, 1, byteoffset - 1)
+        end
+    end
+
+end
+
+function state.game_over.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
 function state.game_over.load(self)
 
     self.uft8 = require("utf8")
@@ -1358,6 +1414,22 @@ function state.game_over.load(self)
         text = "Keyboard"
     }
 
+end
+
+function state.game_over.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.game_over.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.game_over.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.game_over.show_mobile_keyboard(self)
+    love.keyboard.setTextInput(true)
 end
 
 function state.game_over.switch(self, rip)
@@ -1398,86 +1470,14 @@ function state.game_over.switch(self, rip)
 
 end
 
-function state.game_over.update(self, dt)
-
-end
-
-function state.game_over.draw(self)
-
-    fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
-
-    -- title
-    love.graphics.print("Score", layout:padded_point_at("title"))
-    love.graphics.printf(self.score_amount, layout:align_point_at("title",nil,"right"))
-    love.graphics.rectangle("line", layout:box_at("title"))
-
-    -- message
-    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
-
-    -- name
-    if self.enter_name then
-        love.graphics.print("Your name: "..self.name, layout:point_at("answer 1"))
-    end
-
-    self.buttons:draw()
-end
-
-function state.game_over.keypressed(self, key)
-
-    self.buttons:keypressed(key)
-
-    if key == "backspace" then
-        -- get the byte offset to the last UTF-8 character in the string.
-        local byteoffset = self.uft8.offset(self.name, -1)
-        if byteoffset then
-            -- remove the last UTF-8 character.
-            -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
-            self.name = string.sub(self.name, 1, byteoffset - 1)
-        end
-    end
-
-end
-
-function state.game_over.keyreleased(self, key, scancode)
-    self.buttons:keyreleased(key)
-end
-
 function state.game_over.textinput(self, t)
     if self.uft8.len(self.name) < 8 then
         self.name = self.name .. t
     end
 end
 
-function state.game_over.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
-end
+function state.game_over.update(self, dt)
 
-function state.game_over.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function state.game_over.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function state.game_over.exit_state(self)
-    local ranked = nil
-    if self.enter_name then
-        -- prevent exit without a name
-        if self.uft8.len(self.name) == 0 then
-            return
-        end
-        ranked = high_scores:add(self.name, self.score)
-    end
-    -- remove the save game
-    state.play:remove_save()
-    -- show high rollers, highlighting current entry
-    state.scores:switch(ranked)
-end
-
-function state.game_over.show_mobile_keyboard(self)
-    love.keyboard.setTextInput(true)
 end
 
 --    _      _
@@ -1985,11 +1985,11 @@ function state.options.update(self, dt)
 
 end
 
---        _                   _        _
---  _ __ | | __ _ _   _   ___| |_ __ _| |_ ___
--- | '_ \| |/ _` | | | | / __| __/ _` | __/ _ \
--- | |_) | | (_| | |_| | \__ \ || (_| | ||  __/
--- | .__/|_|\__,_|\__, | |___/\__\__,_|\__\___|
+--        _
+--  _ __ | | __ _ _   _
+-- | '_ \| |/ _` | | | |
+-- | |_) | | (_| | |_| |
+-- | .__/|_|\__,_|\__, |
 -- |_|            |___/
 --
 function state.play.draw(self)
