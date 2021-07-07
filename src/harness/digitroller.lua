@@ -105,6 +105,7 @@ end
 -- Time delta as given by the Love callback
 function digitroller:update(dt)
   self.tween:update(dt)
+  self.complete = self.tween.clock == self.tween.duration
   if self.targetvalue ~= self.subject[self.target] then
     self.targetvalue = self.subject[self.target]
     self:applytween()

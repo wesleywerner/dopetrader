@@ -2282,9 +2282,8 @@ function state.play.switch(self)
     -- animate player cash value
     if not self.cash_counter then
         local dr = require("harness.digitroller")
-        self.cash_counter_refresh = 0
         self.cash_counter = dr:new({
-            duration = 2,
+            duration = 1,
             subject = player,
             target = "cash"
         })
@@ -2307,9 +2306,8 @@ function state.play.update(self, dt)
 
     -- Update player stats labels
     self.cash_counter:update(dt)
-    if self.cash_counter_refresh ~= self.cash_counter.value then
+    if not self.cash_counter.complete then
         display:request_fast_fps()
-        self.cash_counter_refresh = self.cash_counter.value
         self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
     end
     self.buttons:get("coat label").text = trenchcoat:free_space()
@@ -2901,6 +2899,7 @@ function state.thugs.switch(self, risk_factor)
     -- watch player health as a spinning number
     local dr = require("harness.digitroller")
     self.health_counter = dr:new({
+        duration = 1,
         subject = player,
         target = "health"
     })
@@ -2917,11 +2916,10 @@ function state.thugs.test_death(self)
 end
 
 function state.thugs.update(self, dt)
-    if self.health_counter_refresh ~= self.health_counter.value then
-        self.health_counter_refresh = self.health_counter.value
+    self.health_counter:update(dt)
+    if not self.health_counter.complete then
         display:request_fast_fps()
     end
-    self.health_counter:update(dt)
 end
 
 function state.thugs.visit_doctor(self)
