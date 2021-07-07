@@ -50,6 +50,7 @@ local message_panel = {}
 local test = {} -- TODO: remove test{}
 
 local state = {
+    bank = {},
     game_over = {},
     jet = {},
     loanshark = {},
@@ -60,8 +61,6 @@ local state = {
     scores = {},
     thugs = {}
 }
--- TODO: migrate below to above
-local bank_state = {}
 
 function love.load()
 
@@ -83,7 +82,6 @@ function love.load()
     market:load()
     message_panel:load()
 
-    bank_state:load()
     options:load()
 
     -- Load game states
@@ -133,167 +131,6 @@ function love.draw()
         fonts:set_small()
         love.graphics.print(love.timer.getFPS(), 1, display.safe_h - 20)
     end
-end
-
---  _                 _          _        _
--- | |__   __ _ _ __ | | __  ___| |_ __ _| |_ ___
--- | '_ \ / _` | '_ \| |/ / / __| __/ _` | __/ _ \
--- | |_) | (_| | | | |   <  \__ \ || (_| | ||  __/
--- |_.__/ \__,_|_| |_|_|\_\ |___/\__\__,_|\__\___|
---
-function bank_state.load(self)
-
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
-
-    local x, y, w, h = layout:box_at("answer 1")
-    self.buttons:button("deposit", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
-        text = "Deposit",
-        font = fonts:for_bank_button(),
-        context = self,
-        callback = self.do_deposit
-    })
-
-    local x, y, w, h = layout:box_at("answer 2")
-    self.buttons:button("withdraw", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
-        text = "Withdraw",
-        font = fonts:for_bank_button(),
-        context = self,
-        callback = self.do_withdraw
-    })
-
-    local x, y, w, h = layout:box_at("close prompt")
-    self.buttons:button("close", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
-        text = "I'm outta here",
-        font = fonts:for_menu_button(),
-        callback = self.exit_state
-    })
-
-    local x, y, w, h = layout:box_at("alt close prompt")
-    self.buttons:button("transact", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
-        text = "Transact",
-        font = fonts:for_menu_button(),
-        context = self,
-        callback = self.do_transact
-    })
-
-    local display_part = math.floor(display.safe_w  * 0.1)
-    self.buttons:slider("slider", {
-        left = display_part,
-        top = math.floor(display.safe_h * 0.6),
-        width = display.safe_w - display_part * 2,
-        height = 120,
-        font = fonts.large,
-        format_function = util.comma_value,
-        hidden = true
-    })
-
-end
-
-function bank_state.switch(self)
-
-    self.buttons:get("deposit").hidden = false
-    self.buttons:get("withdraw").hidden = false
-    self.buttons:get("deposit").disabled = player.cash < 1000
-    self.buttons:get("withdraw").disabled = player.bank == 0
-    self.buttons:get("transact").hidden = true
-    self.buttons:get("slider").hidden = true
-    active_state = self
-
-end
-
-function bank_state.update(self, dt)
-
-end
-
-function bank_state.draw(self)
-
-    fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
-
-    love.graphics.print("Cash", layout:padded_point_at("title"))
-    love.graphics.printf(player.cash_amount, layout:align_point_at("title",nil,"right"))
-    love.graphics.rectangle("line", layout:box_at("title"))
-
-    if self.message then
-        love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
-    end
-
-    self.buttons:draw()
-
-end
-
-function bank_state.keypressed(self, key)
-    self.buttons:keypressed(key)
-    if key == "escape" then
-        state.play:switch()
-    end
-end
-
-function bank_state.keyreleased(self, key, scancode)
-    self.buttons:keyreleased(key)
-end
-
-function bank_state.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
-end
-
-function bank_state.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function bank_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function bank_state.exit_state(self)
-    state.play:switch()
-end
-
-function bank_state.do_deposit(self)
-    self.is_depositing = true
-    self.is_withdrawing = false
-    self.buttons:get("deposit").hidden = true
-    self.buttons:get("withdraw").hidden = true
-    self.buttons:get("transact").hidden = false
-    self.buttons:get("slider").hidden = false
-    self.buttons:get("slider"):set_maximum(player.cash)
-end
-
-function bank_state.do_withdraw(self)
-    self.is_depositing = false
-    self.is_withdrawing = true
-    self.buttons:get("deposit").hidden = true
-    self.buttons:get("withdraw").hidden = true
-    self.buttons:get("transact").hidden = false
-    self.buttons:get("slider").hidden = false
-    self.buttons:get("slider"):set_maximum(player.bank)
-end
-
-function bank_state.do_transact(self)
-    local slider = self.buttons:get("slider")
-    if self.is_depositing then
-        player:deposit_bank(slider.value)
-    else
-        player:withdraw_bank(slider.value)
-    end
-    state.play:switch()
 end
 
 --      _ _           _
@@ -1334,6 +1171,167 @@ function trenchcoat.adjust_pockets(self, amount)
     print(string.format("Adjusted trench coat. You now have %d pockets.", self.size))
 end
 
+--  _                 _
+-- | |__   __ _ _ __ | | __
+-- | '_ \ / _` | '_ \| |/ /
+-- | |_) | (_| | | | |   <
+-- |_.__/ \__,_|_| |_|_|\_\
+--
+function state.bank.do_deposit(self)
+    self.is_depositing = true
+    self.is_withdrawing = false
+    self.buttons:get("deposit").hidden = true
+    self.buttons:get("withdraw").hidden = true
+    self.buttons:get("transact").hidden = false
+    self.buttons:get("slider").hidden = false
+    self.buttons:get("slider"):set_maximum(player.cash)
+end
+
+function state.bank.do_transact(self)
+    local slider = self.buttons:get("slider")
+    if self.is_depositing then
+        player:deposit_bank(slider.value)
+    else
+        player:withdraw_bank(slider.value)
+    end
+    state.play:switch()
+end
+
+function state.bank.do_withdraw(self)
+    self.is_depositing = false
+    self.is_withdrawing = true
+    self.buttons:get("deposit").hidden = true
+    self.buttons:get("withdraw").hidden = true
+    self.buttons:get("transact").hidden = false
+    self.buttons:get("slider").hidden = false
+    self.buttons:get("slider"):set_maximum(player.bank)
+end
+
+function state.bank.draw(self)
+
+    fonts:set_large()
+    love.graphics.setColor(PRIMARY_COLOR)
+
+    love.graphics.print("Cash", layout:padded_point_at("title"))
+    love.graphics.printf(player.cash_amount, layout:align_point_at("title",nil,"right"))
+    love.graphics.rectangle("line", layout:box_at("title"))
+
+    if self.message then
+        love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
+    end
+
+    self.buttons:draw()
+
+end
+
+function state.bank.exit_state(self)
+    state.play:switch()
+end
+
+function state.bank.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        state.play:switch()
+    end
+end
+
+function state.bank.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.bank.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    local x, y, w, h = layout:box_at("answer 1")
+    self.buttons:button("deposit", {
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "Deposit",
+        font = fonts:for_bank_button(),
+        context = self,
+        callback = self.do_deposit
+    })
+
+    local x, y, w, h = layout:box_at("answer 2")
+    self.buttons:button("withdraw", {
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "Withdraw",
+        font = fonts:for_bank_button(),
+        context = self,
+        callback = self.do_withdraw
+    })
+
+    local x, y, w, h = layout:box_at("close prompt")
+    self.buttons:button("close", {
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "I'm outta here",
+        font = fonts:for_menu_button(),
+        callback = self.exit_state
+    })
+
+    local x, y, w, h = layout:box_at("alt close prompt")
+    self.buttons:button("transact", {
+        left = x,
+        top = y,
+        width = w,
+        height = h,
+        text = "Transact",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.do_transact
+    })
+
+    local display_part = math.floor(display.safe_w  * 0.1)
+    self.buttons:slider("slider", {
+        left = display_part,
+        top = math.floor(display.safe_h * 0.6),
+        width = display.safe_w - display_part * 2,
+        height = 120,
+        font = fonts.large,
+        format_function = util.comma_value,
+        hidden = true
+    })
+
+end
+
+function state.bank.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.bank.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.bank.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.bank.switch(self)
+
+    self.buttons:get("deposit").hidden = false
+    self.buttons:get("withdraw").hidden = false
+    self.buttons:get("deposit").disabled = player.cash < 1000
+    self.buttons:get("withdraw").disabled = player.bank == 0
+    self.buttons:get("transact").hidden = true
+    self.buttons:get("slider").hidden = true
+    active_state = self
+
+end
+
+function state.bank.update(self, dt)
+
+end
+
 --   __ _  __ _ _ __ ___   ___    _____   _____ _ __
 --  / _` |/ _` | '_ ` _ \ / _ \  / _ \ \ / / _ \ '__|
 -- | (_| | (_| | | | | | |  __/ | (_) \ V /  __/ |
@@ -2152,8 +2150,8 @@ function state.play.load(self)
         text = "0",
         alignment = "right",
         font = fonts:for_player_stats(),
-        context = bank_state,
-        callback = bank_state.switch
+        context = state.bank,
+        callback = state.bank.switch
     })
 
     -- Create market name labels, buy & sell buttons
