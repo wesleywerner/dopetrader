@@ -51,13 +51,13 @@ local test = {} -- TODO: remove test{}
 
 local state = {
     game_over = {},
+    jet = {},
     menu = {},
     options = {},
     play = {},
     scores = {}
 }
 -- TODO: migrate below to above
-local jet_state = {}
 local cops_state = {}
 local scores_state = {}
 local active_state = {}
@@ -86,7 +86,6 @@ function love.load()
     market:load()
     message_panel:load()
 
-    jet_state:load()
     encounter_state:load()
     loan_shark_state:load()
     purchase_state:load()
@@ -693,97 +692,6 @@ function fonts.measure(self, font)
     return love.graphics.newText(font, "$"):getDimensions()
 end
 
---    _      _         _        _
---   (_) ___| |_   ___| |_ __ _| |_ ___
---   | |/ _ \ __| / __| __/ _` | __/ _ \
---   | |  __/ |_  \__ \ || (_| | ||  __/
---  _/ |\___|\__| |___/\__\__,_|\__\___|
--- |__/
---
-function jet_state.load(self)
-
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
-
-    for i, title in ipairs(LOCATIONS) do
-        local _x, _y, _w, _h = layout:box_at("loc %d", i)
-        self.buttons:button(title, {
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
-            text = title,
-            callback = jet_state.go,
-            font = fonts:for_jet_button()
-        })
-    end
-
-    local _x, _y, _w, _h = layout:box_at("jet cancel")
-    self.buttons:button("back", {
-        left = _x,
-        top = _y,
-        width = _w,
-        height = _h,
-        text = "I changed my mind",
-        callback = jet_state.cancel,
-        font = fonts:for_jet_button()
-    })
-
-end
-
-function jet_state.update(self, dt)
-    self.buttons:update(dt)
-end
-
-function jet_state.switch(self)
-    if player.day == #market.predictions then
-        state.game_over:switch(false)
-        return
-    end
-    for _, butt in pairs(self.buttons.controls) do
-        butt.disabled = butt.text == player.location
-    end
-    active_state = self
-end
-
-function jet_state.draw(self)
-    love.graphics.setColor(PRIMARY_COLOR)
-    love.graphics.setFont(fonts:for_title())
-    love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
-    self.buttons:draw()
-end
-
-function jet_state.keypressed(self, key)
-    self.buttons:keypressed(key)
-    if key == "escape" then
-        state.play:switch()
-    end
-end
-
-function jet_state.keyreleased(self, key)
-    self.buttons:keyreleased(key)
-end
-
-function jet_state.mousepressed(self, x, y, button, istouch)
-    self.buttons:mousepressed(x, y, button, istouch)
-end
-
-function jet_state.mousereleased(self, x, y, button, istouch)
-    self.buttons:mousereleased(x, y, button, istouch)
-end
-
-function jet_state.mousemoved(self, x, y, dx, dy, istouch)
-    self.buttons:mousemoved(x, y, dx, dy, istouch)
-end
-
-function jet_state.go(btn)
-    -- TODO: flashing "subway" text with animated train across the screen
-    state.play:next_day(btn.text)
-end
-
-function jet_state.cancel(self)
-    state.play:switch()
-end
 
 --  _                 _       _                _
 -- | | ___   __ _  __| |  ___| |__   __ _ _ __| | __
@@ -2123,6 +2031,98 @@ function state.game_over.show_mobile_keyboard(self)
     love.keyboard.setTextInput(true)
 end
 
+--    _      _
+--   (_) ___| |_
+--   | |/ _ \ __|
+--   | |  __/ |_
+--  _/ |\___|\__|
+-- |__/
+--
+function state.jet.cancel(self)
+    state.play:switch()
+end
+
+function state.jet.draw(self)
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setFont(fonts:for_title())
+    love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
+    self.buttons:draw()
+end
+
+function state.jet.go(btn)
+    -- TODO: flashing "subway" text with animated train across the screen
+    state.play:next_day(btn.text)
+end
+
+function state.jet.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        state.play:switch()
+    end
+end
+
+function state.jet.keyreleased(self, key)
+    self.buttons:keyreleased(key)
+end
+
+function state.jet.load(self)
+
+    local wc = require("harness.widgetcollection")
+    self.buttons = wc:new()
+
+    for i, title in ipairs(LOCATIONS) do
+        local _x, _y, _w, _h = layout:box_at("loc %d", i)
+        self.buttons:button(title, {
+            left = _x,
+            top = _y,
+            width = _w,
+            height = _h,
+            text = title,
+            callback = state.jet.go,
+            font = fonts:for_jet_button()
+        })
+    end
+
+    local _x, _y, _w, _h = layout:box_at("jet cancel")
+    self.buttons:button("back", {
+        left = _x,
+        top = _y,
+        width = _w,
+        height = _h,
+        text = "I changed my mind",
+        callback = state.jet.cancel,
+        font = fonts:for_jet_button()
+    })
+
+end
+
+function state.jet.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.jet.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.jet.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.jet.switch(self)
+    if player.day == #market.predictions then
+        state.game_over:switch(false)
+        return
+    end
+    for _, butt in pairs(self.buttons.controls) do
+        butt.disabled = butt.text == player.location
+    end
+    active_state = self
+end
+
+function state.jet.update(self, dt)
+    self.buttons:update(dt)
+end
+
 --  _ __ ___   ___ _ __  _   _
 -- | '_ ` _ \ / _ \ '_ \| | | |
 -- | | | | | |  __/ | | | |_| |
@@ -2566,8 +2566,8 @@ function state.play.load(self)
         text = "Jet",
         alignment = "right",
         font = fonts:for_jet_button(),
-        context = jet_state,
-        callback = jet_state.switch
+        context = state.jet,
+        callback = state.jet.switch
     })
 
     local debt_box = layout.box["debt"]
