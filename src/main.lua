@@ -1286,6 +1286,28 @@ function layout.create_collection(self, ...)
 
 end
 
+function layout.label_collection(self, ...)
+
+    local names = {...}
+
+    local collection = require("harness.widgetcollection"):new()
+
+    for _, name in ipairs(names) do
+        assert(self.box[name], string.format("%s not a valid layout name", name))
+        local x, y, w, h = layout:box_at(name)
+        collection:label(name, {
+            left = x,
+            top = y,
+            width = w,
+            height = h,
+            text = name
+        })
+    end
+
+    return collection
+
+end
+
 
 --                       _        _
 --  _ __ ___   __ _ _ __| | _____| |_
