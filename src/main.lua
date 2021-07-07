@@ -1115,30 +1115,30 @@ end
 
 function high_scores.read_file(self)
     self.entries = {}
-    local file = love.filesystem.newFile(self:filename())
-    local ok, err = file:open("r")
-    if ok then
-        for line in file:lines() do
-            local key_value_matcher = string.gfind(line, "(%a+)=([%w_]+)")
-            local record = {}
-            while true do
-                local key, value = key_value_matcher()
-                if key == nil then break end
-                local dec = tonumber(value,16)
-                record[key] = dec or string.gsub(value, "_", " ")
-            end
-            if record["name"] and record["date"] and record["score"] then
-                if record["check"] ~= self:crc(record) then
-                    -- Burn!
-                    record["name"] = ("Purngre"):gsub("%a", function(c)
-                        c=c:byte()
-                        return string.char(c+(c%32<14 and 13 or -13))
-                        end)
-                end
-                table.insert(self.entries, record)
-            end
+    for line in util.read_file(self:filename()) do
+        local record = {}
+        for key, value in util.key_value_pairs(line) do
+            record[key] = value
+        end
+        if self:valid_record(record) then
+            table.insert(self.entries, record)
         end
     end
+end
+
+function high_scores.valid_record(self, record)
+    local isvalid = type(record.name) == "string"
+        and type(record.date) == "number"
+        and type(record.score) == "number"
+    if isvalid and record.check ~= self:crc(record) then
+        -- Burn!
+        record.name = ("Purngre"):gsub("%a",
+            function(c)
+                c=c:byte()
+                return string.char(c+(c%32<14 and 13 or -13))
+            end)
+    end
+    return isvalid
 end
 
 function high_scores.sort(self)
@@ -2856,6 +2856,60 @@ end
 
 function util.pick(...)
     return select(math.random(1, select("#",...)), ...)
+end
+
+-- Returns an iterator over the lines in a file
+function util.read_file(filename)
+    local file = love.filesystem.newFile(filename)
+    local ok, err = file:open("r")
+    local content = {}
+    local seek = 0
+    if ok then
+        for line in file:lines() do
+            if line then
+                table.insert(content, line)
+            end
+        end
+        file:close()
+    end
+    return function()
+        seek = seek + 1
+        if seek <= #content then
+            return content[seek]
+        end
+    end
+end
+
+-- Returns an iterator over the key=value pairs in a line
+function util.key_value_pairs(line)
+    local key_value_matcher = string.gfind(line, "(%a+)=([%w_]+)")
+    return function()
+        local key, value = key_value_matcher()
+        if key ~= nil then
+            local number_from_hex = tonumber(value, 16)
+            value = (value == "true") and true or value
+            value = (value == "false") and false or value
+            --if value == "true" then
+                --value = true
+            --elseif value == "false" then
+                --value = false
+            --end
+            return key, number_from_hex or value
+        end
+
+        --if ok then
+            --for line in file:lines() do
+                ---- TODO: make reusable iterator out of gfind, tonumber, gsub
+                --local record = {}
+                --while true do
+                    --local key, value = key_value_matcher()
+                    --if key == nil then break end
+                    --local dec = tonumber(value,16)
+                    --record[key] = dec or string.gsub(value, "_", " ")
+                --end
+            --end
+        --end
+    end
 end
 
 --  _            _
