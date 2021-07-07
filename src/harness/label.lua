@@ -69,6 +69,7 @@ function module:new(args)
 
     local instance = { }
 
+    instance.border = true
     instance.alignment = "center"
     instance.text_color = {0, 1, 1}
 
@@ -107,16 +108,24 @@ function module:new(args)
 
 end
 
+function module_mt:set_font(font)
+    self.font = font
+    local sample_width, sample_height = love.graphics.newText(font, "Test"):getDimensions()
+    self.y_offset = (self.height / 2) - (sample_height / 2)
+end
+
+
 --- Placeholder function.
 -- This element does not draw anything, this is user controlled
 function module_mt.draw(self)
     if self.hidden then
         return
     end
+    love.graphics.setColor(self.text_color)
     -- border
-    love.graphics.setColor(self.text_color)
-    love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
-    love.graphics.setColor(self.text_color)
+    if self.border then
+        love.graphics.rectangle("line", self.left, self.top, self.width, self.height)
+    end
     -- prevent font printing black outlines over current canvas
     --love.graphics.setBlendMode("alpha")
     if self.font then
