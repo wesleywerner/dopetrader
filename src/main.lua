@@ -340,11 +340,7 @@ function high_scores.valid_record(self, record)
         and type(record.score) == "number"
     if isvalid and record.crc ~= util.crc(record) then
         -- Burn!
-        record.name = ("Purngre"):gsub("%a",
-            function(c)
-                c=c:byte()
-                return string.char(c+(c%32<14 and 13 or -13))
-            end)
+        record[util.rot("anzr")] = util.rot("Purngre")
     end
     return isvalid
 end
@@ -3085,6 +3081,14 @@ function util.read_file(filename)
             return content[seek]
         end
     end
+end
+
+function util.rot(input)
+    return input:gsub("%a",
+        function(c)
+            c=c:byte()
+            return string.char(c+(c%32<14 and 13 or -13))
+        end)
 end
 
 function util.write_file(filename, entries)
