@@ -931,8 +931,7 @@ function player.pay_debt(self, value)
     self.debt_amount = util.comma_value(self.debt)
 end
 
-function player.reset_game(self)
-    -- TODO: rename to reset()
+function player.reset(self)
     self.seed = os.time()
     self.day = 1
     self:set_cash(2000)
@@ -2161,7 +2160,7 @@ end
 
 function state.play.new_game(self)
     state.messages:clear()
-    player:reset_game()
+    player:reset()
     market:initialize_predictions()
     market:fluctuate()
     self:update_button_texts()
