@@ -46,6 +46,7 @@ local player = {}
 local test = {}
 local trenchcoat = {}
 local util = {}
+local vibrate = {}
 
 local state = {
     bank = {},
@@ -573,6 +574,7 @@ function love.update(dt)
     display:use_normal_fps()
     active_state:update(dt)
     display:update(dt)
+    vibrate:update(dt)
 end
 
 --                       _        _
@@ -1565,6 +1567,7 @@ function state.menu.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "New Game",
+        options = options,
         font = fonts:for_menu_button(),
         context = self,
         callback = self.new_game
@@ -1577,6 +1580,7 @@ function state.menu.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Resume Game",
+        options = options,
         font = fonts:for_menu_button(),
         context = self,
         callback = self.resume_game,
@@ -1590,6 +1594,7 @@ function state.menu.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "High Rollers",
+        options = options,
         font = fonts:for_menu_button(),
         context = state.scores,
         callback = state.scores.switch
@@ -1602,6 +1607,7 @@ function state.menu.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "Options",
+        options = options,
         font = fonts:for_menu_button(),
         context = state.options,
         callback = state.options.switch,
@@ -1614,6 +1620,7 @@ function state.menu.load(self)
         width = run_box[3],
         height = run_box[4],
         text = "About",
+        options = options,
         font = fonts:for_menu_button(),
         context = self,
         callback = self.view_about,
@@ -2834,7 +2841,7 @@ function state.thugs.get_shot_at(self)
     if math.random() < hit_chance then
         print("You got hit!")
         player:lose_health(math.random(5, 15))
-        love.system.vibrate(.2)
+        vibrate:pattern(" ..-")
         return "They fire at you! You are hit!"
     else
         print("They miss!")
@@ -2972,7 +2979,7 @@ function state.thugs.test_death(self)
     if player.health < 1 then
         self:allow_exit()
         self.outcome = "They wasted you, man! What a drag!"
-        love.system.vibrate(.25)
+        vibrate:pattern(" ... ... ...")
     end
 end
 
@@ -3205,4 +3212,46 @@ function test.add_cash(self)
     if player.cash then
         player:credit_account(25000)
     end
+end
+
+--        _ _               _
+-- __   _(_) |__  _ __ __ _| |_ ___
+-- \ \ / / | '_ \| '__/ _` | __/ _ \
+--  \ V /| | |_) | | | (_| | ||  __/
+--   \_/ |_|_.__/|_|  \__,_|\__\___|
+function vibrate.pattern(self, pattern)
+
+    self.delay = 0
+    self.next = string.gfind(pattern, ".")
+
+end
+
+function vibrate.update(self, dt)
+
+    if options.vibrate and self.next then
+
+        -- delay further processing
+        self.delay = self.delay - dt
+        if self.delay > 0 then
+            return
+        end
+
+        -- process next symbol
+        local symbol = self.next()
+
+        if symbol == "." then
+            love.system.vibrate(0.05)
+            self.delay = 0.1
+        elseif symbol == "-" then
+            love.system.vibrate(0.1)
+            self.delay = 0.3
+        elseif symbol == " " then
+            self.delay = .3
+        else
+            self.next = nil
+            return
+        end
+
+    end
+
 end

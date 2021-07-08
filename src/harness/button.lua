@@ -129,6 +129,12 @@ function module:new(args)
 
 end
 
+function module_mt:vibrate()
+    if self.options and self.options.vibrate then
+        love.system.vibrate(.015)
+    end
+end
+
 function module_mt:set_font(font)
 
     self.font = font
@@ -206,7 +212,7 @@ function module_mt:update(dt)
     if self.down and self.repeating and not self.disabled and not self.hidden then
         self.down_tics = self.down_tics - dt
         if self.down_tics < 0 then
-            love.system.vibrate(.015)
+            self:vibrate()
             for n=1, self.repeating do
                 self.callback(self.context or self)
             end
@@ -252,7 +258,7 @@ end
 function module_mt:mousereleased(x, y, button, istouch)
 
     if self.down and self.focused and self.callback and not self.has_repeated then
-        love.system.vibrate(.015)
+        self:vibrate()
         self.callback(self.context or self)
     end
 
