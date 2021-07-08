@@ -22,14 +22,14 @@ return {
     },
     {
         height = 0.07999999999999996,
-        name = "close prompt",
+        name = "close button 1",
         width = 0.93333333333333335,
         x = 0.026666666666666616,
         y = 0.78000000000000003,
     },
     {
         height = 0.07999999999999996,
-        name = "alt close prompt",
+        name = "close button 2",
         width = 0.93333333333333335,
         x = 0.026666666666666672,
         y = 0.88,

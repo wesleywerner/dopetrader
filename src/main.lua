@@ -1037,10 +1037,7 @@ end
 function state.bank.do_deposit(self)
     self.is_depositing = true
     self.is_withdrawing = false
-    self.buttons:get("deposit").hidden = true
-    self.buttons:get("withdraw").hidden = true
-    self.buttons:get("transact").hidden = false
-    self.buttons:get("slider").hidden = false
+    self:toggle_transact(true)
     self.buttons:get("slider"):set_maximum(player.cash)
 end
 
@@ -1057,10 +1054,7 @@ end
 function state.bank.do_withdraw(self)
     self.is_depositing = false
     self.is_withdrawing = true
-    self.buttons:get("deposit").hidden = true
-    self.buttons:get("withdraw").hidden = true
-    self.buttons:get("transact").hidden = false
-    self.buttons:get("slider").hidden = false
+    self:toggle_transact(true)
     self.buttons:get("slider"):set_maximum(player.bank)
 end
 
@@ -1098,56 +1092,42 @@ end
 
 function state.bank.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    self.buttons = layout:button_collection(
+        "answer 1", "answer 2", "close button 1", "close button 2")
 
-    local x, y, w, h = layout:box_at("answer 1")
-    self.buttons:button("deposit", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
+    self.buttons:set_values{
+        name = "answer 1",
         text = "Deposit",
         font = fonts:for_bank_button(),
         context = self,
         callback = self.do_deposit
-    })
+    }
 
-    local x, y, w, h = layout:box_at("answer 2")
-    self.buttons:button("withdraw", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
+    self.buttons:set_values{
+        name = "answer 2",
         text = "Withdraw",
         font = fonts:for_bank_button(),
         context = self,
         callback = self.do_withdraw
-    })
+    }
 
-    local x, y, w, h = layout:box_at("close prompt")
-    self.buttons:button("close", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
-        text = "I'm outta here",
+    self.buttons:set_values{
+        name = "close button 2",
+        text = "Leave",
         font = fonts:for_menu_button(),
+        context = self,
         callback = self.exit_state
-    })
+    }
 
-    local x, y, w, h = layout:box_at("alt close prompt")
-    self.buttons:button("transact", {
-        left = x,
-        top = y,
-        width = w,
-        height = h,
+    self.buttons:set_values{
+        name = "close button 1",
         text = "Transact",
         font = fonts:for_menu_button(),
         context = self,
         callback = self.do_transact
-    })
+    }
 
+    -- Cash amount slider control
     local display_part = math.floor(display.safe_w  * 0.1)
     self.buttons:slider("slider", {
         left = display_part,
@@ -1175,13 +1155,31 @@ end
 
 function state.bank.switch(self)
 
-    self.buttons:get("deposit").hidden = false
-    self.buttons:get("withdraw").hidden = false
-    self.buttons:get("deposit").disabled = player.cash < 1000
-    self.buttons:get("withdraw").disabled = player.bank == 0
-    self.buttons:get("transact").hidden = true
-    self.buttons:get("slider").hidden = true
+    -- No Deposit without enough cash
+    self.buttons:get("answer 1").disabled = player.cash < 1000
+
+    -- No Withdrawal without funds in bank
+    self.buttons:get("answer 2").disabled = player.bank == 0
+
+    self:toggle_transact(false)
+
     active_state = self
+
+end
+
+function state.bank.toggle_transact(self, value)
+
+    -- Deposit
+    self.buttons:get("answer 1").hidden = value
+
+    -- Withdraw
+    self.buttons:get("answer 2").hidden = value
+
+    -- Transact
+    self.buttons:get("close button 1").hidden = not value
+
+    -- Cash slider
+    self.buttons:get("slider").hidden = not value
 
 end
 
@@ -1254,17 +1252,17 @@ end
 function state.game_over.load(self)
 
     self.uft8 = require("utf8")
-    self.buttons = layout:button_collection("close prompt", "alt close prompt")
+    self.buttons = layout:button_collection("close button 1", "close button 2")
 
     self.buttons:set_values{
-        name = "alt close prompt",
+        name = "close button 2",
         font = fonts.large,
         context = self,
         callback = self.exit_state
     }
 
     self.buttons:set_values{
-        name = "close prompt",
+        name = "close button 1",
         font = fonts.large,
         context = self,
         callback = self.show_mobile_keyboard,
@@ -1303,12 +1301,12 @@ function state.game_over.switch(self, rip)
     if high_scores:is_accepted(self.score) then
         placement_outcome = "Well done, high roller!"
         self.enter_name = true
-        self.buttons:set_values{ name = "alt close prompt", text = "Record My Name" }
-        self.buttons:set_values{ name = "close prompt", hidden = not display.mobile }
+        self.buttons:set_values{ name = "close button 2", text = "Record My Name" }
+        self.buttons:set_values{ name = "close button 1", hidden = not display.mobile }
     else
         self.enter_name = false
-        self.buttons:set_values{ name = "alt close prompt", text = "View High Rollers" }
-        self.buttons:set_values{ name = "close prompt", hidden = true }
+        self.buttons:set_values{ name = "close button 2", text = "View High Rollers" }
+        self.buttons:set_values{ name = "close button 1", hidden = true }
     end
 
     -- set end game message
@@ -1460,7 +1458,7 @@ function state.loanshark.load(self)
     local wc = require("harness.widgetcollection")
     self.buttons = wc:new()
 
-    local box = layout.box["close prompt"]
+    local box = layout.box["close button 1"]
     self.buttons:button("close", {
         left = box[1],
         top = box[2],
@@ -1471,7 +1469,7 @@ function state.loanshark.load(self)
         callback = self.exit_state
     })
 
-    local box = layout.box["alt close prompt"]
+    local box = layout.box["close button 2"]
     self.buttons:button("pay", {
         left = box[1],
         top = box[2],
@@ -2587,7 +2585,7 @@ function state.shop.load(self)
         disabled = true
     })
 
-    local run_box = layout.box["close prompt"]
+    local run_box = layout.box["close button 1"]
     self.buttons:button("end game", {
         left = run_box[1],
         top = run_box[2],
@@ -2852,7 +2850,7 @@ function state.thugs.load(self)
         callback = self.attempt_fight
     })
 
-    local run_box = layout.box["close prompt"]
+    local run_box = layout.box["close button 1"]
     self.buttons:button("close", {
         left = run_box[1],
         top = run_box[2],
@@ -2864,7 +2862,7 @@ function state.thugs.load(self)
         callback = self.exit_state
     })
 
-    local run_box = layout.box["alt close prompt"]
+    local run_box = layout.box["close button 2"]
     self.buttons:button("doctor", {
         left = run_box[1],
         top = run_box[2],
