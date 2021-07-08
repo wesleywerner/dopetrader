@@ -1429,10 +1429,6 @@ function state.loanshark.draw(self)
     love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
 end
 
-function state.loanshark.exit_state()
-    state.play:switch()
-end
-
 function state.loanshark.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
@@ -1446,31 +1442,23 @@ end
 
 function state.loanshark.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    self.buttons = layout:button_collection("close button 1", "close button 2")
 
-    local box = layout.box["close button 1"]
-    self.buttons:button("close", {
-        left = box[1],
-        top = box[2],
-        width = box[3],
-        height = box[4],
+    self.buttons:set_values{
+        name = "close button 2",
         text = "I'm outta here",
         font = fonts:for_menu_button(),
-        callback = self.exit_state
-    })
+        context = state.play,
+        callback = state.play.switch
+    }
 
-    local box = layout.box["close button 2"]
-    self.buttons:button("pay", {
-        left = box[1],
-        top = box[2],
-        width = box[3],
-        height = box[4],
+    self.buttons:set_values{
+        name = "close button 1",
         text = "Pay",
         font = fonts:for_menu_button(),
         context = self,
         callback = self.pay_debt
-    })
+    }
 
     local display_part = math.floor(display.safe_w  * 0.1)
     self.slider = self.buttons:slider("slider", {
