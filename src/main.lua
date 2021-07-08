@@ -2494,6 +2494,11 @@ function state.shop.early_death(self)
     state.game_over:switch(true)
 end
 
+function state.shop.enable_answer_buttons(self, visible)
+    self.buttons:get("answer 1").disabled = not visible
+    self.buttons:get("answer 2").disabled = not visible
+end
+
 function state.shop.keypressed(self, key)
     self.buttons:keypressed(key)
 end
@@ -2504,47 +2509,32 @@ end
 
 function state.shop.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    self.buttons = layout:button_collection(
+        "answer 1", "answer 2", "close button 1")
 
-    local run_box = layout.box["answer 1"]
-    self.buttons:button("yes", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "answer 1",
         text = "Yes",
         font = fonts:for_menu_button(),
         context = self,
-        callback = self.purchase,
-        disabled = true
-    })
+        callback = self.purchase
+    }
 
-    local run_box = layout.box["answer 2"]
-    self.buttons:button("no", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "answer 2",
         text = "No",
         font = fonts:for_menu_button(),
         context = state.play,
-        callback = state.play.switch,
-        disabled = true
-    })
+        callback = state.play.switch
+    }
 
-    local run_box = layout.box["close button 1"]
-    self.buttons:button("end game", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "close button 1",
         text = "Farewell",
         font = fonts:for_menu_button(),
         context = self,
-        callback = self.early_death,
-        hidden = true
-    })
+        callback = self.early_death
+    }
 
 end
 
@@ -2575,9 +2565,8 @@ function state.shop.purchase(self)
         state.play:update_button_texts()
         state.play:switch()
     elseif self.what == "paraquat" then
-        self.buttons:get("yes").hidden = true
-        self.buttons:get("no").hidden = true
-        self.buttons:get("end game").hidden = false
+        self:show_answer_buttons(false)
+        self:show_farewell_button(true)
         self.message = "You hallucinated for three days on the wildest trip you ever imagined! Then you died because your brain disintegrated!"
     end
 end
@@ -2591,9 +2580,9 @@ function state.shop.switch(self, what)
     self.disable_timeout = 1
     self.title = "Purchase"
 
-    self.buttons:get("yes").hidden = false
-    self.buttons:get("no").hidden = false
-    self.buttons:get("end game").hidden = true
+    self:show_answer_buttons(true)
+    self:enable_answer_buttons(false)
+    self:show_farewell_button(false)
 
     if what == "gun" then
 
@@ -2644,11 +2633,22 @@ function state.shop.switch(self, what)
 
 end
 
+function state.shop.show_answer_buttons(self, visible)
+    self.buttons:get("answer 1").hidden = not visible
+    self.buttons:get("answer 2").hidden = not visible
+end
+
+function state.shop.show_farewell_button(self, visible)
+    self.buttons:get("close button 1").hidden = not visible
+end
+
 function state.shop.update(self, dt)
+    -- Disable the buttons briefly to prevent impulsive purchases
     if self.disable_timeout > 0 then
         self.disable_timeout = math.max(0, self.disable_timeout - dt)
-        self.buttons:get("yes").disabled = self.disable_timeout > 0
-        self.buttons:get("no").disabled = self.disable_timeout > 0
+        if self.disable_timeout == 0 then
+            self:enable_answer_buttons(true)
+        end
     end
     self.buttons:update(dt)
 end
