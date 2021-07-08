@@ -2661,14 +2661,14 @@ end
 --                  |___/
 --
 function state.thugs.allow_exit(self)
-    self.buttons:get("close").hidden = false
-    self.buttons:get("run").hidden = true
-    self.buttons:get("fight").hidden = true
+
+    self:show_action_buttons(false)
+    self:show_exit_buttons(false, true)
 
     if self.thugs == 0 and player.health < 100 then
         self.doctors_fees = (math.random() * 1000) + 1500
         if self.doctors_fees <= player.cash then
-            self.buttons:get("doctor").hidden = false
+            self:show_exit_buttons(true, true)
             self.outcome = string.format("Visit a clinic to patch you up for $%d?", self.doctors_fees)
         end
     end
@@ -2759,7 +2759,7 @@ end
 function state.thugs.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        if not self.buttons:get("close").hidden then
+        if not self.buttons:get("close button 1").hidden then
             self:exit_state()
         end
     end
@@ -2771,57 +2771,41 @@ end
 
 function state.thugs.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    self.buttons = layout:button_collection(
+        "answer 1", "answer 2", "close button 1", "close button 2")
 
-    local run_box = layout.box["answer 1"]
-    self.buttons:button("run", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "answer 1",
         text = "Run",
         font = fonts:for_menu_button(),
         context = self,
         callback = self.attempt_run
-    })
+    }
 
-    local run_box = layout.box["answer 2"]
-    self.buttons:button("fight", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "answer 2",
         text = "Fight",
         font = fonts:for_menu_button(),
         context = self,
         callback = self.attempt_fight
-    })
+    }
 
-    local run_box = layout.box["close button 1"]
-    self.buttons:button("close", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "close button 2",
         text = "I'm outta here",
         font = fonts:for_menu_button(),
         hidden = true,
         callback = self.exit_state
-    })
+    }
 
-    local run_box = layout.box["close button 2"]
-    self.buttons:button("doctor", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "close button 1",
         text = "Patch me up, doc!",
         font = fonts:for_menu_button(),
         hidden = true,
         context = self,
         callback = self.visit_doctor
-    })
+    }
 
 end
 
@@ -2865,11 +2849,11 @@ function state.thugs.switch(self, risk_factor)
     self:set_message()
     self.outcome = ""
 
-    self.buttons:get("fight").hidden = false
-    self.buttons:get("fight").disabled = player.guns == 0
-    self.buttons:get("close").hidden = true
-    self.buttons:get("run").hidden = false
-    self.buttons:get("doctor").hidden = true
+    self:show_action_buttons(true)
+    self:show_exit_buttons(false)
+
+    -- Fight if have guns
+    self.buttons:get("answer 2").disabled = player.guns == 0
 
     -- watch player health as a spinning number
     local dr = require("harness.digitroller")
@@ -2880,6 +2864,17 @@ function state.thugs.switch(self, risk_factor)
     })
 
     active_state = self
+end
+
+
+function state.thugs.show_action_buttons(self, visible)
+    self.buttons:get("answer 1").hidden = not visible
+    self.buttons:get("answer 2").hidden = not visible
+end
+
+function state.thugs.show_exit_buttons(self, visible1, visible2)
+    self.buttons:get("close button 1").hidden = not visible1
+    self.buttons:get("close button 2").hidden = not visible2
 end
 
 function state.thugs.test_death(self)
