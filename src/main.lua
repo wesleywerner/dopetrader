@@ -741,6 +741,7 @@ end
 function player.add_day(self, new_location)
     self.location = new_location
     self.day = self.day + 1
+    print(string.format("Day %d: Jetting to %s ...", self.day, new_location))
     return self.day
 end
 
@@ -1338,10 +1339,6 @@ end
 --  _/ |\___|\__|
 -- |__/
 --
-function state.jet.cancel(self)
-    state.play:switch()
-end
-
 function state.jet.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
     love.graphics.setFont(fonts:for_title())
@@ -1367,32 +1364,26 @@ end
 
 function state.jet.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    self.buttons = layout:button_collection(
+        "jet cancel", "loc 1", "loc 2", "loc 3", "loc 4", "loc 5", "loc 6")
+
+    self.buttons:set_values{
+        name = "jet cancel",
+        text = "I changed my mind",
+        font = fonts:for_jet_button(),
+        context = state.play,
+        callback = state.play.switch
+    }
 
     for i, title in ipairs(LOCATIONS) do
-        local _x, _y, _w, _h = layout:box_at("loc %d", i)
-        self.buttons:button(title, {
-            left = _x,
-            top = _y,
-            width = _w,
-            height = _h,
+        self.buttons:set_values{
+            name = string.format("loc %d", i),
             text = title,
-            callback = state.jet.go,
-            font = fonts:for_jet_button()
-        })
+            font = fonts:for_jet_button(),
+            context = nil,
+            callback = state.jet.go
+        }
     end
-
-    local _x, _y, _w, _h = layout:box_at("jet cancel")
-    self.buttons:button("back", {
-        left = _x,
-        top = _y,
-        width = _w,
-        height = _h,
-        text = "I changed my mind",
-        callback = state.jet.cancel,
-        font = fonts:for_jet_button()
-    })
 
 end
 
