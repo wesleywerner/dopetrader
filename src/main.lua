@@ -807,7 +807,7 @@ function player.generate_events(self)
     local detour = math.random() < .1
     local subway_anecdote = math.random() < .3
     local hear_music = math.random() < .15
-    local fight_encounter = math.random()
+    local thug_encounter = math.random()
 
     if brownies then
         local brownie_text = "Your mama made brownies with some of your %s! They were great!"
@@ -939,8 +939,8 @@ function player.generate_events(self)
     local hash_risk = trenchcoat:stock_of("Opium") * 0.002
     local risk_factor = math.min(0.6, encounter_chance + charlie_risk + heroin_risk + hash_risk)
     print(string.format("Test for thug encounter at %d%%.", risk_factor * 100))
-    if fight_encounter < risk_factor then
-        player.gang_encounter = risk_factor
+    if thug_encounter < risk_factor then
+        player.thug_encounter = risk_factor
     end
 
     if self.day > 5 then
@@ -981,7 +981,7 @@ function player.reset(self)
     self:set_bank(0)
     self:set_debt(5500)
     self.location = LOCATIONS[1]
-    self.gang_encounter = false
+    self.thug_encounter = false
     self.in_progress = true
     self.purchase = {}
     trenchcoat:reset()
@@ -2359,9 +2359,9 @@ function state.play.update(self, dt)
         return
     end
 
-    if player.gang_encounter then
-        state.thugs:switch(player.gang_encounter)
-        player.gang_encounter = false
+    if player.thug_encounter then
+        state.thugs:switch(player.thug_encounter)
+        player.thug_encounter = false
         return
     end
 
