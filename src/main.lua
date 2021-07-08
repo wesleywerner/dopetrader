@@ -1227,7 +1227,7 @@ function state.game_over.exit_state(self)
     end
     -- remove the save game
     state.play:remove_save()
-    -- show high rollers, highlighting current entry
+    -- show high scores, highlighting current entry
     state.scores:switch(ranked)
 end
 
@@ -1307,7 +1307,7 @@ function state.game_over.switch(self, rip)
         self.buttons:set_values{ name = "close button 1", hidden = not display.mobile }
     else
         self.enter_name = false
-        self.buttons:set_values{ name = "close button 2", text = "View High Rollers" }
+        self.buttons:set_values{ name = "close button 2", text = "View Hustlers" }
         self.buttons:set_values{ name = "close button 1", hidden = true }
     end
 
@@ -2392,7 +2392,7 @@ function state.scores.draw(self)
 
     love.graphics.setColor(PRIMARY_COLOR)
     fonts:set_large()
-    love.graphics.printf("High Rollers", layout:align_point_at("title", nil, "center"))
+    love.graphics.printf("High Hustlers", layout:align_point_at("title", nil, "center"))
     love.graphics.rectangle("line", layout:box_at("title"))
 
     love.graphics.setFont(fonts:for_score_listing())
