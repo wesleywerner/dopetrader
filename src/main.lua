@@ -1557,110 +1557,71 @@ end
 
 function state.menu.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    self.buttons = layout:button_collection(
+        "menu new game", "menu resume game", "menu high scores",
+        "menu options", "menu about", "menu debug")
 
-    local run_box = layout.box["new game"]
-    self.buttons:button("new", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "menu new game",
         text = "New Game",
         options = options,
         font = fonts:for_menu_button(),
         context = self,
         callback = self.new_game
-    })
+    }
 
-    local run_box = layout.box["resume game"]
-    self.buttons:button("resume", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "menu resume game",
         text = "Resume Game",
         options = options,
         font = fonts:for_menu_button(),
         context = self,
         callback = self.resume_game,
         disabled = true
-    })
+    }
 
-    local run_box = layout.box["high scores"]
-    self.buttons:button("scores", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
-        text = "High Rollers",
+    self.buttons:set_values{
+        name = "menu high scores",
+        text = "Hustlers",
         options = options,
         font = fonts:for_menu_button(),
         context = state.scores,
         callback = state.scores.switch
-    })
+    }
 
-    local run_box = layout.box["options"]
-    self.buttons:button("options", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "menu options",
         text = "Options",
         options = options,
         font = fonts:for_menu_button(),
         context = state.options,
         callback = state.options.switch,
-    })
+    }
 
-    local run_box = layout.box["about"]
-    self.buttons:button("about", {
-        left = run_box[1],
-        top = run_box[2],
-        width = run_box[3],
-        height = run_box[4],
+    self.buttons:set_values{
+        name = "menu about",
         text = "About",
         options = options,
         font = fonts:for_menu_button(),
-        context = self,
-        callback = self.view_about,
+        context = nil,
+        callback = nil,
         disabled = true
-    })
+    }
 
     if DEBUG then
-        local z_box = layout.box["debug 1"]
-        self.buttons:button("debug cash", {
-            left = z_box[1],
-            top = z_box[2],
-            width = z_box[3],
-            height = z_box[4],
-            text = "$",
-            font = fonts:for_player_stats(),
-            context = self,
-            callback = test.add_cash
-        })
-        local z_box = layout.box["debug 2"]
-        self.buttons:button("debug guns", {
-            left = z_box[1],
-            top = z_box[2],
-            width = z_box[3],
-            height = z_box[4],
-            text = "Guns",
-            font = fonts:for_player_stats(),
-            context = self,
-            callback = test.add_guns
-        })
-        local z_box = layout.box["debug 3"]
-        self.buttons:button("debug 3", {
-            left = z_box[1],
-            top = z_box[2],
-            width = z_box[3],
-            height = z_box[4],
-            text = "Paraquat",
-            font = fonts:for_player_stats(),
-            context = self,
-            callback = test.offer_paraquat
-        })
+        self.buttons:set_values{
+            name = "menu debug",
+            text = "Debug",
+            options = options,
+            font = fonts:for_menu_button(),
+            context = nil,
+            callback = nil
+        }
+    else
+        self.buttons:set_values{
+            name = "menu debug",
+            hidden = true
+        }
     end
 
 end
@@ -1694,7 +1655,7 @@ end
 
 function state.menu.switch(self)
     local savegame_exists = love.filesystem.getInfo("savegame", "file") ~= nil
-    self.buttons:get("resume").disabled = not savegame_exists
+    self.buttons:get("menu resume game").disabled = not savegame_exists
     active_state = self
 end
 
