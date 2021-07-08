@@ -1231,6 +1231,10 @@ function state.game_over.exit_state(self)
     state.scores:switch(ranked)
 end
 
+function state.game_over.hide_mobile_keyboard(self)
+    love.keyboard.setTextInput(false)
+end
+
 function state.game_over.keypressed(self, key)
 
     self.buttons:keypressed(key)
@@ -1243,6 +1247,11 @@ function state.game_over.keypressed(self, key)
             -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
             self.name = string.sub(self.name, 1, byteoffset - 1)
         end
+    elseif key == "return" then
+        if display.mobile then
+            self:hide_mobile_keyboard()
+        end
+        self:exit_state()
     end
 
 end
