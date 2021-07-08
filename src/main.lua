@@ -618,7 +618,7 @@ function market.fluctuate(self)
         -- a major market event
         if math.random() < .15 then
             if drug.increase then
-                cost = cost * math.random(3, 6)
+                cost = math.random(drug.max * 2, drug.max * 4)
                 local template = util.pick(unpack(self.increase_message))
                     or "%s increase template not found"
                 state.messages:add(template, GOOD_INFO, drug.name)
