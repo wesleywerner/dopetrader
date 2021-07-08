@@ -1754,7 +1754,7 @@ function state.messages.keypressed(self, key)
         if state.messages:is_locked() then
             state.messages:unlock()
         else
-            state.messages:show_and_lock()
+            state.messages:show_and_lock(true)
         end
     end
 end
@@ -1801,8 +1801,8 @@ function state.messages.mousereleased(self, x, y, button, istouch)
     end
 end
 
-function state.messages.show_and_lock(self)
-    if not self.has_displayed and #self.messages > 0 then
+function state.messages.show_and_lock(self, always)
+    if (always or not self.has_displayed) and (#self.messages > 0) then
         self.y = self.min_y
         self.locked = true
         self.has_displayed = true
