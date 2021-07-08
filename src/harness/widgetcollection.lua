@@ -205,6 +205,8 @@ function widgetcollection:set_values(arg)
         if property_name ~= "name" then
             if property_name == "font" and self.controls[arg.name].set_font then
                 self.controls[arg.name]:set_font(value)
+            elseif property_name == "alignment" and self.controls[arg.name].set_alignment then
+                self.controls[arg.name]:set_alignment(value)
             else
                 self.controls[arg.name][property_name] = value
             end

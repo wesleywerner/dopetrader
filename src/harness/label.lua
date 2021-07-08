@@ -98,14 +98,21 @@ function module:new(args)
 
     -- pad right aligned
     instance.title_padding = 10
-    if instance.alignment == "right" then
-        instance.right_padding = 10
-    else
-        instance.right_padding = 0
-    end
+    instance:set_alignment(instance.alignment)
 
     return instance
 
+end
+
+function module_mt:set_alignment(value)
+    if value then
+        self.alignment = value
+        if self.alignment == "right" then
+            self.right_padding = 10
+        else
+            self.right_padding = 0
+        end
+    end
 end
 
 function module_mt:set_font(font)
