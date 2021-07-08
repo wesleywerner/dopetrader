@@ -1933,6 +1933,7 @@ end
 --
 function state.play.draw(self)
 
+    self.labels:draw()
     self.buttons:draw()
     state.messages:draw()
 
@@ -1958,129 +1959,97 @@ end
 
 function state.play.load(self)
 
-    local wc = require("harness.widgetcollection")
-    self.buttons = wc:new()
+    -- Labels
+    self.labels = layout:label_collection(
+        "cash", "bank", "debt", "guns", "coat", "health", "day")
 
-    -- Create player stat labels
-    local cash_box = layout.box["cash"]
-    self.buttons:label("cash label", {
-        left = cash_box[1],
-        top = cash_box[2],
-        width = cash_box[3],
-        height = cash_box[4],
+    self.labels:set_values{
+        name = "cash",
+        font = fonts:for_player_stats(),
         title = "Cash",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local bank_box = layout.box["bank"]
-    self.buttons:label("bank label", {
-        left = bank_box[1],
-        top = bank_box[2],
-        width = bank_box[3],
-        height = bank_box[4],
+        alignment = "right"
+    }
+
+    self.labels:set_values{
+        name = "bank",
+        font = fonts:for_player_stats(),
         title = "Bank",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local debt_box = layout.box["debt"]
-    self.buttons:label("debt label", {
-        left = debt_box[1],
-        top = debt_box[2],
-        width = debt_box[3],
-        height = debt_box[4],
+        alignment = "right"
+    }
+
+    self.labels:set_values{
+        name = "debt",
+        font = fonts:for_player_stats(),
         title = "Debt",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local guns_box = layout.box["guns"]
-    self.buttons:label("guns label", {
-        left = guns_box[1],
-        top = guns_box[2],
-        width = guns_box[3],
-        height = guns_box[4],
+        alignment = "right"
+    }
+
+    self.labels:set_values{
+        name = "guns",
+        font = fonts:for_player_stats(),
         title = "Guns",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local coat_box = layout.box["free"]
-    self.buttons:label("coat label", {
-        left = coat_box[1],
-        top = coat_box[2],
-        width = coat_box[3],
-        height = coat_box[4],
+        alignment = "right"
+    }
+
+    self.labels:set_values{
+        name = "coat",
+        font = fonts:for_player_stats(),
         title = "Coat",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local health_box = layout.box["health"]
-    self.buttons:label("health label", {
-        left = health_box[1],
-        top = health_box[2],
-        width = health_box[3],
-        height = health_box[4],
+        alignment = "right"
+    }
+
+    self.labels:set_values{
+        name = "health",
+        font = fonts:for_player_stats(),
         title = "Health",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
-    local day_box = layout.box["day"]
-    self.buttons:label("day label", {
-        left = day_box[1],
-        top = day_box[2],
-        width = day_box[3],
-        height = day_box[4],
+        alignment = "right"
+    }
+
+    self.labels:set_values{
+        name = "day",
+        font = fonts:for_player_stats(),
         title = "Day",
         text = "0",
-        alignment = "right",
-        font = fonts:for_player_stats()
-    })
+        alignment = "right"
+    }
 
-    -- create jet & debt buttons
-    local jet_box = layout.box["jet"]
-    self.buttons:button("jet", {
-        left = jet_box[1],
-        top = jet_box[2],
-        width = jet_box[3],
-        height = jet_box[4],
+    -- Buttons
+    self.buttons = layout:button_collection("jet", "debt", "bank")
+
+    self.buttons:set_values{
+        name = "jet",
         text = "Jet",
         alignment = "right",
         font = fonts:for_jet_button(),
         context = state.jet,
         callback = state.jet.switch
-    })
+    }
 
-    local debt_box = layout.box["debt"]
-    self.buttons:button("debt button", {
-        left = debt_box[1],
-        top = debt_box[2],
-        width = debt_box[3],
-        height = debt_box[4],
+    self.buttons:set_values{
+        name = "debt",
         title = "Debt",
         text = "0",
         alignment = "right",
         font = fonts:for_player_stats(),
         context = state.loanshark,
         callback = state.loanshark.switch
-    })
+    }
 
-    local bank_box = layout.box["bank"]
-    self.buttons:button("bank button", {
-        left = bank_box[1],
-        top = bank_box[2],
-        width = bank_box[3],
-        height = bank_box[4],
+    self.buttons:set_values{
+        name = "bank",
         title = "Bank",
         text = "0",
         alignment = "right",
         font = fonts:for_player_stats(),
         context = state.bank,
         callback = state.bank.switch
-    })
+    }
 
     -- Create market name labels, buy & sell buttons
     for i=1, #market.db do
@@ -2088,7 +2057,7 @@ function state.play.load(self)
         local sell_id = string.format("sell %d", i)
         local buy_id = string.format("buy %d", i)
         local _x, _y, _w, _h = layout:box_at("name %d", i)
-        self.buttons:label(label_id, {
+        self.labels:label(label_id, {
             left = _x,
             top = _y,
             width = _w,
@@ -2267,19 +2236,19 @@ function state.play.switch(self)
 
     -- update label values when entering this state.
     -- (these dont change while on the play state)
-    self.buttons:get("bank label").text = player.bank_amount
-    self.buttons:get("debt label").text = player.debt_amount
-    self.buttons:get("guns label").text = player.guns
-    self.buttons:get("health label").text = player.health
-    self.buttons:get("day label").text = player.day
+    self.labels:get("bank").text = player.bank_amount
+    self.labels:get("debt").text = player.debt_amount
+    self.labels:get("guns").text = player.guns
+    self.labels:get("health").text = player.health
+    self.labels:get("day").text = player.day
 
     -- show debt button if player has debt, hide if not in home location
-    local debt_button = self.buttons:get("debt button")
+    local debt_button = self.buttons:get("debt")
     debt_button.text = player.debt_amount
     debt_button.hidden = (player.debt == 0) or (player.location ~= LOCATIONS[1])
 
     -- show bank button if player is in home location
-    local bank_button = self.buttons:get("bank button")
+    local bank_button = self.buttons:get("bank")
     bank_button.text = player.bank_amount
     bank_button.hidden = (player.location ~= LOCATIONS[1])
 
@@ -2314,9 +2283,9 @@ function state.play.update(self, dt)
     self.cash_counter:update(dt)
     if not self.cash_counter.complete then
         display:request_fast_fps()
-        self.buttons:get("cash label").text = util.comma_value(math.floor(self.cash_counter.value))
+        self.labels:get("cash").text = util.comma_value(math.floor(self.cash_counter.value))
     end
-    self.buttons:get("coat label").text = trenchcoat:free_space()
+    self.labels:get("coat").text = trenchcoat:free_space()
 
     self.buttons:update(dt)
     state.messages:update(dt)
@@ -2335,7 +2304,7 @@ function state.play.update_button_texts(self)
         local market_item = market.available[i]
         local sell_btn = self.buttons:get(sell_id)
         local buy_btn = self.buttons:get(buy_id)
-        local label = self.buttons:get(label_id)
+        local label = self.labels:get(label_id)
 
         -- reset button state
         sell_btn.hidden = false
@@ -2394,7 +2363,7 @@ function state.play.update_button_texts(self)
     local label_id = #market.available
     for _, item in ipairs(not_for_sale) do
         label_id = label_id + 1
-        local label = self.buttons:get(string.format("name %d", label_id))
+        local label = self.labels:get(string.format("name %d", label_id))
         label.title = item.name
         label.hidden = false
         local buy_btn = self.buttons:get(string.format("buy %d", label_id))
