@@ -428,7 +428,8 @@ function layout.button_collection(self, ...)
             top = y,
             width = w,
             height = h,
-            text = name
+            text = name,
+            options = options
         })
     end
 
@@ -2080,7 +2081,8 @@ function state.play.load(self)
             id = sell_id,
             alignment = "right",
             callback = player.sell_drug,
-            font = fonts:for_market_button()
+            font = fonts:for_market_button(),
+            options = options
         })
         local _x, _y, _w, _h = layout:box_at("buy %d", i)
         self.buttons:button(buy_id, {
@@ -2095,7 +2097,8 @@ function state.play.load(self)
             id = buy_id,
             alignment = "right",
             callback = player.buy_drug,
-            font = fonts:for_market_button()
+            font = fonts:for_market_button(),
+            options = options
         })
     end
 
