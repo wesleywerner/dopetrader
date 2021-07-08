@@ -646,6 +646,7 @@ end
 function market.initialize_predictions(self)
 
     -- roll the dice
+    print(string.format("Predicting the market with seed %d", player.seed))
     math.randomseed(player.seed)
 
     -- predict market fluctuations for the next month
@@ -984,6 +985,7 @@ function player.reset(self)
     self.in_progress = true
     self.purchase = {}
     trenchcoat:reset()
+    state.messages:clear()
 end
 
 function player.restore_health(self)
@@ -1676,7 +1678,8 @@ end
 function state.menu.resume_game(self)
     -- load from disk if no day, otherwise resumes game in-progress
     if not player.in_progress then
-        state.play:new_game()
+        player:reset()
+        state.messages:clear()
         state.play:restore_game()
     end
     state.play:switch()
@@ -2205,11 +2208,10 @@ function state.play.mousereleased(self, x, y, button, istouch)
 end
 
 function state.play.new_game(self)
-    state.messages:clear()
+    print("Starting a new game ...")
     player:reset()
     market:initialize_predictions()
     market:fluctuate()
-    self:update_button_texts()
     player:generate_events()
 end
 
@@ -2218,7 +2220,6 @@ function state.play.next_day(self, new_location)
         state.messages:clear()
         player:accrue_debt()
         market:fluctuate()
-        self:update_button_texts()
         self:save_game()
         player:generate_events()
         state.play:switch()
@@ -2233,7 +2234,7 @@ end
 
 function state.play.restore_game(self)
 
-    print("Loading saved game...")
+    print("Restoring a saved game ...")
 
     for line in util.read_file("savegame") do
 
