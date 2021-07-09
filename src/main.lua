@@ -50,6 +50,7 @@ local vibrate = {}
 
 local state = {
     bank = {},
+    debug = {},
     game_over = {},
     jet = {},
     loanshark = {},
@@ -469,6 +470,7 @@ function layout.load(self)
     self:map(require("prompt_layout"))
     self:map(require("menu_layout"))
     self:map(require("options_layout"))
+    self:map(require("debug_layout"))
 end
 
 function layout.map(self, definition)
@@ -1201,6 +1203,121 @@ function state.bank.update(self, dt)
 
 end
 
+--      _      _
+--   __| | ___| |__  _   _  __ _
+--  / _` |/ _ \ '_ \| | | |/ _` |
+-- | (_| |  __/ |_) | |_| | (_| |
+--  \__,_|\___|_.__/ \__,_|\__, |
+--                         |___/
+--
+function state.debug.draw(self)
+    self.labels:draw()
+    self.buttons:draw()
+end
+
+function state.debug.frombulate(action)
+    if action == "money bags" then
+        player:credit_account(50000)
+        state.debug:show_message("Account credited $50,000")
+    elseif action == "lock and load" then
+        state.debug:show_message(player:queue_purchase("gun"))
+    elseif action == "paraquat" then
+        state.debug:show_message(player:queue_purchase("paraquat"))
+    elseif action == "pocket it" then
+        state.debug:show_message(player:queue_purchase("trench coat"))
+    elseif action == "fight club" then
+        player.thug_encounter = 1
+        state.debug:show_message("Thugs waiting for you")
+    end
+end
+
+function state.debug.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        state.menu:switch()
+    end
+end
+
+function state.debug.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.debug.load(self)
+
+    self.labels = layout:label_collection("debug message")
+    self:show_message("")
+
+    self.buttons = layout:button_collection(
+        "debug 1", "debug 2", "debug 3", "debug 4", "debug 5", "debug 6",
+        "debug 7", "debug 8", "debug 9", "debug 10")
+
+    self.buttons:set_values{
+        name = "debug 1",
+        text = "$$$",
+        context = "money bags",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 2",
+        text = "Gun",
+        context = "lock and load",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 3",
+        text = "Coat",
+        context = "pocket it",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 4",
+        text = "Paraquat",
+        context = "paraquat",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 5",
+        text = "Thugs",
+        context = "fight club",
+        callback = self.frombulate
+    }
+
+end
+
+function state.debug.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.debug.mousepressed(self, x, y, button, istouch)
+    self:show_message("")
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.debug.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.debug.show_message(self, text)
+    self.labels:set_values{
+        name = "debug message",
+        text = text
+    }
+end
+
+function state.debug.switch(self)
+
+    active_state = self
+
+end
+
+function state.debug.update(self, dt)
+
+end
+
 --   __ _  __ _ _ __ ___   ___    _____   _____ _ __
 --  / _` |/ _` | '_ ` _ \ / _ \  / _ \ \ / / _ \ '__|
 -- | (_| | (_| | | | | | |  __/ | (_) \ V /  __/ |
@@ -1613,8 +1730,8 @@ function state.menu.load(self)
             text = "Debug",
             options = options,
             font = fonts:for_menu_button(),
-            context = nil,
-            callback = nil
+            context = state.debug,
+            callback = state.debug.switch
         }
     else
         self.buttons:set_values{
@@ -1653,8 +1770,16 @@ function state.menu.resume_game(self)
 end
 
 function state.menu.switch(self)
+
+    -- Enable resume game button
     local savegame_exists = love.filesystem.getInfo("savegame", "file") ~= nil
-    self.buttons:get("menu resume game").disabled = not savegame_exists
+    self.buttons:get("menu resume game").disabled = not (savegame_exists or player.in_progress)
+
+    -- Enable debug button
+    if DEBUG then
+        self.buttons:get("menu debug").disabled = not player.in_progress
+    end
+
     active_state = self
 end
 
@@ -3107,36 +3232,6 @@ function util.write_file(filename, entries)
             file:write(data.." \n")
         end
         file:close()
-    end
-end
-
---  _            _
--- | |_ ___  ___| |_
--- | __/ _ \/ __| __|
--- | ||  __/\__ \ |_
---  \__\___||___/\__|
-
-function test.add_pockets(self)
-    if player.cash then
-        trenchcoat:adjust_pockets()
-    end
-end
-
-function test.add_guns(self)
-    if player.guns then
-        player:add_gun()
-    end
-end
-
-function test.offer_paraquat(self)
-    if player.purchase then
-        table.insert(player.purchase, "paraquat")
-    end
-end
-
-function test.add_cash(self)
-    if player.cash then
-        player:credit_account(25000)
     end
 end
 
