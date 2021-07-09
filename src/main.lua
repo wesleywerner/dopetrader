@@ -949,13 +949,13 @@ function player.generate_events(self)
 
     if self.day > 5 then
         if buy_gun then
-            table.insert(self.purchase, "gun")
+            player:queue_purchase("gun")
         end
         if buy_trenchcoat then
-            table.insert(self.purchase, "trench coat")
+            player:queue_purchase("trench coat")
         end
         if smoke_paraquat then
-            table.insert(self.purchase, "paraquat")
+            player:queue_purchase("paraquat")
         end
     end
 
@@ -995,6 +995,18 @@ end
 function player.restore_health(self)
     self.health = 100
     print("Your health is restored.")
+end
+
+function player.queue_purchase(self, item)
+    for _, e in ipairs(self.purchase) do
+        if e == item then
+            return
+        end
+    end
+    table.insert(self.purchase, item)
+    local result = string.format("Queued purchase: %s", item)
+    print(result)
+    return result
 end
 
 function player.sell_drug(btn)
