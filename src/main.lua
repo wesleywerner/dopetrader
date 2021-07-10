@@ -1231,16 +1231,19 @@ function state.debug.frombulate(action)
         state.debug:show_message(player:queue_purchase("paraquat"))
     elseif action == "pocket it" then
         state.debug:show_message(player:queue_purchase("trench coat"))
+    elseif action == "scuffle" then
+        player.thug_encounter = .4
+        state.debug:show_message("Some thugs may be waiting for you")
     elseif action == "fight club" then
         player.thug_encounter = 1
-        state.debug:show_message("Thugs waiting for you")
+        state.debug:show_message("Many thugs are waiting for you!")
     end
 end
 
 function state.debug.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        state.menu:switch()
+        self.previous_state:switch()
     end
 end
 
@@ -1287,8 +1290,15 @@ function state.debug.load(self)
 
     self.buttons:set_values{
         name = "debug 5",
-        text = "Thugs",
+        text = "Thugs (fight club)",
         context = "fight club",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 6",
+        text = "Thugs (scuffle)",
+        context = "scuffle",
         callback = self.frombulate
     }
 
@@ -1316,6 +1326,7 @@ end
 
 function state.debug.switch(self)
 
+    self.previous_state = active_state
     active_state = self
 
 end
@@ -2093,6 +2104,11 @@ function state.play.draw(self)
 end
 
 function state.play.keypressed(self, key)
+    if DEBUG then
+        if key == "f1" then
+            state.debug:switch()
+        end
+    end
     if key == "escape" then
         if not state.messages:is_locked() then
             state.menu:switch()
@@ -2927,7 +2943,7 @@ end
 function state.thugs.keypressed(self, key)
     self.buttons:keypressed(key)
     if key == "escape" then
-        if not self.buttons:get("close button 1").hidden then
+        if not self.buttons:get("close button 2").hidden then
             self:exit_state()
         end
     end
