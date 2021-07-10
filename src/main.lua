@@ -1237,6 +1237,14 @@ function state.debug.frombulate(action)
     elseif action == "fight club" then
         player.thug_encounter = 1
         state.debug:show_message("Many thugs are waiting for you!")
+    elseif action == "simulate scuffle" then
+        state.debug:simulate_fighting(0.5)
+    elseif action == "simulate fight club" then
+        state.debug:simulate_fighting(1)
+    elseif action == "simulate easy run" then
+        state.debug:simulate_running(0.5)
+    elseif action == "simulate hard run" then
+        state.debug:simulate_running(1)
     end
 end
 
@@ -1302,6 +1310,34 @@ function state.debug.load(self)
         callback = self.frombulate
     }
 
+    self.buttons:set_values{
+        name = "debug 7",
+        text = "Simulate thugs (fight club)",
+        context = "simulate fight club",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 8",
+        text = "Simulate thugs (scuffle)",
+        context = "simulate scuffle",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 9",
+        text = "Simulate run (easy)",
+        context = "simulate easy run",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
+        name = "debug 10",
+        text = "Simulate run (hard)",
+        context = "simulate hard run",
+        callback = self.frombulate
+    }
+
 end
 
 function state.debug.mousemoved(self, x, y, dx, dy, istouch)
@@ -1322,6 +1358,76 @@ function state.debug.show_message(self, text)
         name = "debug message",
         text = text
     }
+end
+
+function state.debug.simulate_fighting(self, risk_factor)
+    -- remember current state
+    local _seed = player.seed
+    local _day = player.day
+    -- reseed
+    player.seed = os.time()
+    market:initialize_predictions()
+    local _wins, _losses = 0, 0
+    for n = 1, #market.predictions do
+        player.health = 100
+        player.day = n
+        state.thugs:switch(risk_factor)
+        local _attempts = 0
+        while player.health > 0 and state.thugs.thugs > 0 do
+            state.thugs:attempt_fight()
+        end
+        if player.health < 1 then
+            _losses = _losses + 1
+        elseif state.thugs.thugs == 0 then
+            _wins = _wins + 1
+        end
+    end
+    -- restore state
+    player.day = _day
+    player.seed = _seed
+    player.health = 100
+    player.thug_encounter = false
+    active_state = state.debug
+    -- report
+    local _winrate = math.floor((_wins / #market.predictions) * 100)
+    local _report = string.format("wins: %d (%d%%) losses: %d", _wins, _winrate, _losses)
+    print("Simulation report - ".._report)
+    self:show_message(_report)
+end
+
+function state.debug.simulate_running(self, risk_factor)
+    -- remember current state
+    local _seed = player.seed
+    local _day = player.day
+    -- reseed
+    player.seed = os.time()
+    market:initialize_predictions()
+    local _wins, _losses = 0, 0
+    for n = 1, #market.predictions do
+        player.health = 100
+        player.day = n
+        state.thugs:switch(risk_factor)
+        local _attempts = 0
+        while player.health > 0 and not state.thugs.escaped do
+            state.thugs:attempt_run()
+        end
+        if player.health < 1 then
+            _losses = _losses + 1
+        else
+            _wins = _wins + 1
+        end
+    end
+    -- restore state
+    player.day = _day
+    player.seed = _seed
+    player.health = 100
+    player.thug_encounter = false
+    active_state = state.debug
+    -- report
+    local _winrate = math.floor((_wins / #market.predictions) * 100)
+    local _report = string.format("wins: %d (%d%%) losses: %d", _wins, _winrate, _losses)
+    print("Simulation report - ".._report)
+    self:show_message(_report)
 end
 
 function state.debug.switch(self)
@@ -2893,6 +2999,7 @@ function state.thugs.attempt_run(self)
         print(string.format("Escaped with chance of %d%%.", escape_chance * 100))
         self:allow_exit()
         self.outcome = "You lost them in the alleys"
+        self.escaped = true
     else
         print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
         self.outcome = "You can't lose them! " .. self:get_shot_at()
@@ -3044,6 +3151,7 @@ function state.thugs.switch(self, risk_factor)
 
     self:set_message()
     self.outcome = ""
+    self.escaped = false
 
     self:show_action_buttons(true)
     self:show_exit_buttons(false)
