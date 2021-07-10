@@ -977,6 +977,11 @@ end
 
 function player.lose_health(self, value)
     self.health = self.health - value
+    if self.health < 1 then
+        print("** You DIE **")
+    else
+        print(string.format("\tHealth down to %d", self.health))
+    end
 end
 
 function player.pay_debt(self, value)
@@ -2972,9 +2977,8 @@ end
 function state.thugs.attempt_fight(self)
     -- chance of hit is proportional to number of guns carried.
     local hit_chance = math.min(0.75, player.guns * 0.25)
-    print(string.format("Firing with a hit chance of %d%%.", hit_chance * 100))
     if math.random() < hit_chance then
-        print("Hit!")
+        print(string.format("You hit one (hit chance %d%%)", hit_chance * 100))
         self.thugs = self.thugs - 1
         self:set_message()
         self.outcome = "You hit one of them! " .. self:get_shot_at()
@@ -2984,7 +2988,7 @@ function state.thugs.attempt_fight(self)
             self:allow_exit()
         end
     else
-        print("Miss!")
+        print(string.format("You missed (hit chance %d%%)", hit_chance * 100))
         self.outcome = "You miss! " .. self:get_shot_at()
     end
     self:test_death()
@@ -2996,12 +3000,12 @@ function state.thugs.attempt_run(self)
     local escape_chance = math.max(0.1, 0.7 - self.thugs * 0.075)
 
     if math.random() < escape_chance then
-        print(string.format("Escaped with chance of %d%%.", escape_chance * 100))
+        print(string.format("You escaped (chance %d%%)", escape_chance * 100))
         self:allow_exit()
         self.outcome = "You lost them in the alleys"
         self.escaped = true
     else
-        print(string.format("Failed to escape with chance of %d%%.", escape_chance * 100))
+        print(string.format("Failed to escape (chance %d%%)", escape_chance * 100))
         self.outcome = "You can't lose them! " .. self:get_shot_at()
         self:test_death()
     end
@@ -3039,15 +3043,15 @@ function state.thugs.get_shot_at(self)
         return ""
     end
     -- chance of being hit is proportional to number of thugs
-    local hit_chance = math.min(0.6, self.thugs * 0.2)
-    print(string.format("Thugs fire with a hit chance of %d%%.", hit_chance * 100))
+    local hit_chance = math.min(0.45, self.thugs * 0.10)
     if math.random() < hit_chance then
-        print("You got hit!")
+        print(string.format("Thugs hit you (chance %d%%)", hit_chance * 100))
         player:lose_health(math.random(5, 15))
         vibrate:pattern(" ..-")
+        -- TODO: return table of text, color
         return "They fire at you! You are hit!"
     else
-        print("They miss!")
+        print(string.format("Thugs miss (chance %d%%)", hit_chance * 100))
         return "They fire at you, and miss!"
     end
 end
@@ -3170,7 +3174,7 @@ function state.thugs.switch(self, risk_factor)
     active_state = self
 
     print(string.format(
-        "Picked %d thugs, from a range of %d..%d given risk factor.",
+        "Picked %d thugs, from a range of %.1f..%.1f given risk factor.",
         self.thugs, lower_thugs, upper_thugs))
 
     print(string.format(
