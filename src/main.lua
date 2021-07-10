@@ -936,15 +936,21 @@ function player.generate_events(self)
         state.messages:add("You hear someone playing %s.", ZERO_INFO, good_song)
     end
 
-    -- % chance of encounter for every unit of drug carried
-    local encounter_chance = (trenchcoat.size - trenchcoat.free) * .001 -- 10% / 100 units
+    -- Determine thug encounter.
+    -- % chance for every unit of drug carried
+    local encounter_chance = trenchcoat:total_carried() * .001 -- 10% / 100 units
+
     -- additional risk when carrying these
     local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003 -- +30%
     local heroin_risk = trenchcoat:stock_of("Heroin") * 0.003
     local hash_risk = trenchcoat:stock_of("Hashish") * 0.002 -- +20%
     local hash_risk = trenchcoat:stock_of("Opium") * 0.002
-    local risk_factor = math.min(0.6, encounter_chance + charlie_risk + heroin_risk + hash_risk)
-    print(string.format("Test for thug encounter at %d%%.", risk_factor * 100))
+
+    -- Combine all risks into a single factor, limited to maximum 100%
+    local risk_factor = math.min(1, encounter_chance + charlie_risk + heroin_risk + hash_risk)
+
+    -- Test if risk factor is above the random thug encounter value
+    print(string.format("%d%% chance of a thug encounter.", risk_factor * 100))
     if thug_encounter < risk_factor then
         player.thug_encounter = risk_factor
     end
@@ -2814,11 +2820,24 @@ function state.thugs.allow_exit(self)
     self:show_action_buttons(false)
     self:show_exit_buttons(false, true)
 
+    -- Offer to visit the doctor, if all thugs are eliminated
     if self.thugs == 0 and player.health < 100 then
-        self.doctors_fees = (math.random() * 1000) + 1500
+        -- player's remaining health expressed as % (0.1 .. 0.9)
+        local remainder_hp = 1 - (player.health / 100)
+        -- function of remainder vs maximum cost
+        local base_fee = 10000 * remainder_hp
+        -- admin fee
+        local admin_fee = math.random() * 250
+        self.doctors_fees = math.floor(base_fee + admin_fee)
+        -- player can afford it
         if self.doctors_fees <= player.cash then
             self:show_exit_buttons(true, true)
-            self.outcome = string.format("Visit a clinic to patch you up for $%d?", self.doctors_fees)
+            self.outcome = string.format(
+                "Visit a clinic to patch you up for $%d?", self.doctors_fees)
+        else
+            print(string.format(
+                "You cannot afford %d doctors fees.",
+                util.comma_value(self.doctors_fees)))
         end
     end
 end
@@ -2987,14 +3006,21 @@ function state.thugs.switch(self, risk_factor)
     -- load prediction
     math.randomseed(market.predictions[player.day])
 
+    -- maximum thugs proportional to risk factor (which ranges 0% - 100%)
     local upper_thugs = 20 * risk_factor
-    self.thugs = math.random(1, upper_thugs)
-    print(string.format("Encounter picked %d out of %d thugs, from risk factor %d%%.", self.thugs, upper_thugs, risk_factor * 100))
 
-    self.cash_prize = (math.random() * 1000) + self.thugs * 1000
-    print(string.format("You can earn $%d if you win this fight.", self.cash_prize))
+    -- minimum thus as 1/2 of upper
+    local lower_thugs = math.max(1, upper_thugs / 2)
 
-    self.doctors_fees = 1000
+    -- randomize lower/upper
+    self.thugs = math.random(lower_thugs, upper_thugs)
+
+    -- prize proportional to number of thugs
+    self.cash_prize = math.floor((math.random() * 1000) + self.thugs * 1000)
+
+    -- calculated in exit_state against player's remaining health
+    self.doctors_fees = 0
+
     self:set_message()
     self.outcome = ""
 
@@ -3013,6 +3039,14 @@ function state.thugs.switch(self, risk_factor)
     })
 
     active_state = self
+
+    print(string.format(
+        "Picked %d thugs, from a range of %d..%d given risk factor.",
+        self.thugs, lower_thugs, upper_thugs))
+
+    print(string.format(
+        "You can earn $%d if you win this fight.", self.cash_prize))
+
 end
 
 
@@ -3120,6 +3154,10 @@ function trenchcoat.stock_of(self, name)
     else
         return 0
     end
+end
+
+function trenchcoat.total_carried(self)
+    return self.size - self.free
 end
 
 --        _   _ _
