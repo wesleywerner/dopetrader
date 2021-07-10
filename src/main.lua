@@ -28,7 +28,7 @@
 ]]--
 
 local DEBUG = 1
-local TRADE_SIZE = 1
+local TRADE_SIZE = 1 -- TODO: remove TRADE_SIZE
 local PRIMARY_COLOR = {0, 1, 1}
 local GOOD_INFO = {0, 1, .5}
 local BAD_INFO = {1, 1, .5}
@@ -1233,7 +1233,7 @@ function state.debug.frombulate(action)
         state.debug:show_message(player:queue_purchase("trench coat"))
     elseif action == "scuffle" then
         player.thug_encounter = .4
-        state.debug:show_message("Some thugs may be waiting for you")
+        state.debug:show_message("A few thugs are waiting for you")
     elseif action == "fight club" then
         player.thug_encounter = 1
         state.debug:show_message("Many thugs are waiting for you!")
@@ -1398,6 +1398,10 @@ function state.game_over.keypressed(self, key)
             self:hide_mobile_keyboard()
         end
         self:exit_state()
+    elseif key == "escape" then
+        if not self.buttons:get("close button 2").hidden then
+            self:exit_state()
+        end
     end
 
 end
@@ -2849,10 +2853,11 @@ function state.thugs.allow_exit(self)
         if self.doctors_fees <= player.cash then
             self:show_exit_buttons(true, true)
             self.outcome = string.format(
-                "Visit a clinic to patch you up for $%d?", self.doctors_fees)
+                "Visit a clinic to patch you up for %s?",
+                util.comma_value(self.doctors_fees))
         else
             print(string.format(
-                "You cannot afford %d doctors fees.",
+                "You cannot afford %s doctors fees.",
                 util.comma_value(self.doctors_fees)))
         end
     end
