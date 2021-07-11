@@ -2885,7 +2885,7 @@ function state.shop.switch(self, what)
         end
 
         -- have enough guns already
-        if player.guns >= 3 then
+        if player.guns == 2 then
             self.cost = nil
             print("Player has enough guns. Not buying another.")
         end
