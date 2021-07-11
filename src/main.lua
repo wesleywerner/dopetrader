@@ -3139,13 +3139,13 @@ function state.thugs.switch(self, risk_factor)
     math.randomseed(market.predictions[player.day])
 
     -- maximum thugs proportional to risk factor (which ranges 0% - 100%)
-    local upper_thugs = 20 * risk_factor
+    local upper_thugs = 10 * risk_factor
 
     -- minimum thus as 1/2 of upper
     local lower_thugs = math.max(1, upper_thugs / 2)
 
     -- randomize lower/upper
-    self.thugs = math.random(lower_thugs, upper_thugs)
+    self.thugs = math.floor(math.random(lower_thugs, upper_thugs))
 
     -- prize proportional to number of thugs
     self.cash_prize = math.floor((math.random() * 1000) + self.thugs * 1000)
