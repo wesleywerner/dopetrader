@@ -220,9 +220,9 @@ function module_mt:update(dt)
         self.down_tics = self.down_tics - dt
         if self.down_tics < 0 then
             self:vibrate()
-            for n=1, self.repeating do
-                self.callback(self.context or self)
-            end
+            --for n=1, self.repeating do
+            self.callback(self.context or self, self.repeating)
+            --end
             self.down_tics = 0.15
             self.has_repeated = true
         end
