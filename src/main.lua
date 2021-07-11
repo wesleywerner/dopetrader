@@ -43,6 +43,7 @@ local layout = {}
 local market = {}
 local options = {}
 local player = {}
+local sound = {}
 local test = {}
 local trenchcoat = {}
 local util = {}
@@ -550,6 +551,7 @@ function love.load()
     player:load()
     market:load()
     options:load()
+    sound:load()
 
     display:set_adaptive(options.adaptive_fps)
 
@@ -586,6 +588,7 @@ function love.update(dt)
     active_state:update(dt)
     display:update(dt)
     vibrate:update(dt)
+    sound:update()
 end
 
 --                       _        _
@@ -774,6 +777,7 @@ function player.buy_drug(btn, repeating)
         local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
         player:debit_account(delta * drug.cost)
         state.play:update_button_texts()
+        sound:play("sale")
     end
 end
 
@@ -1036,6 +1040,7 @@ function player.sell_drug(btn, repeating)
     if delta > 0 then
         player:credit_account(delta * drug.cost)
         state.play:update_button_texts()
+        sound:play("sale")
     end
 end
 
@@ -1062,6 +1067,68 @@ function player.withdraw_bank(self, amount)
         print(string.format("Withdrawn %d from the bank.", transaction))
     end
 end
+
+--                            _
+--  ___  ___  _   _ _ __   __| |
+-- / __|/ _ \| | | | '_ \ / _` |
+-- \__ \ (_) | |_| | | | | (_| |
+-- |___/\___/ \__,_|_| |_|\__,_|
+--
+function sound.count(self, name)
+    local n = 0
+    for _, q in ipairs(self.queue) do
+        if q == name then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+function sound.next(self)
+    if self.queue[1] then
+        return self.queue[1], self.library[self.queue[1]]
+    end
+end
+
+function sound.load(self)
+    self.library = {
+        gun = love.audio.newSource("res/pistol.ogg", "static"),
+        sale = love.audio.newSource("res/sell_buy_item.ogg", "static"),
+        pain = love.audio.newSource("res/gruntsound.ogg", "static"),
+    }
+    self.queue = {}
+end
+
+function sound.play(self, name, limit)
+    if options.sound then
+        limit = limit or 1
+        if self:count(name) >= limit then
+            return
+        end
+        if self.library[name] then
+            table.insert(self.queue, name)
+        end
+    end
+end
+
+function sound.update(self)
+    if self.current then
+        if not self.current:isPlaying() then
+            -- Done
+            self.current = nil
+            -- Dequeue
+            table.remove(self.queue, 1)
+        end
+    else
+        local name, next = self:next()
+        if next then
+            -- Remember and play
+            self.current = next
+            next:play()
+        end
+    end
+end
+
 
 --  _                 _
 -- | |__   __ _ _ __ | | __
@@ -2202,6 +2269,9 @@ function state.options.set_option(btn)
     if btn.setting == "adaptive_fps" then
         display:set_adaptive(options.adaptive_fps)
     end
+    if btn.setting == "sound" then
+        sound:play("sale")
+    end
     print(string.format("Toggled %s %s", btn.setting, tostring(options[btn.setting])))
 end
 
@@ -2855,11 +2925,13 @@ function state.shop.purchase(self)
         player:add_gun()
         trenchcoat:adjust_pockets(-self.space_used)
         state.messages:add("You purchased a gun.", GOOD_INFO)
+        sound:play("sale")
         state.play:switch()
     elseif self.what == "trench coat" then
         player:debit_account(self.cost)
         trenchcoat:adjust_pockets(self.new_pockets)
         state.messages:add("You purchased a new trench coat.", GOOD_INFO)
+        sound:play("sale")
         state.play:switch()
     elseif self.what == "paraquat" then
         self:show_answer_buttons(false)
@@ -2986,6 +3058,7 @@ function state.thugs.allow_exit(self)
 end
 
 function state.thugs.attempt_fight(self)
+    sound:play("gun")
     -- chance of hit is proportional to number of guns carried.
     local hit_chance = math.min(0.75, player.guns * 0.25)
     if math.random() < hit_chance then
@@ -3053,12 +3126,14 @@ function state.thugs.get_shot_at(self)
     if self.thugs == 0 then
         return ""
     end
+    sound:play("gun", 2)
     -- chance is constant, as more thugs yield more attacks.
     local hit_chance = 0.4
     if math.random() < hit_chance then
         print(string.format("Thugs hit you (chance %d%%)", hit_chance * 100))
         player:lose_health(math.random(5, 15))
         vibrate:pattern(" ..-")
+        sound:play("pain")
         -- TODO: return table of text, color
         return "They fire at you! You are hit!"
     else
