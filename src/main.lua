@@ -938,12 +938,12 @@ function player.generate_events(self)
 
     -- Determine thug encounter.
     -- % chance for every unit of drug carried
-    local encounter_chance = trenchcoat:total_carried() * .001 -- 10% / 100 units
+    local encounter_chance = trenchcoat:total_carried() * .002 -- 20% / 100 units
 
     -- additional risk when carrying these
-    local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003 -- +30%
+    local charlie_risk = trenchcoat:stock_of("Cocaine") * 0.003 -- 30%
     local heroin_risk = trenchcoat:stock_of("Heroin") * 0.003
-    local hash_risk = trenchcoat:stock_of("Hashish") * 0.002 -- +20%
+    local hash_risk = trenchcoat:stock_of("Hashish") * 0.002 -- 20%
     local hash_risk = trenchcoat:stock_of("Opium") * 0.002
 
     -- Combine all risks into a single factor, limited to maximum 100%
