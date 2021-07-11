@@ -1460,11 +1460,10 @@ end
 --
 function state.game_over.draw(self)
 
-    fonts:set_large()
     love.graphics.setColor(PRIMARY_COLOR)
 
     -- title
-    love.graphics.print("Score", layout:padded_point_at("title"))
+    fonts:set_large()
     love.graphics.printf(self.score_amount, layout:align_point_at("title",nil,"right"))
     love.graphics.rectangle("line", layout:box_at("title"))
 
@@ -1574,10 +1573,10 @@ function state.game_over.switch(self, rip)
     self.score = player.bank + player.cash
     self.score_amount = util.comma_value(self.score)
 
-    local placement_outcome = "Sadly, you did not make it as a high roller."
+    local placement_outcome = "Sadly, you did not make it as a hustler."
 
     if high_scores:is_accepted(self.score) then
-        placement_outcome = "Well done, high roller!"
+        placement_outcome = "Well done, you are a hustler!"
         self.enter_name = true
         self.buttons:set_values{ name = "close button 2", text = "Record My Name" }
         self.buttons:set_values{ name = "close button 1", hidden = not display.mobile }
