@@ -215,6 +215,14 @@ function fonts.for_score_listing(self)
     end
 end
 
+function fonts.for_shop_question(self)
+    if display.mobile then
+        return self.medium
+    else
+        return self.large
+    end
+end
+
 function fonts.for_title(self)
     if display.mobile then
         return self.large
@@ -2772,7 +2780,7 @@ function state.shop.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
     love.graphics.print(self.title, layout:padded_point_at("title"))
     love.graphics.rectangle("line", layout:box_at("title"))
-    fonts:set_medium()
+    love.graphics.setFont(fonts:for_shop_question())
     love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
     self.buttons:draw()
 end
