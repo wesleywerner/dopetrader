@@ -1095,6 +1095,7 @@ function sound.load(self)
         gun = love.audio.newSource("res/pistol.ogg", "static"),
         sale = love.audio.newSource("res/sell_buy_item.ogg", "static"),
         pain = love.audio.newSource("res/gruntsound.ogg", "static"),
+        purchase = love.audio.newSource("res/cashregister.ogg", "static"),
     }
     self.queue = {}
 end
@@ -1150,6 +1151,7 @@ function state.bank.do_transact(self)
     else
         player:withdraw_bank(slider.value)
     end
+    sound:play("purchase")
     state.play:switch()
 end
 
@@ -2869,6 +2871,11 @@ function state.shop.enable_answer_buttons(self, visible)
 end
 
 function state.shop.keypressed(self, key)
+    if key == "escape" then
+        if not self.buttons:get("answer 2").disabled then
+            state.play:switch()
+        end
+    end
     self.buttons:keypressed(key)
 end
 
@@ -2925,13 +2932,13 @@ function state.shop.purchase(self)
         player:add_gun()
         trenchcoat:adjust_pockets(-self.space_used)
         state.messages:add("You purchased a gun.", GOOD_INFO)
-        sound:play("sale")
+        sound:play("purchase")
         state.play:switch()
     elseif self.what == "trench coat" then
         player:debit_account(self.cost)
         trenchcoat:adjust_pockets(self.new_pockets)
         state.messages:add("You purchased a new trench coat.", GOOD_INFO)
-        sound:play("sale")
+        sound:play("purchase")
         state.play:switch()
     elseif self.what == "paraquat" then
         self:show_answer_buttons(false)

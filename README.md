@@ -13,3 +13,7 @@ https://opengameart.org/content/inventory-sound-effects
 Grunt Sound
 by n3b
 https://opengameart.org/content/grunt
+
+Cash Register Sound
+by kiddpark
+https://freesound.org/people/kiddpark/sounds/201159/
