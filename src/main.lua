@@ -2997,7 +2997,7 @@ end
 function state.thugs.attempt_run(self)
     -- chance of escape is inversely proportional to number of thugs.
     -- clamp upper limit so there is always a small chance of escape.
-    local escape_chance = math.max(0.1, 0.7 - self.thugs * 0.075)
+    local escape_chance = math.max(0.05, .5 - self.thugs * 0.1)
 
     if math.random() < escape_chance then
         print(string.format("You escaped (chance %d%%)", escape_chance * 100))
