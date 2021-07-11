@@ -3042,8 +3042,8 @@ function state.thugs.get_shot_at(self)
     if self.thugs == 0 then
         return ""
     end
-    -- chance of being hit is proportional to number of thugs
-    local hit_chance = math.min(0.45, self.thugs * 0.10)
+    -- chance is constant, as more thugs yield more attacks.
+    local hit_chance = 0.4
     if math.random() < hit_chance then
         print(string.format("Thugs hit you (chance %d%%)", hit_chance * 100))
         player:lose_health(math.random(5, 15))
