@@ -803,9 +803,9 @@ function player.generate_events(self)
     math.randomseed(market.predictions[player.day])
 
     local brownies = math.random() < .1
-    local buy_gun = math.random() < .08
-    local buy_trenchcoat = math.random() < .07
-    local smoke_paraquat = math.random() < .03
+    local buy_gun = math.random() < .15 -- 4.65 times a month (31*0.15)
+    local buy_trenchcoat = math.random() < .1 -- 3.1 times a month (31*0.1)
+    local smoke_paraquat = math.random() < .03 -- 0.93 times a month (31*0.03)
     local find_drugs = math.random() < .07
     local give_drugs = math.random() < .07
     local dropped_drugs = math.random() < .07
