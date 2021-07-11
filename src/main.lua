@@ -967,8 +967,6 @@ function player.generate_events(self)
         end
     end
 
-    state.play:update_button_texts()
-
 end
 
 function player.load(self)
@@ -2540,6 +2538,9 @@ function state.play.switch(self)
 
     state.messages:show_and_lock()
 
+    -- update market button prices, stock levels
+    state.play:update_button_texts()
+
     -- animate player cash value
     if not self.cash_counter then
         local dr = require("harness.digitroller")
@@ -2842,13 +2843,11 @@ function state.shop.purchase(self)
         player:add_gun()
         trenchcoat:adjust_pockets(-self.space_used)
         state.messages:add("You purchased a gun.", GOOD_INFO)
-        state.play:update_button_texts()
         state.play:switch()
     elseif self.what == "trench coat" then
         player:debit_account(self.cost)
         trenchcoat:adjust_pockets(self.new_pockets)
         state.messages:add("You purchased a new trench coat.", GOOD_INFO)
-        state.play:update_button_texts()
         state.play:switch()
     elseif self.what == "paraquat" then
         self:show_answer_buttons(false)
