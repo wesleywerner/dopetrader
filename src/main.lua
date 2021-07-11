@@ -2127,7 +2127,8 @@ function state.options.load(self)
     self.labels:set_values{
         name = "option 1 text",
         font = fonts:for_option_text(),
-        text = "Vibrates your phone on game events"
+        text = "Vibrates your phone on game events",
+        valign = "top"
     }
     self.buttons:set_values{
         name = "option 1 btn",
@@ -2146,7 +2147,8 @@ function state.options.load(self)
     self.labels:set_values{
         name = "option 2 text",
         font = fonts:for_option_text(),
-        text = "Play sounds on game events"
+        text = "Play sounds on game events",
+        valign = "top"
     }
     self.buttons:set_values{
         name = "option 2 btn",
@@ -2166,7 +2168,8 @@ function state.options.load(self)
     self.labels:set_values{
         name = "option 3 text",
         font = fonts:for_option_text(),
-        text = "Enables adaptive performance, saving battery on mobile devices"
+        text = "Enables adaptive performance, saving battery on mobile devices",
+        valign = "top"
     }
     self.buttons:set_values{
         name = "option 3 btn",

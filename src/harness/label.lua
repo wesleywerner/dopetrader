@@ -141,7 +141,11 @@ function module_mt.draw(self)
     if self.title then
         love.graphics.print(self.title, self.left + self.title_padding, self.top + self.y_offset)
     end
-    love.graphics.printf(self.text, self.left, self.top + self.y_offset, self.width - self.right_padding, self.alignment)
+    if self.valign == "top" then
+        love.graphics.printf(self.text, self.left, self.top, self.width - self.right_padding, self.alignment)
+    else
+        love.graphics.printf(self.text, self.left, self.top + self.y_offset, self.width - self.right_padding, self.alignment)
+    end
 end
 
 --- No functionality
