@@ -238,8 +238,10 @@ function fonts.load(self)
     self.small = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
 end
 
-function fonts.measure(self, font)
-    return love.graphics.newText(font, "$"):getDimensions()
+function fonts.measure(self, font, sample, alignmode)
+    local to = love.graphics.newText(font)
+    to:addf(sample or "$", display.safe_w, alignmode or "left")
+    return to:getDimensions()
 end
 
 function fonts.set_large(self)
