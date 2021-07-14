@@ -600,7 +600,7 @@ end
 -- | | | | | | (_| | |  |   <  __/ |_
 -- |_| |_| |_|\__,_|_|  |_|\_\___|\__|
 --
-function market.fluctuate(self)
+function market.fluctuate(self, list_everything)
 
     -- load prediction
     math.randomseed(self.predictions[player.day])
@@ -618,8 +618,8 @@ function market.fluctuate(self)
     -- number of stock items on the market this turn
     local count = math.random(math.floor(#self.db/2), #self.db)
 
-    -- Last Day: Everything is on the market for sale
-    if player.day == #market.predictions then
+    -- Everything is on the market for sale
+    if list_everything then
         count = #self.db
     end
 
@@ -2514,7 +2514,7 @@ function state.play.next_day(self, new_location)
     if player:add_day(new_location) <= #market.predictions then
         state.messages:clear()
         player:accrue_debt()
-        market:fluctuate()
+        market:fluctuate(player.day == #market.predictions)
         self:save_game()
         player:generate_events()
         state.play:switch()
@@ -2565,7 +2565,7 @@ function state.play.restore_game(self)
 
         -- recreate the market from player.seed, fluctuate the market
         market:initialize_predictions()
-        market:fluctuate()
+        market:fluctuate(player.day == #market.predictions)
 
         -- regenerate predicted events
         player:generate_events()
