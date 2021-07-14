@@ -2613,7 +2613,7 @@ function state.play.switch(self)
     self.labels:get("bank").text = player.bank_amount
     self.labels:get("debt").text = player.debt_amount
     self.labels:get("guns").text = player.guns
-    self.labels:get("health").text = player.health
+    self.labels:get("health").text = string.format("%d %%", player.health)
     self.labels:get("day").text = player.day
 
     -- show debt button if player has debt, hide if not in home location
@@ -3114,7 +3114,7 @@ function state.thugs.draw(self)
     love.graphics.setColor(PRIMARY_COLOR)
 
     love.graphics.print("Health", layout:padded_point_at("title"))
-    love.graphics.printf(math.floor(self.health_counter.value), layout:align_point_at("title",nil,"right"))
+    love.graphics.printf(string.format("%d %%", math.floor(self.health_counter.value)), layout:align_point_at("title",nil,"right"))
     love.graphics.rectangle("line", layout:box_at("title"))
 
     love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
