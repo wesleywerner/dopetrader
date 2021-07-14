@@ -1842,6 +1842,9 @@ end
 
 function state.loanshark.switch(self)
 
+    -- load prediction
+    math.randomseed(market.predictions[player.day])
+
     self.message = util.pick(
         "The loan shark eyes you suspiciously",
         "The loan shark counts bills while waiting for you",
