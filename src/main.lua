@@ -27,6 +27,8 @@
 
 ]]--
 
+local TITLE = "Dope Trader"
+local IDENTITY = "dopetrader"
 local DEBUG = 1
 local TRADE_SIZE = 1 -- TODO: remove TRADE_SIZE
 local PRIMARY_COLOR = {0, 1, 1}
@@ -536,15 +538,14 @@ end
 
 function love.load()
 
-    local title = "Dope Trader"
-    print(string.format("Welcome to %s!", title))
+    print(string.format("Welcome to %s!", TITLE))
 
     -- do not prevent device from sleeping
     love.window.setDisplaySleepEnabled(true)
 
     -- set window title, identity for save/score files
-    love.window.setTitle(title)
-    love.filesystem.setIdentity("dopetrader")
+    love.window.setTitle(TITLE)
+    love.filesystem.setIdentity(IDENTITY)
 
     fonts:load()
     high_scores:load()
