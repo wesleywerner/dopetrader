@@ -109,6 +109,7 @@ function digitroller:update(dt)
   if self.targetvalue ~= self.subject[self.target] then
     self.targetvalue = self.subject[self.target]
     self:applytween()
+    self.complete = false
   end
 end
 
