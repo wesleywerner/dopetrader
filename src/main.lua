@@ -2646,6 +2646,11 @@ end
 
 function state.play.save_game(self)
 
+    -- skip during tutorial
+    if state.tutorial.running then
+        return
+    end
+
     -- build save state
     local savestate = {
         seed = player.seed,
@@ -3437,8 +3442,11 @@ end
 
 function state.tutorial.exit_state(self)
     print("Tutorial exiting")
+    -- flag tutorial not running
     self.running = false
-    state.play:switch()
+    -- flag game no longer in progress
+    player.in_progress = false
+    state.menu:switch()
 end
 
 function state.tutorial.keypressed(self, key)
