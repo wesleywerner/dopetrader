@@ -32,6 +32,7 @@ local IDENTITY = "dopetrader"
 local DEBUG = 1
 local TRADE_SIZE = 1 -- TODO: remove TRADE_SIZE
 local PRIMARY_COLOR = {0, 1, 1}
+local HILITE_COLOR = {1, 1, 0}
 local GOOD_INFO = {0, 1, .5}
 local BAD_INFO = {1, 1, .5}
 local ZERO_INFO = {.5, 1, 1}
@@ -63,7 +64,8 @@ local state = {
     play = {},
     shop = {},
     scores = {},
-    thugs = {}
+    thugs = {},
+    tutorial = {}
 }
 
 --      _ _           _
@@ -231,6 +233,14 @@ function fonts.for_title(self)
         return self.large
     else
         return self.large
+    end
+end
+
+function fonts.for_tutorial(self)
+    if display.mobile then
+        return self.medium
+    else
+        return self.medium
     end
 end
 
@@ -592,6 +602,9 @@ function love.update(dt)
     display:update(dt)
     vibrate:update(dt)
     sound:update()
+    if state.tutorial.running then
+        state.tutorial:update(dt)
+    end
 end
 
 --                       _        _
@@ -662,6 +675,16 @@ function market.fluctuate(self, list_everything)
 
 end
 
+function market.cheapest_available(self)
+    local pick = self.available[1]
+    for _, drug in ipairs(self.available) do
+        if drug.cost < pick.cost then
+            pick = drug
+        end
+    end
+    return pick
+end
+
 function market.initialize_predictions(self)
 
     -- roll the dice
@@ -722,6 +745,7 @@ function options.load(self)
     self.vibrate = true
     self.adaptive_fps = true
     self.sound = true
+    self.tutorial = true
 
     -- restore from file, if present
     self:restore()
@@ -1969,6 +1993,10 @@ function state.menu.mousereleased(self, x, y, button, istouch)
 end
 
 function state.menu.new_game(self)
+    -- abort running tutorial.
+    if state.tutorial.running then
+        state.tutorial.running = false
+    end
     state.play:new_game()
     state.play:switch()
 end
@@ -2037,6 +2065,11 @@ function state.messages.draw(self)
         love.graphics.setColor(1, 1, 1)
         love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
     end
+end
+
+function state.messages.hide(self)
+    self.y = self.rest_y
+    self:unlock()
 end
 
 function state.messages.is_dragging(self)
@@ -2174,10 +2207,11 @@ function state.options.load(self)
 
     self.labels = layout:label_collection(
         "option heading", "option 1 title", "option 2 title", "option 3 title",
+        "option 4 title", "option 4 text",
         "option 1 text", "option 2 text", "option 3 text")
 
     self.buttons = layout:button_collection(
-        "option 1 btn", "option 2 btn", "option 3 btn", "option close")
+        "option 1 btn", "option 2 btn", "option 3 btn", "option 4 btn", "option close")
 
     -- title
     self.labels:set_values{
@@ -2257,6 +2291,28 @@ function state.options.load(self)
         disabled = false
     }
 
+    -- Tutorial
+    self.labels:set_values{
+        name = "option 4 title",
+        font = fonts:for_option_title(),
+        text = "Tutorial"
+    }
+    self.labels:set_values{
+        name = "option 4 text",
+        font = fonts:for_option_text(),
+        text = "Plays a quick-start tutorial on the next new game",
+        valign = "top"
+    }
+    self.buttons:set_values{
+        name = "option 4 btn",
+        setting = "tutorial",
+        font = fonts:for_title(),
+        text = options.tutorial and "On" or "Off",
+        callback = self.set_option,
+        disabled = false
+    }
+
+
 end
 
 function state.options.mousemoved(self, x, y, dx, dy, istouch)
@@ -2284,7 +2340,15 @@ function state.options.set_option(btn)
 end
 
 function state.options.switch(self)
+
     active_state = self
+
+    -- refresh tutorial option (it may have changed by the tutorial itself)
+    self.buttons:set_values{
+        name = "option 4 btn",
+        text = options.tutorial and "On" or "Off"
+    }
+
 end
 
 function state.options.update(self, dt)
@@ -2640,6 +2704,9 @@ function state.play.switch(self)
             target = "cash"
         })
     end
+
+    -- Enable tutorial mode
+    state.tutorial:watch()
 
 end
 
@@ -3311,6 +3378,466 @@ function state.thugs.visit_doctor(self)
     player:restore_health()
     player:debit_account(self.doctors_fees)
     self:exit_state()
+end
+
+--  _         _             _       _
+-- | |_ _   _| |_ ___  _ __(_) __ _| |
+-- | __| | | | __/ _ \| '__| |/ _` | |
+-- | |_| |_| | || (_) | |  | | (_| | |
+--  \__|\__,_|\__\___/|_|  |_|\__,_|_|
+--
+function state.tutorial.draw_box(self, lines)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.rectangle("fill", 0, self.texty, display.safe_w, self.texth*lines)
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.rectangle("line", 0, self.texty, display.safe_w, self.texth*lines)
+end
+
+function state.tutorial.draw(self)
+
+    --self.buttons:draw()
+
+    state.play.labels:draw()
+    state.play.buttons:draw()
+    state.messages:draw()
+
+    -- dark overlay
+    love.graphics.setColor(0, 0, 0, 0.65)
+    love.graphics.rectangle("fill", 0, 0, display.safe_w, display.safe_h)
+
+    -- draw highlighted controls
+    if self.controls then
+        for _, ctl in ipairs(self.controls) do
+            ctl:draw()
+        end
+    end
+
+    if self.text then
+
+        -- box
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.rectangle("fill", 0, self.texty, display.safe_w, self.texth)
+        love.graphics.setColor(HILITE_COLOR)
+        love.graphics.rectangle("line", 0, self.texty, display.safe_w, self.texth)
+
+        -- text
+        love.graphics.setFont(fonts:for_tutorial())
+        love.graphics.printf(self.text, 0, self.texty, display.safe_w, "center")
+
+    end
+
+    -- debug: print current slide name
+    if DEBUG then
+        love.graphics.setColor(1, 0, 1)
+        love.graphics.setFont(fonts.small)
+        love.graphics.print(self.current, 0, 0)
+    end
+
+end
+
+function state.tutorial.exit_state(self)
+    print("Tutorial exiting")
+    self.running = false
+    state.play:switch()
+end
+
+function state.tutorial.keypressed(self, key)
+
+    if key == "escape" then
+        if self.current == "exit" then
+            self:exit_state()
+            return
+        end
+        self:set_slide("exit")
+        self:set_text("You can restart the tutorial from the options menu")
+        return
+    end
+
+    self:next_slide()
+
+end
+
+function state.tutorial.keyreleased(self, key, scancode)
+    --self.buttons:keyreleased(key)
+end
+
+function state.tutorial.load(self)
+    self.texty = 0
+    self.running = false
+    self.delay = 0
+
+    -- list of tutorial slides
+    self.slides = {
+        "hello",
+        "cash intro",
+        "debt intro",
+        "health intro",
+        "bank intro",
+        "guns intro",
+        "coat intro",
+        "day intro",
+        "location intro",
+        "market intro",
+        "buy 3 of",
+        "wait for 3 buys",
+        "buy more of",
+        "wait for more buys",
+        "jet",
+        "wait for new location",
+        "sell",
+        "wait for sale",
+        "go home",
+        "wait for home location",
+        "visit loan shark",
+        "wait for no debt",
+        "exit",
+    }
+
+end
+
+function state.tutorial.mousemoved(self, x, y, dx, dy, istouch)
+    --self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.tutorial.mousepressed(self, x, y, button, istouch)
+    self:next_slide()
+end
+
+function state.tutorial.mousereleased(self, x, y, button, istouch)
+    --self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.tutorial.next_slide(self)
+
+    -- delay user input briefly
+    if self.delay > 0 then
+        return
+    end
+
+    if self.current == "exit" then
+        self:exit_state()
+        return
+    end
+
+    -- advance next slide
+    if self.index < #self.slides then
+        self.index = self.index + 1
+        self:set_slide(self.slides[self.index])
+    end
+
+    -- ensure the entire market is open for business
+    if #market.available < #market.db then
+        market:fluctuate(true)
+        state.play:update_button_texts()
+        print("(Tutorial opened the entire market)")
+    end
+
+    -- localize actions
+    local click = "click"
+    local clicking = "clicking"
+    if display.mobile then
+        click = "tap"
+        clicking = "tapping"
+    end
+
+    if self.current == "hello" then
+       if display.mobile then
+            self:set_text(string.format([[Welcome to %s!
+                This is a quick tutorial on how to play.
+                Tap your back button to exit the tutorial,
+                or tap the screen to continue.]], TITLE))
+        else
+            self:set_text(string.format([[Welcome to %s!
+                This is a quick tutorial on how to play.
+                Press escape to exit the tutorial,
+                or any other key to continue.]], TITLE))
+        end
+
+    elseif self.current == "cash intro" then
+        self.controls = {state.play.labels:get("cash")}
+        self:set_text([[This is the CASH you carry.
+            Use it to buy goods and pay for other expenses.]])
+
+    elseif self.current == "debt intro" then
+        self.controls = {state.play.labels:get("debt")}
+        self:set_text([[You start in DEBT with the loan shark.
+            Your debt increases with each passing day.
+            You will have to pay it off, eventually.]])
+
+    elseif self.current == "health intro" then
+        self.controls = {state.play.labels:get("health")}
+        self:set_text([[You lose HEALTH when shot in a gun fight.
+            If your health drops to zero, the game ends.]])
+
+    elseif self.current == "bank intro" then
+        self.controls = {state.play.labels:get("bank")}
+        self:set_text([[Safely store large amounts of cash in the BANK.
+            This is especially true when travelling on the subway,
+            which are rife with muggers.]])
+
+    elseif self.current == "guns intro" then
+        self.controls = {state.play.labels:get("guns")}
+        self:set_text([[GUNS allow you to fight back against gangs of thugs.
+            Without a gun you will only be able to run away.
+            Purchasing happens randomly when moving to a new place.]])
+
+    elseif self.current == "coat intro" then
+        self.controls = {state.play.labels:get("coat")}
+        self:set_text([[You use pockets in your TRENCH COAT to stash contraband.
+            Purchasing a new trench coat gives you more pockets.
+            Purchasing happens randomly when moving to a new place.]])
+
+    elseif self.current == "day intro" then
+        self.controls = {state.play.labels:get("day")}
+        self:set_text(string.format([[This is the DAY you are currently on.
+            When you reach day %d the game ends.
+            Try to earn as much cash before this day.]], #market.predictions))
+
+    elseif self.current == "location intro" then
+        self.controls = {state.play.buttons:get("jet")}
+        self:set_text([[You start in your home LOCATION.
+            The Loan Shark and Bank are both available when you are here.
+            One DAY passes when you travel to another location.]])
+
+    elseif self.current == "market intro" then
+        self.controls = {}
+        for i=1, #market.db do
+            table.insert(self.controls,
+                state.play.labels:get(string.format("name %d", i)))
+            table.insert(self.controls,
+                state.play.buttons:get(string.format("buy %d", i)))
+        end
+        self:set_text([[The market lists all items available for trade.
+            Each day prices fluctuate, and availability changes.
+            Next we will buy some drugs ...]], 0)
+
+    elseif self.current == "buy 3 of" then
+        -- get cheapest drug on the market
+        self.expected_drug = market:cheapest_available()
+        self.controls = {}
+        -- highlight its controls
+        for i=1, #market.available do
+            local label = state.play.labels:get(string.format("name %d", i))
+            if label.title == self.expected_drug.name then
+                self.controls = {
+                    label,
+                    state.play.buttons:get(string.format("buy %d", i))
+                    }
+            end
+        end
+        self:set_text(string.format(
+            "Buy 3 units of %s by %s the BUY button three times.",
+            self.expected_drug.name, clicking))
+        -- position text below the controls
+        self.texty = self.controls[1].top - self.texth
+
+    elseif self.current == "wait for 3 buys" then
+        -- return control to play state until 3 units are bought
+        active_state = state.play
+
+    elseif self.current == "buy more of" then
+        -- give the player enough cash
+        local expected_cost = self.expected_drug.cost * trenchcoat:free_space()
+        local extra_cash = ""
+        if expected_cost > player.cash then
+            player.cash = expected_cost
+            extra_cash = "We gave you some extra cash to help you out."
+        end
+        self:set_text(string.format(
+            [[Great! Now buy more %s.
+            Hold the BUY button until your pockets are full. %s]],
+            self.expected_drug.name, extra_cash))
+        self.texty = self.controls[1].top - self.texth
+
+    elseif self.current == "wait for more buys" then
+        -- return control to play state until more are bought
+        active_state = state.play
+
+
+    elseif self.current == "jet" then
+        self.last_place = player.location
+        self.controls = {state.play.buttons:get("jet")}
+        self:set_text([[Use the location button to move to a new place.
+            This moves to the next day, and drug prices fluctuate.
+            You can pick any place you like.]])
+
+    elseif self.current == "wait for new location" then
+        -- return control to play state until more are bought
+        active_state = state.play
+
+    elseif self.current == "sell" then
+        -- highlight the expected drug controls
+        for i=1, #market.available do
+            local label = state.play.labels:get(string.format("name %d", i))
+            if label.title == self.expected_drug.name then
+                self.controls = {
+                    label,
+                    state.play.buttons:get(string.format("sell %d", i))
+                    }
+            end
+        end
+        self:set_text([[Nicely done. Now SELL all your stock.
+            Hold the SELL button until everything is sold.]])
+        self.texty = self.controls[1].top - self.texth
+
+    elseif self.current == "wait for sale" then
+        -- return control to play state until more are bought
+        active_state = state.play
+
+    elseif self.current == "go home" then
+        self.controls = {state.play.buttons:get("jet")}
+        self:set_text(string.format(
+            [[Now that you have some cash, let's pay the loan shark.
+            You need to travel back to your home location, %s]],
+            LOCATIONS[1]))
+
+    elseif self.current == "wait for home location" then
+        -- return control to play state until more are bought
+        active_state = state.play
+
+    elseif self.current == "visit loan shark" then
+        self.controls = {state.play.buttons:get("debt")}
+        self:set_text([[Visit the loan shark, and pay off your debt.
+            We gave you the difference so that you can clear your debt.]])
+        player.cash = player.debt + 2500
+
+    elseif self.current == "wait for no debt" then
+        -- return control to play state until more are bought
+        active_state = state.play
+
+    elseif self.current == "exit" then
+        self.controls = nil
+        self:set_text([[This concludes the tutorial.
+            Good luck and have fun trading!
+            (The tutorial can be restarted from the options menu)]])
+
+    end
+
+end
+
+function state.tutorial.set_slide(self, name)
+    self.current = name
+    self.delay = 1
+    print(string.format("Set tutorial slide: %s", name))
+end
+
+function state.tutorial.set_text(self, text, position)
+    -- remove superfluous spaces (from bracketed string literals)
+    self.text = string.gsub(text, "[ ]+", " ")
+    _, self.texth = fonts:measure(fonts:for_tutorial(), self.text)
+    self.texty = display.safe_y + math.floor(display.safe_h * (position or 0.5))
+    -- clamp to bottom of display, if overflown
+    if self.texty + self.texth > display.safe_h then
+        self.texty = display.safe_h - self.texth
+    end
+end
+
+function state.tutorial.update(self, dt)
+
+    -- delay user input briefly
+    self.delay = math.max(0, self.delay - dt)
+
+    if self.current == "boot" then
+        -- wait for cash counter to tally, then begin tutorial
+        if state.play.cash_counter.complete then
+            -- switch to tutorial state
+            active_state = self
+            self:next_slide()
+        end
+
+    elseif self.current == "wait for 3 buys" then
+        if state.play.cash_counter.complete then
+            if trenchcoat:stock_of(self.expected_drug.name) == 3 then
+                active_state = self
+                self:next_slide()
+            end
+        end
+
+    elseif self.current == "wait for more buys" then
+        if state.play.cash_counter.complete then
+            local coat_full = trenchcoat:free_space() == 0
+            local has_drugs = trenchcoat:stock_of(self.expected_drug.name) > 30
+            if has_drugs and coat_full then
+                active_state = self
+                self:next_slide()
+            end
+        end
+
+    elseif self.current == "wait for new location" then
+        if self.last_place ~= player.location then
+            active_state = self
+            self:next_slide()
+        end
+
+    elseif self.current == "wait for sale" then
+        if state.play.cash_counter.complete then
+            local sold_drugs = trenchcoat:stock_of(self.expected_drug.name) == 0
+            if sold_drugs then
+                active_state = self
+                self:next_slide()
+            end
+        end
+
+    elseif self.current == "wait for home location" then
+        if player.location == LOCATIONS[1] then
+            active_state = self
+            self:next_slide()
+        end
+
+    elseif self.current == "wait for no debt" then
+        -- prevent player from going to other places
+        if not (active_state == state.play
+                or active_state == state.loanshark
+                or active_state == state.menu) then
+            active_state = state.play
+            print("(Tutorial forced play state)")
+        end
+        -- test for cleared debt
+        if state.play.cash_counter.complete then
+            if player.debt == 0 then
+                active_state = self
+                self:next_slide()
+            end
+        end
+
+    end
+
+    -- prevent thug encounters, except for the thugs slide.
+    -- edge case: player was given drugs on day 1 which
+    -- triggers a thug encounter.
+    -- seed 1626172738 does this.
+    if self.current ~= "thugs" and active_state == state.thugs then
+        active_state = state.play
+        print("(Tutorial skipped game thug encounter)")
+    end
+
+    if state.messages.locked then
+        -- hide any auto-shown messages for tutorial
+        state.messages:hide()
+        print("(Tutorial hides messages)")
+    end
+
+end
+
+function state.tutorial.watch(self)
+
+    if (player.day == 1) and (not self.running) and options.tutorial then
+        -- flag option off until user enables it again
+        options.tutorial = false
+        -- save options after setting tutorial
+        options:save()
+        -- reset tutorial slide
+        self.index = 0
+        -- set initial state: boot
+        -- which waits in self.update until the cash counter has completed counting.
+        self.current = "boot"
+        -- flag as running to receive update() calls
+        self.running = true
+        -- clear highlighted controls
+        self.controls = {}
+        -- active state is set in update()
+    end
+
 end
 
 --  _                       _                     _
