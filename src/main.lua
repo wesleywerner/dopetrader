@@ -813,7 +813,7 @@ function player.credit_account(self, amount)
     if amount > 0 then
         self.cash = self.cash + amount
         self.cash_amount = util.comma_value(self.cash)
-        print(string.format("Account credited $%d.", amount))
+        print(string.format("Account credited %s.", util.comma_value(amount)))
     end
 end
 
@@ -824,7 +824,7 @@ function player.debit_account(self, amount)
     if amount > 0 then
         self.cash = self.cash - amount
         self.cash_amount = util.comma_value(self.cash)
-        print(string.format("Account debited $%d.", amount))
+        print(string.format("Account debited %s.", util.comma_value(amount)))
     end
 end
 
@@ -833,7 +833,7 @@ function player.deposit_bank(self, amount)
     if transaction > 0 then
         self:set_bank(self.bank + transaction)
         self:debit_account(transaction)
-        print(string.format("Deposited %d into the bank.", transaction))
+        print(string.format("Deposited %s into the bank.", util.comma_value(transaction)))
     end
 end
 
@@ -1091,7 +1091,7 @@ function player.withdraw_bank(self, amount)
     if transaction > 0 then
         self:set_bank(self.bank - transaction)
         self:credit_account(transaction)
-        print(string.format("Withdrawn %d from the bank.", transaction))
+        print(string.format("Withdrawn %s from the bank.", util.comma_value(transaction)))
     end
 end
 
