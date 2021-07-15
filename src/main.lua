@@ -3121,10 +3121,10 @@ function state.thugs.allow_exit(self)
 
     -- Offer to visit the doctor, if all thugs are eliminated
     if self.thugs == 0 and player.health < 100 then
-        -- player's remaining health expressed as % (0.1 .. 0.9)
-        local remainder_hp = 1 - (player.health / 100)
-        -- function of remainder vs maximum cost
-        local base_fee = 10000 * remainder_hp
+        -- player damage expressed as 0.1 .. 0.9
+        local damage = 1 - (player.health / 100)
+        -- function of maximum cost
+        local base_fee = 6000 * damage
         -- admin fee
         local admin_fee = math.random() * 250
         self.doctors_fees = math.floor(base_fee + admin_fee)
