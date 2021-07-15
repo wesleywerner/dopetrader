@@ -3164,9 +3164,13 @@ function state.thugs.attempt_fight(self)
 end
 
 function state.thugs.attempt_run(self)
-    -- chance of escape is inversely proportional to number of thugs.
-    -- clamp upper limit so there is always a small chance of escape.
-    local escape_chance = math.max(0.05, .5 - self.thugs * 0.1)
+    -- Escape chance is inversely proportional to the number of thugs.
+    -- The minimum ensures there is always a chance to escape.
+    -- Chance is nearest to maximum at one thug, decreasing n percent per thug.
+    local min_chance = 0.25
+    local max_chance = 0.8
+    local percent_per_thug = 0.1
+    local escape_chance = math.max(min_chance, max_chance - self.thugs * percent_per_thug)
 
     if math.random() < escape_chance then
         print(string.format("You escaped (chance %d%%)", escape_chance * 100))
