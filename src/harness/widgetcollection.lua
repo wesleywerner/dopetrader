@@ -85,7 +85,7 @@ local function focusNext(instance, loop_limit)
 
     -- repeat this action while no focus is found, with a loop limiter
     local found_focus = false
-    if loop_limit and loop_limit > 10 then
+    if loop_limit and loop_limit > 50 then
         return
     end
 
@@ -118,7 +118,7 @@ local function focusPrev(instance, loop_limit)
 
     -- repeat this action while no focus is found, with a loop limiter
     local found_focus = false
-    if loop_limit and loop_limit > 10 then
+    if loop_limit and loop_limit > 50 then
         return
     end
 
