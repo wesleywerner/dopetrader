@@ -1668,7 +1668,7 @@ function state.game_over.switch(self, rip)
     player.in_progress = false
 
     -- calculate score
-    self.score = player.bank + player.cash
+    self.score = player.bank + player.cash - player.debt
     self.score_amount = util.comma_value(self.score)
 
     local placement_outcome = "Sadly, you did not make it as a hustler."
