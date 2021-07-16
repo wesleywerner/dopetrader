@@ -30,7 +30,6 @@
 local TITLE = "Dope Trader"
 local IDENTITY = "dopetrader"
 local DEBUG = 1
-local TRADE_SIZE = 1 -- TODO: remove TRADE_SIZE
 local PRIMARY_COLOR = {0, 1, 1}
 local HILITE_COLOR = {1, 1, 0}
 local GOOD_INFO = {0, 1, .5}
@@ -791,15 +790,15 @@ function player.add_gun(self)
     print(string.format("Got a gun. You have %d.", self.guns))
 end
 
-function player.buy_drug(btn, repeating)
-    repeating = repeating or TRADE_SIZE
+function player.buy_drug(btn, amount)
+    amount = amount or 1
     local drug = market.available[btn.number]
     -- clamp allowed to player cash
     local max_purchasable = math.floor(player.cash / drug.cost)
     ---- clamp to free space (MOVED TO adjust_stock())
     --max_purchasable = math.min(trenchcoat:free_space(), max_purchasable)
     -- clamp to trading size
-    max_purchasable = math.min(repeating, max_purchasable)
+    max_purchasable = math.min(amount, max_purchasable)
     if max_purchasable > 0 then
         local delta, current_stock = trenchcoat:adjust_stock(drug.name, max_purchasable)
         player:debit_account(delta * drug.cost)
@@ -1060,10 +1059,10 @@ function player.queue_purchase(self, item)
     return result
 end
 
-function player.sell_drug(btn, repeating)
-    repeating = repeating or TRADE_SIZE
+function player.sell_drug(btn, amount)
+    amount = amount or 1
     local drug = market.available[btn.number]
-    local delta, current_stock = trenchcoat:adjust_stock(drug.name, -repeating)
+    local delta, current_stock = trenchcoat:adjust_stock(drug.name, -amount)
     if delta > 0 then
         player:credit_account(delta * drug.cost)
         state.play:update_button_texts()
