@@ -88,9 +88,9 @@ end
 
 function display.load(self)
 
-    self.idle_fps = 1/3
+    self.idle_fps = 1/2
     self.normal_fps = 1/10
-    self.fast_fps = 1/40
+    self.fast_fps = 1/30
     self:use_normal_fps()
 
     self.idle_timeout = 0
@@ -2160,7 +2160,7 @@ end
 
 function state.messages.update(self, dt)
     if not self.locked and not self.dragging and self.y < self.rest_y then
-        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt))
+        self.y = math.floor(math.min(self.rest_y, self.y + (display.safe_h * dt * 1.5)))
         display:request_fast_fps()
     end
     if self.dragging then
@@ -2703,7 +2703,7 @@ function state.play.switch(self)
     if not self.cash_counter then
         local dr = require("harness.digitroller")
         self.cash_counter = dr:new({
-            duration = 1,
+            duration = 0.5,
             subject = player,
             target = "cash"
         })
