@@ -2182,7 +2182,7 @@ end
 
 function state.messages.update(self, dt)
     if not self.locked and not self.dragging and self.y < self.rest_y then
-        self.y = math.floor(math.min(self.rest_y, self.y + (display.safe_h * dt * 1.5)))
+        self.y = math.min(self.rest_y, self.y + (display.safe_h * dt * 1.5))
         display:request_fast_fps()
     end
     if self.dragging then
