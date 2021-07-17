@@ -1721,12 +1721,15 @@ function state.jet.draw(self)
     love.graphics.setFont(fonts:for_title())
     love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
     self.buttons:draw()
+    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.draw(self.subway_image, self.image_x, display.safe_y + 60, 0, 3, 3)
 end
 
 function state.jet.go(btn)
     -- TODO: flashing "subway" text with animated train across the screen
     sound:play("train")
-    state.play:next_day(btn.text)
+    state.jet.destination = btn.text
+    state.jet.animate = true
 end
 
 function state.jet.keypressed(self, key)
@@ -1763,6 +1766,9 @@ function state.jet.load(self)
         }
     end
 
+    self.subway_image = love.graphics.newImage("res/subway.png")
+    self.subway_image:setFilter("nearest", "nearest", 1)
+
 end
 
 function state.jet.mousemoved(self, x, y, dx, dy, istouch)
@@ -1786,10 +1792,20 @@ function state.jet.switch(self)
         butt.disabled = butt.text == player.location
     end
     active_state = self
+    self.image_x = display.safe_w + 60
+    self.animate_speed = display.safe_w
+    self.animate = false
 end
 
 function state.jet.update(self, dt)
     self.buttons:update(dt)
+    if self.animate then
+        self.image_x = math.floor(self.image_x - dt * self.animate_speed)
+        if self.image_x < -display.safe_w then
+            self.animate = false
+            state.play:next_day(self.destination)
+        end
+    end
 end
 
 --  _                         _                _
