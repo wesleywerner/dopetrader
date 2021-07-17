@@ -1122,6 +1122,8 @@ function sound.load(self)
         sale = love.audio.newSource("res/sell_buy_item.ogg", "static"),
         pain = love.audio.newSource("res/gruntsound.ogg", "static"),
         purchase = love.audio.newSource("res/cashregister.ogg", "static"),
+        run = love.audio.newSource("res/run.ogg", "static"),
+        train = love.audio.newSource("res/train.ogg", "static"),
     }
     self.queue = {}
 end
@@ -1134,6 +1136,8 @@ function sound.play(self, name, limit)
         end
         if self.library[name] then
             table.insert(self.queue, name)
+        else
+            print(string.format("Sound: no sfx named %q", name))
         end
     end
 end
@@ -1721,6 +1725,7 @@ end
 
 function state.jet.go(btn)
     -- TODO: flashing "subway" text with animated train across the screen
+    sound:play("train")
     state.play:next_day(btn.text)
 end
 
@@ -1860,6 +1865,7 @@ end
 function state.loanshark.pay_debt(self)
     player:debit_account(self.slider.value)
     player:pay_debt(self.slider.value)
+    sound:play("purchase")
     state.play:switch()
 end
 
@@ -3176,6 +3182,7 @@ function state.thugs.attempt_run(self)
         self:allow_exit()
         self.outcome = "You lost them in the alleys"
         self.escaped = true
+        sound:play("run")
     else
         print(string.format("Failed to escape (chance %d%%)", escape_chance * 100))
         self.outcome = "You can't lose them! " .. self:get_shot_at()
