@@ -1717,18 +1717,22 @@ end
 -- |__/
 --
 function state.jet.draw(self)
-    love.graphics.setColor(PRIMARY_COLOR)
-    love.graphics.setFont(fonts:for_title())
-    love.graphics.printf("Where to?", 0, display.safe_h/3, display.safe_w, "center")
+    self.labels:draw()
     self.buttons:draw()
     love.graphics.setColor(PRIMARY_COLOR)
-    love.graphics.draw(self.subway_image, self.image_x, display.safe_y + 60, 0, 3, 3)
+    love.graphics.draw(self.subway_image,
+        self.image_x, self.subway_y,
+        0, self.image_scale, self.image_scale)
 end
 
-function state.jet.go(btn)
-    -- TODO: flashing "subway" text with animated train across the screen
+function state.jet.go(location)
+    state.jet:show_buttons(false)
+    state.jet.labels:set_values{
+        name = "jet title",
+        text = "Subway to " .. location
+    }
     sound:play("train")
-    state.jet.destination = btn.text
+    state.jet.destination = location
     state.jet.animate = true
 end
 
@@ -1744,6 +1748,13 @@ function state.jet.keyreleased(self, key)
 end
 
 function state.jet.load(self)
+
+    self.labels = layout:label_collection("jet title")
+
+    self.labels:set_values{
+        name = "jet title",
+        font = fonts:for_jet_button()
+    }
 
     self.buttons = layout:button_collection(
         "jet cancel", "loc 1", "loc 2", "loc 3", "loc 4", "loc 5", "loc 6")
@@ -1761,13 +1772,22 @@ function state.jet.load(self)
             name = string.format("loc %d", i),
             text = title,
             font = fonts:for_jet_button(),
-            context = nil,
+            context = title,
             callback = state.jet.go
         }
     end
 
+    -- scale the subway image
+    self.image_scale = 3
+    -- preserve crisp pixels on scale
     self.subway_image = love.graphics.newImage("res/subway.png")
     self.subway_image:setFilter("nearest", "nearest", 1)
+    -- position of subway image
+    _, self.subway_y = layout:point_at("subway train")
+    -- speed of animation - % of display width per second
+    self.animate_speed = display.safe_w * 1
+    -- exit screen after image is off-screen
+    self.exit_position = self.subway_image:getWidth() * self.image_scale * -1
 
 end
 
@@ -1783,25 +1803,43 @@ function state.jet.mousereleased(self, x, y, button, istouch)
     self.buttons:mousereleased(x, y, button, istouch)
 end
 
+function state.jet.show_buttons(self, visible)
+    for _, butt in pairs(self.buttons.controls) do
+        butt.hidden = not visible
+    end
+end
+
 function state.jet.switch(self)
+
+    -- game ends when reached end of days
     if player.day == #market.predictions then
         state.game_over:switch(false)
         return
     end
+
+    -- disable current location's button
     for _, butt in pairs(self.buttons.controls) do
         butt.disabled = butt.text == player.location
     end
+
+    -- reset title, show buttons
+    self:show_buttons(true)
+    self.labels:set_values{
+        name = "jet title",
+        text = "Where to?"
+    }
+
     active_state = self
-    self.image_x = display.safe_w + 60
-    self.animate_speed = display.safe_w
+    self.image_x = display.safe_w + 40
     self.animate = false
 end
 
 function state.jet.update(self, dt)
     self.buttons:update(dt)
     if self.animate then
+        display:request_fast_fps()
         self.image_x = math.floor(self.image_x - dt * self.animate_speed)
-        if self.image_x < -display.safe_w then
+        if self.image_x < self.exit_position then
             self.animate = false
             state.play:next_day(self.destination)
         end
