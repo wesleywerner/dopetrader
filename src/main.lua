@@ -718,7 +718,7 @@ function market.load(self)
 
     -- define the special event messages
     self.increase_message = {
-        "Cops made a big %s bust! Prices are outrageous!",
+        "Cops made a big %s bust - Prices are outrageous!",
         "Addicts are buying %s at outrageous prices!"
     }
 
@@ -726,7 +726,7 @@ function market.load(self)
         Acid="The market has been flooded with cheap home-made acid!",
         Hashish="The Marrakesh Express has arrived!",
         Ludes="Rival drug dealers raided a pharmacy and are selling cheap ludes!",
-        Weed="Columbian freighter dusted the Coast Guard! Weed prices have bottomed out!"
+        Weed="Columbian freighter dusted the Coast Guard - Weed prices have bottomed out!"
     }
 
 end
