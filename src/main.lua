@@ -3235,8 +3235,8 @@ function state.thugs.attempt_run(self)
     -- Escape chance is inversely proportional to the number of thugs.
     -- The minimum ensures there is always a chance to escape.
     -- Chance is nearest to maximum at one thug, decreasing n percent per thug.
-    local min_chance = 0.25
-    local max_chance = 0.8
+    local min_chance = 0.05
+    local max_chance = 0.5
     local percent_per_thug = 0.1
     local escape_chance = math.max(min_chance, max_chance - self.thugs * percent_per_thug)
 
