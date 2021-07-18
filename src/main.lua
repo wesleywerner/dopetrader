@@ -884,7 +884,6 @@ function player.generate_events(self)
         if name then
             -- lose it
             local delta = trenchcoat:adjust_stock(name, -math.random(10, 20))
-            print(string.format("Event: lost %d %s.", delta, name))
             state.messages:add("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!", BAD_INFO)
         end
     end
@@ -905,7 +904,6 @@ function player.generate_events(self)
         local amount = math.random(player.cash * .1, player.cash * .25)
         player:debit_account(amount)
         state.messages:add("You were mugged in the subway!", BAD_INFO)
-        print(string.format("Event: lost $%d.", amount))
     end
 
     if detour then
