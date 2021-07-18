@@ -708,25 +708,28 @@ function market.load(self)
         {name="Weed",    min=300,   max=600,   increase=false, decrease=true },
         {name="Hashish", min=450,   max=900,   increase=false, decrease=true },
         {name="Opium",   min=500,   max=800,   increase=true,  decrease=false},
-        {name="Shrooms", min=600,   max=750,   increase=false, decrease=false},
+        {name="Shrooms", min=600,   max=750,   increase=false, decrease=true},
         {name="PCP",     min=1000,  max=2500,  increase=false, decrease=false},
         {name="Acid",    min=1000,  max=3500,  increase=false, decrease=true },
-        {name="MDA",     min=1500,  max=3000,  increase=false, decrease=false},
+        {name="MDA",     min=1500,  max=3000,  increase=false, decrease=true},
         {name="Heroin",  min=5000,  max=9000,  increase=true,  decrease=false},
         {name="Cocaine", min=15000, max=26000, increase=true,  decrease=false}
     }
 
     -- define the special event messages
     self.increase_message = {
-        "Cops made a big %s bust - Prices are outrageous!",
-        "Addicts are buying %s at outrageous prices!"
+        "Cops made a %s bust, prices are outrageous!",
+        "A big %s bust is causing a buying frenzy!",
+        "Addicts are buying %s at premium prices!"
     }
 
     self.decrease_message = {
-        Acid="The market has been flooded with cheap home-made acid!",
-        Hashish="The Marrakesh Express has arrived!",
-        Ludes="Rival drug dealers raided a pharmacy and are selling cheap ludes!",
-        Weed="Columbian freighter dusted the Coast Guard - Weed prices have bottomed out!"
+        Acid="The market has been flooded with cheap home-made acid.",
+        Hashish="The Marrakesh Express has arrived.",
+        Ludes="Rival drug dealers raided a pharmacy and are selling cheap ludes.",
+        Weed="Columbian freighter dusted the Coast Guard - Weed prices have bottomed out.",
+        Shrooms="A huge trance festival is in town, hippies are selling cheap Shrooms.",
+        MDA="A huge trance festival is in town, hippies are selling cheap MDA."
     }
 
 end
