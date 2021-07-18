@@ -946,6 +946,8 @@ function player.generate_events(self)
 
     if hear_music then
         local good_song = util.pick(
+        "`Marijuana in your Brain` by Lords of Acid",
+        "`Money` by Pink Floyd",
         "`Are you Experienced` by Jimi Hendrix",
         "`Cheeba Cheeba` by Tone Loc",
         "`Comin' in to Los Angeles` by Arlo Guthrie",
@@ -962,7 +964,6 @@ function player.generate_events(self)
         "`Eight Miles High` by the Byrds",
         "`Acapulco Gold` by Riders of the Purple Sage",
         "`Kicks` by Paul Revere & the Raiders",
-        "the Nixon tapes",
         "`Legalize It` by Mojo Nixon & Skid Roper")
         state.messages:add("You hear someone playing %s.", ZERO_INFO, good_song)
     end
