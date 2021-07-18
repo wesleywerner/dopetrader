@@ -949,6 +949,17 @@ function player.generate_events(self)
         local good_song = util.pick(
         "`Marijuana in your Brain` by Lords of Acid",
         "`Money` by Pink Floyd",
+        "`The Perfect Drug` by Nine Inch Nails",
+        "`I Don't Like The Drugs` by Marilyn Manson",
+        "`Acid Test` by Sheep on Drugs",
+        "`Drugs, Drugs` by Virtual Embrace",
+        "`A Drug Against War` by KMFDM",
+        "`Coming Down` by The Cult",
+        "`Need You Like A Drug` by Zeromancer",
+        "`Heroin` by The Doors",
+        "`Stoned Immaculate` by The Doors",
+        "`Stoned` by The Rolling Stones",
+        "`Ten Feet High` by Sugardrive",
         "`Are you Experienced` by Jimi Hendrix",
         "`Cheeba Cheeba` by Tone Loc",
         "`Comin' in to Los Angeles` by Arlo Guthrie",
@@ -963,9 +974,9 @@ function player.generate_events(self)
         "`White Punks on Dope` by the Tubes",
         "`Legend of a Mind` by the Moody Blues",
         "`Eight Miles High` by the Byrds",
-        "`Acapulco Gold` by Riders of the Purple Sage",
-        "`Kicks` by Paul Revere & the Raiders",
-        "`Legalize It` by Mojo Nixon & Skid Roper")
+        "`Henry` by the New Riders of the Purple Sage",
+        "`Kicks` by Paul Revere and The Raiders",
+        "`Legalize It` by Mojo Nixon and Skid Roper")
         state.messages:add("You hear someone playing %s.", ZERO_INFO, good_song)
     end
 
