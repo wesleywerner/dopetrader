@@ -916,40 +916,32 @@ function player.generate_events(self)
 
     if subway_anecdote then
         local anecdote = util.pick(
-        "Wouldn't it be funny if everyone suddenly quacked at once?",
-        "The Pope was once Jewish, you know",
-        "I'll bet you have some really interesting dreams",
-        "So I think I'm going to Amsterdam this year",
-        "Son, you need a yellow haircut",
-        "I think it's wonderful what they're doing with incense these days",
+        "Got any dope?",
+        "Shrooms give me interesting dreams.",
+        "I'm going to Amsterdam this year.",
+        "It's wonderful what they're doing with incense these days.",
         "Does your mother know you're a dope dealer?",
-        "Are you high on something?",
-        "Oh, you must be from California",
-        "I used to be a hippie, myself",
-        "There's nothing like having lots of money",
+        "Are you high?",
+        "I used to be a hippie.",
+        "There's nothing like money.",
         "You look like an aardvark!",
-        "I don't believe in Ronald Reagan",
+        "I believe in Aliens.",
         "Courage!",
-        "Bush is a noodle!",
         "Haven't I seen you on TV?",
-        "I think hemorrhoid commercials are really neat!",
+        "I think pharmaceutical commercials are great.",
         "We're winning the war for drugs!",
-        "A day without dope is like night",
-        "We only use 20% of our brains, so why not burn out the other 80%",
-        "I'm soliciting contributions for Zombies for Christ",
-        "I'd like to sell you an edible poodle",
-        "Winners don't do drugs... unless they do",
+        "A day without dope is like night.",
+        "We only use 20% of our brains, so why not burn out the other 80%?",
+        "Are you prepared for the Zombie Apocalypse?",
+        "I'd like to sell you an edible poodle.",
+        "Winners don't do drugs... unless they do.",
         "I am the walrus!",
-        "I feel an unaccountable urge to dye my hair blue",
-        "Wasn't Jane Fonda wonderful in Barbarella?",
+        "I have an urge to dye my hair blue.",
         "Just say No... well, maybe... Ok, what the hell!",
         "Would you like a jelly baby?",
-        "Drugs can be your friend!")
-        local thought = ""
-        if math.random() < .3 then
-            thought = " (at least, you -think- that's what she said)"
-        end
-        state.messages:add("The lady next to you on the subway said, `%s` %s", ZERO_INFO, anecdote, thought)
+        "Drugs can be your friend.")
+        local who = util.pick("The lady", "A bum", "A kid", "A lawyer", "A beggar")
+        state.messages:add("%s on the subway said: %q", ZERO_INFO, who, anecdote)
     end
 
     if hear_music then
