@@ -1403,42 +1403,42 @@ function state.debug.load(self)
 
     self.buttons:set_values{
         name = "debug 5",
-        text = "Thugs (fight club)",
+        text = "Thugs (hard)",
         context = "fight club",
         callback = self.frombulate
     }
 
     self.buttons:set_values{
         name = "debug 6",
-        text = "Thugs (scuffle)",
+        text = "Thugs (easy)",
         context = "scuffle",
         callback = self.frombulate
     }
 
     self.buttons:set_values{
         name = "debug 7",
-        text = "Simulate thugs (fight club)",
-        context = "simulate fight club",
-        callback = self.frombulate
-    }
-
-    self.buttons:set_values{
-        name = "debug 8",
-        text = "Simulate thugs (scuffle)",
+        text = "easy fight simula",
         context = "simulate scuffle",
         callback = self.frombulate
     }
 
     self.buttons:set_values{
+        name = "debug 8",
+        text = "hard fight simula",
+        context = "simulate fight club",
+        callback = self.frombulate
+    }
+
+    self.buttons:set_values{
         name = "debug 9",
-        text = "Simulate run (easy)",
+        text = "easy run simula",
         context = "simulate easy run",
         callback = self.frombulate
     }
 
     self.buttons:set_values{
         name = "debug 10",
-        text = "Simulate run (hard)",
+        text = "hard run simula",
         context = "simulate hard run",
         callback = self.frombulate
     }
@@ -1469,9 +1469,15 @@ function state.debug.simulate_fighting(self, risk_factor)
     -- remember current state
     local _seed = player.seed
     local _day = player.day
+    local _sound = options.sound
+    local _vibe = options.vibrate
+    -- turn off sound, vibes
+    options.sound = false
+    options.vibrate = false
     -- reseed
     player.seed = os.time()
     market:initialize_predictions()
+    -- run simulation
     local _wins, _losses = 0, 0
     for n = 1, #market.predictions do
         player.health = 100
@@ -1488,6 +1494,8 @@ function state.debug.simulate_fighting(self, risk_factor)
         end
     end
     -- restore state
+    options.sound = _sound
+    options.vibrate = _vibe
     player.day = _day
     player.seed = _seed
     player.health = 100
@@ -1504,9 +1512,15 @@ function state.debug.simulate_running(self, risk_factor)
     -- remember current state
     local _seed = player.seed
     local _day = player.day
+    local _sound = options.sound
+    local _vibe = options.vibrate
+    -- turn off sound, vibes
+    options.sound = false
+    options.vibrate = false
     -- reseed
     player.seed = os.time()
     market:initialize_predictions()
+    -- run simulation
     local _wins, _losses = 0, 0
     for n = 1, #market.predictions do
         player.health = 100
@@ -1523,6 +1537,8 @@ function state.debug.simulate_running(self, risk_factor)
         end
     end
     -- restore state
+    options.sound = _sound
+    options.vibrate = _vibe
     player.day = _day
     player.seed = _seed
     player.health = 100
@@ -4104,8 +4120,10 @@ end
 --   \_/ |_|_.__/|_|  \__,_|\__\___|
 function vibrate.pattern(self, pattern)
 
-    self.delay = 0
-    self.next = string.gfind(pattern, ".")
+    if options.vibrate then
+        self.delay = 0
+        self.next = string.gfind(pattern, ".")
+    end
 
 end
 
