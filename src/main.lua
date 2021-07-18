@@ -1129,6 +1129,7 @@ function sound.load(self)
         purchase = love.audio.newSource("res/cashregister.ogg", "static"),
         run = love.audio.newSource("res/run.ogg", "static"),
         train = love.audio.newSource("res/train.ogg", "static"),
+        applause = love.audio.newSource("res/applause.ogg", "static"),
     }
     self.queue = {}
 end
@@ -1698,6 +1699,7 @@ function state.game_over.switch(self, rip)
     local placement_outcome = "Sadly, you did not make it as a hustler."
 
     if high_scores:is_accepted(self.score) then
+        sound:play("applause")
         placement_outcome = "Well done, you are a hustler!"
         self.enter_name = true
         self.buttons:set_values{ name = "close button 2", text = "Record My Name" }
