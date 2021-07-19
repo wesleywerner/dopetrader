@@ -2214,10 +2214,6 @@ function state.messages.mousemoved(self, x, y, dx, dy, istouch)
 end
 
 function state.messages.mousepressed(self, x, y, button, istouch)
-    -- unlock when shown
-    if self:is_locked() then
-        self:unlock()
-    end
     -- begin dragging the panel
     if not self.dragging and y > self.y then
         self.dragging = y
@@ -2225,8 +2221,11 @@ function state.messages.mousepressed(self, x, y, button, istouch)
 end
 
 function state.messages.mousereleased(self, x, y, button, istouch)
-    -- Show and lock when released below the resting position
-    if self.dragging and y > self.rest_y then
+    -- unlock when shown
+    if self:is_locked() then
+        self:unlock()
+    elseif y > self.rest_y then
+        -- Show and lock when released below the resting position
         self:show_and_lock(true)
     end
     -- Stop dragging
