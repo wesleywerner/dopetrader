@@ -2143,16 +2143,20 @@ function state.messages.draw(self)
     love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
     -- message indicator
     if #self.messages == 0 then
-        love.graphics.setColor(0, .2, .2)
+        love.graphics.setColor(0, .5, .5)
     else
         love.graphics.setColor(PRIMARY_COLOR)
     end
     love.graphics.draw(self.icon, self.led_x, self.y - self.icon_offset)
     -- print messages
     if self.y ~= self.rest_y then
-        fonts:set_medium()
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
+        if #self.messages > 0 then
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
+        else
+            love.graphics.setColor(ZERO_INFO)
+            love.graphics.printf("no messages", fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
+        end
     end
 end
 
