@@ -1974,9 +1974,8 @@ end
 -- |_| |_| |_|\___|_| |_|\__,_|
 --
 function state.menu.draw(self)
-    fonts:set_large()
     love.graphics.setColor(PRIMARY_COLOR)
-    love.graphics.printf("DoPe TrAder", layout:align_point_at("menu logo", nil, "center"))
+    love.graphics.draw(self.image, 0, self.image_top, 0, self.image_ratio, self.image_ratio)
     self.buttons:draw()
 end
 
@@ -1992,6 +1991,13 @@ function state.menu.keyreleased(self, key)
 end
 
 function state.menu.load(self)
+
+    -- title image
+    -- linear scaling interpolation, fit to display width.
+    self.image = love.graphics.newImage("res/title.png")
+    self.image:setFilter("nearest", "nearest", 1)
+    self.image_ratio = display.safe_w / self.image:getWidth()
+    _, self.image_top = layout:point_at("menu logo")
 
     self.buttons = layout:button_collection(
         "menu new game", "menu resume game", "menu high scores",
