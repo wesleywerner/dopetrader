@@ -2143,11 +2143,12 @@ function state.messages.draw(self)
     love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
     -- message indicator
     if #self.messages == 0 then
-        love.graphics.setColor(0, 0, 0)
+        love.graphics.setColor(0, .2, .2)
     else
-        love.graphics.setColor(0, 1, 1)
+        love.graphics.setColor(PRIMARY_COLOR)
     end
-    love.graphics.circle("fill", self.led_x, self.y + self.led_y, self.led_radius)
+    love.graphics.draw(self.icon, self.led_x, self.y - self.icon_offset)
+    -- print messages
     if self.y ~= self.rest_y then
         fonts:set_medium()
         love.graphics.setColor(1, 1, 1)
@@ -2188,6 +2189,10 @@ end
 
 function state.messages.load(self)
 
+    -- indicator icon
+    self.icon = love.graphics.newImage("res/leaf.png")
+    self.icon_offset = math.floor(self.icon:getWidth() / 2)
+
     -- message box layout
     _, self.rest_y = layout:point_at("messages")
 
@@ -2202,8 +2207,7 @@ function state.messages.load(self)
 
     -- indicator position
     self.led_radius = 10
-    self.led_x = display.safe_w / 2
-    self.led_y = self.led_radius * 2
+    self.led_x = (display.safe_w / 2) - self.icon_offset
 
 end
 
