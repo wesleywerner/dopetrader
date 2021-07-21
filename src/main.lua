@@ -3228,9 +3228,9 @@ function state.thugs.allow_exit(self)
         -- player can afford it
         if self.doctors_fees <= player.cash then
             self:show_exit_buttons(true, true)
-            self.outcome = string.format(
-                "Visit a clinic to patch you up for %s?",
-                util.comma_value(self.doctors_fees))
+            self.outcome = {ZERO_INFO, "Visit a clinic to patch you up for ",
+                            BAD_INFO, util.comma_value(self.doctors_fees),
+                            ZERO_INFO, "?"}
         else
             print(string.format(
                 "You cannot afford %s doctors fees.",
@@ -3247,15 +3247,19 @@ function state.thugs.attempt_fight(self)
         print(string.format("You hit one (hit chance %d%%)", hit_chance * 100))
         self.thugs = self.thugs - 1
         self:set_message()
-        self.outcome = "You hit one of them! " .. self:get_shot_at()
+        self.outcome = {ZERO_INFO, "You ",
+                        GOOD_INFO, "hit",
+                        ZERO_INFO, " one of them!\n"}
+        util.append_tables(self.outcome, self:get_shot_at())
         if self.thugs == 0 then
             player:credit_account(self.cash_prize)
-            self.outcome = ""
+            self.outcome = {}
             self:allow_exit()
         end
     else
         print(string.format("You missed (hit chance %d%%)", hit_chance * 100))
-        self.outcome = "You miss! " .. self:get_shot_at()
+        self.outcome = {ZERO_INFO, "You miss!\n"}
+        util.append_tables(self.outcome, self:get_shot_at())
     end
     self:test_death()
 end
@@ -3272,12 +3276,13 @@ function state.thugs.attempt_run(self)
     if math.random() < escape_chance then
         print(string.format("You escaped (chance %d%%)", escape_chance * 100))
         self:allow_exit()
-        self.outcome = "You lost them in the alleys"
+        self.outcome = {GOOD_INFO, "You lost them in the alleys"}
         self.escaped = true
         sound:play("run")
     else
         print(string.format("Failed to escape (chance %d%%)", escape_chance * 100))
-        self.outcome = "You can't lose them! " .. self:get_shot_at()
+        self.outcome = {ZERO_INFO, "You can't lose them! "}
+        util.append_tables(self.outcome, self:get_shot_at())
         self:test_death()
     end
 end
@@ -3291,11 +3296,11 @@ function state.thugs.draw(self)
     love.graphics.printf(string.format("%d %%", math.floor(self.health_counter.value)), layout:align_point_at("title",nil,"right"))
     love.graphics.rectangle("line", layout:box_at("title"))
 
-    love.graphics.printf(self.message, layout:align_point_at("prompt", nil, "center"))
-
-    if self.outcome then
-        love.graphics.printf(self.outcome, layout:align_point_at("response", nil, "center"))
-    end
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf(self.message, fonts.large,
+        layout:align_point_at("prompt", nil, "center"))
+    love.graphics.printf(self.outcome, fonts.large,
+        layout:align_point_at("response", nil, "center"))
 
     self.buttons:draw()
 
@@ -3311,7 +3316,7 @@ end
 
 function state.thugs.get_shot_at(self)
     if self.thugs == 0 then
-        return ""
+        return {}
     end
     sound:play("gun", 2)
     -- chance is constant, as more thugs yield more attacks.
@@ -3321,11 +3326,10 @@ function state.thugs.get_shot_at(self)
         player:lose_health(math.random(5, 15))
         vibrate:pattern(" ..-")
         sound:play("pain")
-        -- TODO: return table of text, color
-        return "They fire at you! You are hit!"
+        return {ZERO_INFO, "They fire at you! You are ", BAD_INFO, "hit!"}
     else
         print(string.format("Thugs miss (chance %d%%)", hit_chance * 100))
-        return "They fire at you, and miss!"
+        return {ZERO_INFO, "They fire at you, and miss!"}
     end
 end
 
@@ -3396,13 +3400,21 @@ end
 
 function state.thugs.set_message(self)
     if self.thugs == 0 then
-        self.message = string.format("You fought them off!\nYou found $%d on the body.", self.cash_prize)
+        self.message = {ZERO_INFO, "You fought them off!\nYou found ",
+                        GOOD_INFO, util.comma_value(self.cash_prize),
+                        ZERO_INFO, " on the body."}
     elseif self.thugs == 1 then
-        self.message = string.format("A gang leader is chasing you!")
+        self.message = {ZERO_INFO, "A ",
+                        BAD_INFO, "gang leader",
+                        ZERO_INFO, " is chasing you!"}
     elseif self.thugs == 2 then
-        self.message = string.format("A gang leader and one of his thugs are chasing you!")
+        self.message = {ZERO_INFO, "A gang leader and ",
+                        BAD_INFO, "one",
+                        ZERO_INFO, " of his thugs are chasing you!"}
     else
-        self.message = string.format("A gang leader and %d of his thugs are chasing you!", self.thugs - 1)
+        self.message = {ZERO_INFO, "A gang leader and ",
+                        BAD_INFO, tostring(self.thugs - 1),
+                        ZERO_INFO, " of his thugs are chasing you!"}
     end
 end
 
@@ -3427,7 +3439,7 @@ function state.thugs.switch(self, risk_factor)
     self.doctors_fees = 0
 
     self:set_message()
-    self.outcome = ""
+    self.outcome = {}
     self.escaped = false
 
     self:show_action_buttons(true)
@@ -3469,7 +3481,7 @@ end
 function state.thugs.test_death(self)
     if player.health < 1 then
         self:allow_exit()
-        self.outcome = "They wasted you, man! What a drag!"
+        self.outcome = {BAD_INFO, "They wasted you, man! What a drag!"}
         vibrate:pattern(" ... ... ...")
     end
 end
@@ -4035,6 +4047,12 @@ end
 -- | |_| | |_| | |
 --  \__,_|\__|_|_|
 --
+function util.append_tables(first, second)
+    table.foreach(second, function(i, v)
+        table.insert(first, v)
+    end)
+end
+
 function util.comma_value(amount)
     local formatted = amount
     while true do
