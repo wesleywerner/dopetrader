@@ -853,7 +853,7 @@ function player.generate_events(self)
     local dropped_drugs = math.random() < .07
     local mugged = math.random() < .05
     local detour = math.random() < .1
-    local subway_anecdote = math.random() < .3
+    local subway_anecdote = math.random() < .15
     local hear_music = math.random() < .15
     local thug_encounter = math.random()
 
