@@ -648,12 +648,12 @@ function market.fluctuate(self, list_everything)
 
         -- a major market event
         if math.random() < .15 then
-            if drug.increase then
+            if drug.inc then
                 cost = math.random(drug.max * 2, drug.max * 4)
                 local template = util.pick(unpack(self.increase_message))
                     or "%s increase template not found"
                 state.messages:add(template, GOOD_INFO, drug.name)
-            elseif drug.decrease then
+            elseif drug.dec then
                 cost = math.floor(cost / math.random(3, 6))
                 local template = self.decrease_message[drug.name]
                     or "%s decrease template not found"
@@ -702,18 +702,18 @@ function market.load(self)
 
     -- define the trading stock
     self.db = {
-        {name="Ludes",   min=10,    max=50,    increase=false, decrease=true },
-        {name="Speed",   min=70,    max=180,   increase=true,  decrease=false},
-        {name="Peyote",  min=200,   max=500,   increase=false, decrease=false},
-        {name="Weed",    min=300,   max=600,   increase=false, decrease=true },
-        {name="Hashish", min=450,   max=900,   increase=false, decrease=true },
-        {name="Opium",   min=500,   max=800,   increase=true,  decrease=false},
-        {name="Shrooms", min=600,   max=750,   increase=false, decrease=true},
-        {name="PCP",     min=1000,  max=2500,  increase=false, decrease=false},
-        {name="Acid",    min=1000,  max=3500,  increase=false, decrease=true },
-        {name="MDA",     min=1500,  max=3000,  increase=false, decrease=true},
-        {name="Heroin",  min=5000,  max=9000,  increase=true,  decrease=false},
-        {name="Cocaine", min=15000, max=26000, increase=true,  decrease=false}
+        {name="Ludes",   min=10,    max=50,    inc=false, dec=true , unit="pill"},
+        {name="Speed",   min=70,    max=180,   inc=true,  dec=false, unit="pill"},
+        {name="Peyote",  min=200,   max=500,   inc=false, dec=false, unit="baggie"},
+        {name="Weed",    min=300,   max=600,   inc=false, dec=true , unit="baggie"},
+        {name="Hashish", min=450,   max=900,   inc=false, dec=true , unit="baggie"},
+        {name="Opium",   min=500,   max=800,   inc=true,  dec=false, unit="baggie"},
+        {name="Shrooms", min=600,   max=750,   inc=false, dec=true , unit="baggie"},
+        {name="PCP",     min=1000,  max=2500,  inc=false, dec=false, unit="baggie"},
+        {name="Acid",    min=1000,  max=3500,  inc=false, dec=true , unit="tab"},
+        {name="MDA",     min=1500,  max=3000,  inc=false, dec=true , unit="pill"},
+        {name="Heroin",  min=5000,  max=9000,  inc=true,  dec=false, unit="baggie"},
+        {name="Cocaine", min=15000, max=26000, inc=true,  dec=false, unit="baggie"}
     }
 
     -- define the special event messages
