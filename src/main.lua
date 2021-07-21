@@ -899,9 +899,9 @@ function player.generate_events(self)
         local delta = trenchcoat:adjust_stock(drug.name, math.random(3, 10))
         if delta > 0 then
             local flavor = util.pick(
-                "You find %d units of %s on a dead dude in the subway!",
-                "You meet a friend, they lay %d units of %s on you.")
-            state.messages:add(flavor, GOOD_INFO, delta, drug.name)
+                "You find %d %s %ss on a dead dude in the subway.",
+                "You meet a friend, they lay %d %s %ss on you.")
+            state.messages:add(flavor, GOOD_INFO, delta, drug.name, drug.unit)
         end
     end
 
