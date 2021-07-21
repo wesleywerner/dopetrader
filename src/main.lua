@@ -858,7 +858,8 @@ function player.generate_events(self)
     local thug_encounter = math.random()
 
     if brownies then
-        local brownie_text = "Your mama made brownies with some of your %s! They were great!"
+        local brownie_text = "Your mama made brownies with some of your %s, "
+            .. " they were great!"
         if trenchcoat:stock_of("Hashish") > 20 then
             trenchcoat:adjust_stock("Hashish", -math.random(1, 4))
             state.messages:add(brownie_text, BAD_INFO, "hash")
@@ -876,7 +877,7 @@ function player.generate_events(self)
             trenchcoat:adjust_stock(name, -math.random(2, 6))
             local flavor = util.pick(
                 "they borrow some %s from you.",
-                "you give some %s to them.")
+                "you give them some %s.")
             state.messages:add("You meet a friend, "..flavor, BAD_INFO, name)
         end
     end
@@ -887,7 +888,8 @@ function player.generate_events(self)
         if name then
             -- lose it
             local delta = trenchcoat:adjust_stock(name, -math.random(10, 20))
-            state.messages:add("Police dogs chase you for 3 blocks! You dropped some drugs! That's a drag, man!", BAD_INFO)
+            state.messages:add("Police chase you for 3 blocks, "
+                .. "you dropped some drugs. That's a drag!", BAD_INFO)
         end
     end
 
