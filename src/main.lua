@@ -745,7 +745,7 @@ function options.load(self)
 
     -- default options
     self.vibrate = true
-    self.adaptive_fps = true
+    self.adaptive_fps = display.mobile
     self.sound = true
     self.tutorial = true
 
