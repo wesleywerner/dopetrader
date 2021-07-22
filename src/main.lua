@@ -2143,6 +2143,10 @@ function state.messages.draw(self)
     -- fill
     love.graphics.setColor(0, .3, .3)
     love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
+    love.graphics.setColor(0, .7, .7)
+    love.graphics.line(display.safe_x, self.y, display.safe_w, self.y)
+    love.graphics.setColor(0, .1, .1)
+    love.graphics.line(display.safe_x, self.y+1, display.safe_w, self.y+1)
     -- message indicator
     if #self.messages == 0 then
         love.graphics.setColor(0, .5, .5)
@@ -2150,6 +2154,11 @@ function state.messages.draw(self)
         love.graphics.setColor(PRIMARY_COLOR)
     end
     love.graphics.draw(self.icon, self.led_x, self.y - self.icon_offset)
+    --  embossed leaf
+    love.graphics.setColor(0, .25, .25)
+    love.graphics.draw(self.icon,
+        self.embossed_x, self.y + self.embossed_y,
+        0, self.embossed_s, self.embossed_s)
     -- print messages
     if self.y ~= self.rest_y then
         if #self.messages > 0 then
@@ -2199,11 +2208,20 @@ function state.messages.load(self)
     self.icon = love.graphics.newImage("res/leaf.png")
     self.icon_offset = math.floor(self.icon:getWidth() / 2)
 
+    -- embossed leaf scale, position
+    self.icon:setFilter("nearest", "nearest")
+    self.embossed_s = 10
+    self.embossed_x = math.floor((display.safe_w / 2)
+                                - (self.icon:getWidth() * self.embossed_s / 2))
+    self.embossed_y = math.floor(display.safe_h
+                                - (self.icon:getHeight() * self.embossed_s))
+
     -- message box layout
     _, self.rest_y = layout:point_at("messages")
 
     -- dont drag messages above this point
-    self.min_y = display.safe_h/4
+    local _, cash_y, _, cash_h = layout:box_at("cash")
+    self.min_y = cash_y + cash_h
 
     -- panel position
     self.y = self.rest_y
