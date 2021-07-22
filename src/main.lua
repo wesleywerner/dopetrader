@@ -71,6 +71,7 @@ local state = {
     bank = {},
     debug = {},
     game_over = {},
+    indemnity = {},
     jet = {},
     loanshark = {},
     menu = {},
@@ -584,6 +585,8 @@ function love.load()
     end
 
     state.menu:switch()
+    state.indemnity:switch()
+
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
@@ -1743,6 +1746,92 @@ end
 function state.game_over.update(self, dt)
 
 end
+
+--  _           _                      _ _
+-- (_)_ __   __| | ___ _ __ ___  _ __ (_) |_ _   _
+-- | | '_ \ / _` |/ _ \ '_ ` _ \| '_ \| | __| | | |
+-- | | | | | (_| |  __/ | | | | | | | | | |_| |_| |
+-- |_|_| |_|\__,_|\___|_| |_| |_|_| |_|_|\__|\__, |
+--                                           |___/
+function state.indemnity.draw(self)
+    self.buttons:draw()
+    self.labels:draw()
+end
+
+function state.indemnity.exit_state()
+    options.acknowledged_indemnity = true
+    options:save()
+    state.menu:switch()
+end
+
+function state.indemnity.keypressed(self, key)
+    self.buttons:keypressed(key)
+end
+
+function state.indemnity.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.indemnity.load(self)
+
+    local serious_text = string.format("%s is a game. "
+        .. "It is not intended to trivialize or glamorize the drug trade, "
+        .. "and it certainly does not endorse consuming drugs "
+        .. "or getting high. "
+        .. "\n\n"
+        .. "Whether you like to experiment in a simulated free trade market, "
+        .. "or play to become the highest hustler, "
+        .. "I hope you have fun either way!", TITLE)
+
+    self.buttons = layout:button_collection("close button 2")
+
+    self.buttons:set_values{
+        name = "close button 2",
+        text = "Acknowledged",
+        font = fonts:for_menu_button(),
+        callback = self.exit_state
+    }
+
+    self.labels = layout:label_collection("prompt", "title")
+
+    self.labels:set_values{
+        name = "title",
+        font = fonts:for_title(),
+        text = "Indemnity"
+    }
+
+    self.labels:set_values{
+        name = "prompt",
+        font = fonts:for_tutorial(),
+        valign = "top",
+        border = false,
+        text = serious_text
+    }
+
+end
+
+function state.indemnity.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+end
+
+function state.indemnity.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+end
+
+function state.indemnity.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+end
+
+function state.indemnity.switch(self)
+    if not options.acknowledged_indemnity then
+        active_state = self
+    end
+end
+
+function state.indemnity.update(self, dt)
+
+end
+
 
 --    _      _
 --   (_) ___| |_
