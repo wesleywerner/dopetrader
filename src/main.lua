@@ -775,8 +775,7 @@ end
 --
 function player.accrue_debt(self)
     if self.debt > 0 then
-        -- TODO: find out the correct loan interest rate
-        self.debt = math.floor(self.debt * 1.05)
+        self.debt = math.floor(self.debt * 1.1)
     end
     self.debt_amount = util.comma_value(self.debt)
 end
