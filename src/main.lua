@@ -27,17 +27,32 @@
 
 ]]--
 
+-- Window title
 local TITLE = "Dope Trader"
+
+-- Identify used by Löve for persistent storage
 local IDENTITY = "dopetrader"
+
+-- Enable menu for testing (F1)
 local DEBUG = 1
-local PRIMARY_COLOR = {0, 1, 1}
-local HILITE_COLOR = {1, 1, 0}
+
+-- Colour constants
+local PRIMARY_10 = {0, .1, .1}
+local PRIMARY_25 = {0, .25, .25}
+local PRIMARY_30 = {0, .3, .3}
+local PRIMARY_70 = {0, .7, .7}
+local PRIMARY_100 = {0, 1, 1}
+local WHITE = {1, 1, 1}
+local YELLOW = {1, 1, 0}
 local GOOD_INFO = {0, 1, .5}
 local BAD_INFO = {1, 1, .5}
 local ZERO_INFO = {.5, 1, 1}
+
+-- Places we can jet to
 local LOCATIONS = {"Bronx", "Ghetto", "Central Park",
                     "Manhattan", "Coney Island", "Brooklyn" }
 
+-- Modular functions
 local display = {}
 local fonts = {}
 local high_scores = {}
@@ -51,6 +66,7 @@ local trenchcoat = {}
 local util = {}
 local vibrate = {}
 
+-- Game states
 local state = {
     bank = {},
     debug = {},
@@ -529,11 +545,6 @@ end
 --
 function love.draw()
     active_state:draw()
-    if DEBUG then
-        love.graphics.setColor(1, 1, 1)
-        fonts:set_small()
-        love.graphics.print(love.timer.getFPS(), 1, display.safe_h - 20)
-    end
 end
 
 function love.keypressed(key, isrepeat)
@@ -1202,7 +1213,7 @@ end
 function state.bank.draw(self)
 
     fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
 
     love.graphics.print("Cash", layout:padded_point_at("title"))
     love.graphics.printf(player.cash_amount, layout:align_point_at("title",nil,"right"))
@@ -1584,7 +1595,7 @@ end
 --
 function state.game_over.draw(self)
 
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
 
     -- title
     fonts:set_large()
@@ -1743,7 +1754,7 @@ end
 function state.jet.draw(self)
     self.labels:draw()
     self.buttons:draw()
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
     love.graphics.draw(self.subway_image,
         self.image_x, self.subway_y,
         0, self.image_scale, self.image_scale)
@@ -1878,7 +1889,7 @@ end
 --
 function state.loanshark.draw(self)
     self.buttons:draw()
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
     love.graphics.print("Debt", layout:padded_point_at("title"))
     love.graphics.printf(self.debt_amount, layout:align_point_at("title",nil,"right"))
     love.graphics.rectangle("line", layout:box_at("title"))
@@ -1975,7 +1986,7 @@ end
 -- |_| |_| |_|\___|_| |_|\__,_|
 --
 function state.menu.draw(self)
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
     love.graphics.draw(self.image, 0, self.image_top, 0, self.image_ratio, self.image_ratio)
     self.buttons:draw()
 end
@@ -2140,28 +2151,29 @@ end
 
 function state.messages.draw(self)
     -- fill
-    love.graphics.setColor(0, .3, .3)
+    love.graphics.setColor(PRIMARY_30)
     love.graphics.rectangle("fill", 0, self.y, display.safe_w, display.safe_h)
-    love.graphics.setColor(0, .7, .7)
+    -- shadowed border
+    love.graphics.setColor(PRIMARY_70)
     love.graphics.line(display.safe_x, self.y, display.safe_w, self.y)
-    love.graphics.setColor(0, .1, .1)
+    love.graphics.setColor(PRIMARY_10)
     love.graphics.line(display.safe_x, self.y+1, display.safe_w, self.y+1)
     -- message indicator
     if #self.messages == 0 then
-        love.graphics.setColor(0, .5, .5)
+        love.graphics.setColor(PRIMARY_70)
     else
-        love.graphics.setColor(PRIMARY_COLOR)
+        love.graphics.setColor(PRIMARY_100)
     end
     love.graphics.draw(self.icon, self.led_x, self.y - self.icon_offset)
     --  embossed leaf
-    love.graphics.setColor(0, .25, .25)
+    love.graphics.setColor(PRIMARY_25)
     love.graphics.draw(self.icon,
         self.embossed_x, self.y + self.embossed_y,
         0, self.embossed_s, self.embossed_s)
     -- print messages
     if self.y ~= self.rest_y then
         if #self.messages > 0 then
-            love.graphics.setColor(1, 1, 1)
+            love.graphics.setColor(WHITE)
             love.graphics.printf(self.messages, fonts.medium, 4, self.y + self.text_y, display.safe_w - 10, "center")
         else
             love.graphics.setColor(ZERO_INFO)
@@ -2296,7 +2308,7 @@ function state.options.draw(self)
     self.buttons:draw()
 
     fonts:set_small()
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(WHITE)
     love.graphics.print(love.timer.getFPS().." FPS", layout:padded_point_at("option 3 title"))
 
 end
@@ -2950,7 +2962,7 @@ end
 --
 function state.scores.draw(self)
 
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
     fonts:set_large()
     love.graphics.printf("High Hustlers", layout:align_point_at("title", nil, "center"))
     love.graphics.rectangle("line", layout:box_at("title"))
@@ -2963,11 +2975,11 @@ function state.scores.draw(self)
         local y = self.listing_y + self.font_height * rank * 2
 
         if rank == self.highlight_rank then
-            love.graphics.setColor(PRIMARY_COLOR)
+            love.graphics.setColor(PRIMARY_100)
             love.graphics.rectangle("fill", 0, y, display.safe_w, self.font_height * 2)
             love.graphics.setColor(0, 0, 0)
         else
-            love.graphics.setColor(PRIMARY_COLOR)
+            love.graphics.setColor(PRIMARY_100)
         end
 
         love.graphics.line(0, y, display.safe_w, y)
@@ -3045,7 +3057,7 @@ end
 --
 function state.shop.draw(self)
     fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
     love.graphics.print(self.title, layout:padded_point_at("title"))
     love.graphics.rectangle("line", layout:box_at("title"))
     love.graphics.setFont(fonts:for_shop_question())
@@ -3307,13 +3319,13 @@ end
 function state.thugs.draw(self)
 
     fonts:set_large()
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
 
     love.graphics.print("Health", layout:padded_point_at("title"))
     love.graphics.printf(string.format("%d %%", math.floor(self.health_counter.value)), layout:align_point_at("title",nil,"right"))
     love.graphics.rectangle("line", layout:box_at("title"))
 
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(WHITE)
     love.graphics.printf(self.message, fonts.large,
         layout:align_point_at("prompt", nil, "center"))
     love.graphics.printf(self.outcome, fonts.large,
@@ -3525,7 +3537,7 @@ end
 function state.tutorial.draw_box(self, lines)
     love.graphics.setColor(0, 0, 0)
     love.graphics.rectangle("fill", 0, self.texty, display.safe_w, self.texth*lines)
-    love.graphics.setColor(PRIMARY_COLOR)
+    love.graphics.setColor(PRIMARY_100)
     love.graphics.rectangle("line", 0, self.texty, display.safe_w, self.texth*lines)
 end
 
@@ -3553,7 +3565,7 @@ function state.tutorial.draw(self)
         -- box
         love.graphics.setColor(0, 0, 0)
         love.graphics.rectangle("fill", 0, self.texty, display.safe_w, self.texth)
-        love.graphics.setColor(HILITE_COLOR)
+        love.graphics.setColor(YELLOW)
         love.graphics.rectangle("line", 0, self.texty, display.safe_w, self.texth)
 
         -- text
