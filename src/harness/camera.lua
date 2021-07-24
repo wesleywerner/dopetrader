@@ -68,12 +68,15 @@ end
 -- @tparam number dt
 function module:update(dt)
 
+    self.complete = true
     if (self.x ~= self.targetX) or (self.y ~= self.targetY) then
         self.frames = self.frames + (dt / self.time)
 
         -- move the camera
         self.x = lerp(self.fromX, self.targetX, self.frames)
         self.y = lerp(self.fromY, self.targetY, self.frames)
+
+        self.complete = false
 
     end
 
@@ -127,7 +130,7 @@ function module:lookAt(x, y)
         local dist = distance(self.x, self.y, x, y, false) / math.min( self.worldHeight, self.worldWidth )
         dist = math.exp(dist)
         -- limit the time to sane values
-        self.time = clamp(dist, 0.5, 6)
+        self.time = 0.2
     end
 
 end

@@ -57,6 +57,7 @@ local vibrate = {}
 
 -- Game states
 local state = {
+    about = {},
     bank = {},
     debug = {},
     game_over = {},
@@ -165,6 +166,14 @@ end
 -- |  _| (_) | | | | |_\__ \
 -- |_|  \___/|_| |_|\__|___/
 --
+function fonts.for_about_text(self)
+    if display.mobile then
+        return self.medium
+    else
+        return self.medium
+    end
+end
+
 function fonts.for_bank_button(self)
     if display.mobile then
         return self.medium
@@ -499,6 +508,7 @@ function layout.load(self)
     self:map(require("menu_layout"))
     self:map(require("options_layout"))
     self:map(require("debug_layout"))
+    self:map(require("about_layout"))
 end
 
 function layout.map(self, definition)
@@ -606,6 +616,12 @@ function love.update(dt)
     sound:update()
     if state.tutorial.running then
         state.tutorial:update(dt)
+    end
+end
+
+function love.wheelmoved(x, y)
+    if active_state.wheelmoved then
+        active_state:wheelmoved(x, y)
     end
 end
 
@@ -1170,6 +1186,185 @@ function sound.update(self)
     end
 end
 
+--        _                 _
+--   __ _| |__   ___  _   _| |_
+--  / _` | '_ \ / _ \| | | | __|
+-- | (_| | |_) | (_) | |_| | |_
+--  \__,_|_.__/ \___/ \__,_|\__|
+--
+function state.about.draw(self)
+    self.buttons:draw()
+
+    -- content border
+    love.graphics.setColor(PRIMARY_100)
+    love.graphics.rectangle("line", layout:box_at("about content"))
+
+    -- content (camera)
+    self.camera:pose()
+    love.graphics.setFont(fonts:for_about_text())
+    love.graphics.setColor(WHITE)
+    love.graphics.printf(self.text, 10, 10, self.content_width)
+    self.web_button:draw()
+    self.camera:relax()
+
+end
+
+function state.about.exit_state(self)
+    state.menu:switch()
+end
+
+function state.about.keypressed(self, key)
+    self.buttons:keypressed(key)
+    if key == "escape" then
+        self:exit_state()
+    end
+end
+
+function state.about.keyreleased(self, key, scancode)
+    self.buttons:keyreleased(key)
+end
+
+function state.about.load(self)
+
+    self.text = {
+        WHITE, TITLE .. "\n\n",
+        PRIMARY_100, "You play the role of a drug dealer in debt. "
+            .. "You have one month to trade drugs and repay your debt. "
+            .. "\n\n",
+        PRIMARY_100, "One day passes when you travel to a new location. "
+            .. "Each day prices fluctuate due to market demand. "
+            .. "When a drug is not in demand it cannot be traded. "
+            .. "\n\n",
+        PRIMARY_100, "Carrying more merchandise increases the risk of "
+            .. "rival gang encounters. "
+            .. "You can fight back and take their cash if you have guns. "
+            .. "Your chance to hit a thug increases with each gun you carry. "
+            .. "\n\n",
+        PRIMARY_100, "Purchasing a gun happen randomly when you go "
+            .. "to a new location, and similarly, purchasing a new trench coat "
+            .. "that has more pockets. "
+            .. "\n\n",
+
+        WHITE, "Inspiration\n\n",
+        PRIMARY_100, TITLE .. " is inspired by the 1984 classic by John Dell, "
+            .. " Drug Wars. Mr Dell created his game as a project for his "
+            .. " high school computer class. He got an A. He never uploaded his "
+            .. " creation to a BBS, but he did give copies to friends. "
+            .. " It not only survived but became a hit, so to speak, in a "
+            .. " small corner of the computer gaming world. "
+            .. "\n\n",
+
+        PRIMARY_100, "This program is free software: you can redistribute it and/or modify "
+            .. "it under the terms of the GNU General Public License as published by "
+            .. "the Free Software Foundation, either version 3 of the License, or "
+            .. "any later version."
+            .. "\n\n"
+            .. "Please visit the game site for full source, licensing "
+            .. "and acknowledgements for font, sounds and images used."
+    }
+
+    self.buttons = layout:button_collection("about close")
+
+    self.buttons:set_values{
+        name = "about close",
+        text = "Close",
+        font = fonts:for_menu_button(),
+        context = self,
+        callback = self.exit_state
+    }
+
+    -- place camera
+    local content_box = layout.box["about content"]
+    self.camera = require("harness.camera")
+    self.camera:worldSize(content_box[3], content_box[4] * 3)
+    self.camera:frame(content_box[1], content_box[2],
+        content_box[3], content_box[4])
+    self.content_width = self.camera.worldWidth - 10
+
+    -- place website button
+    local _, text_height = fonts:measure(
+        fonts:for_about_text(), self.text, "left", self.content_width)
+    self.buttons:button("website", {
+        left = display.safe_x + math.floor(display.safe_w * 0.1),
+        top = text_height + 40,
+        width = math.floor(display.safe_w * 0.7),
+        height = 60,
+        font = fonts:for_menu_button(),
+        text = "Visit Website",
+        callback = state.about.visit_website
+    })
+    self.web_button = self.buttons:get("website")
+
+end
+
+function state.about.mousemoved(self, x, y, dx, dy, istouch)
+    self.buttons:mousemoved(x, y, dx, dy, istouch)
+
+    -- scroll the camera while mouse/touch is pressed
+    if self.pressed_y then
+        self.pressed_y = y
+        self.camera:moveBy(0, dy)
+    end
+
+    -- focus button inside camera frame
+    local _x, _y = self.camera:pointToFrame(x, y)
+    if _x and _y then
+        self.web_button:mousemoved(_x, _y)
+    end
+
+end
+
+function state.about.mousepressed(self, x, y, button, istouch)
+    self.buttons:mousepressed(x, y, button, istouch)
+
+    -- capture mouse/touch press position for camera scroll
+    if self.camera:pointToFrame(x, y) then
+        self.pressed_y = y
+    else
+        self.pressed_y = nil
+    end
+
+    -- press button inside camera frame
+    local _x, _y = self.camera:pointToFrame(x, y)
+    if _x and _y then
+        self.web_button:mousepressed(_x, _y, button, istouch)
+    end
+
+end
+
+function state.about.mousereleased(self, x, y, button, istouch)
+    self.buttons:mousereleased(x, y, button, istouch)
+    self.pressed_y = nil
+end
+
+function state.about.scroll_down(self)
+    self.camera:moveBy(0, -math.floor(display.safe_h))
+end
+
+function state.about.scroll_up(self)
+    self.camera:moveBy(0, math.floor(display.safe_h))
+end
+
+function state.about.switch(self)
+    active_state = self
+end
+
+function state.about.update(self, dt)
+    self.camera:update(dt)
+    if not self.camera.complete then
+        display:request_fast_fps()
+    end
+end
+
+function state.about.visit_website()
+    love.system.openURL("https://engrams.dev/dopetrader")
+end
+
+function state.about.wheelmoved(self, x, y)
+    if self.camera.complete then
+        self.camera:moveBy(0, y * 100)
+    end
+end
 
 --  _                 _
 -- | |__   __ _ _ __ | | __
@@ -2135,9 +2330,8 @@ function state.menu.load(self)
         text = "About",
         options = options,
         font = fonts:for_menu_button(),
-        context = nil,
-        callback = nil,
-        disabled = true
+        context = state.about,
+        callback = state.about.switch
     }
 
     if DEBUG then
