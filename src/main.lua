@@ -1816,7 +1816,7 @@ function state.game_over.exit_state(self)
     -- remove the save game
     state.play:remove_save()
     -- show high scores, highlighting current entry
-    state.scores:switch(ranked)
+    state.scores:switch(ranked, self.score)
 end
 
 function state.game_over.hide_mobile_keyboard(self)
@@ -3281,6 +3281,16 @@ function state.scores.draw(self)
 
     end
 
+    -- show most recent game score
+    if self.game_score then
+        love.graphics.printf(
+            string.format("Your Net Profit: %s", self.game_score),
+            display.safe_x,
+            display.safe_h - self.font_height,
+            display.safe_w,
+            "center")
+    end
+
 end
 
 function state.scores.keypressed(self, key)
@@ -3326,10 +3336,21 @@ function state.scores.mousereleased(self, x, y, button, istouch)
 
 end
 
-function state.scores.switch(self, highlight_rank)
+function state.scores.switch(self, highlight_rank, game_score)
+
+    -- highlight the score at this rank
     self.highlight_rank = highlight_rank
+
+    -- print the completed game score (regardless if making it as a high hustler)
+    if game_score then
+        self.game_score = util.comma_value(game_score)
+    end
+
+    -- print each rank via a timer
     self.display_rank = 0
     self.timer = 0.5
+
+    -- get the scores listing
     self.listing = high_scores:listing()
     active_state = self
 end
