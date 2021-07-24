@@ -3048,6 +3048,9 @@ function state.play.restore_game(self)
         local check = util.crc(record)
         if check ~= record.crc then
             print("CRC fail")
+            player:set_debt(player.debt + player.cash + player.bank)
+            state.messages:add("The loan shark caught wind that you are trying "
+                .. "to stiff him. He just raised your debt.", BAD_INFO)
         end
 
     end
@@ -4445,7 +4448,7 @@ function util.crc(t1, t2)
             end
         end
     end
-    return crc % 255
+    return crc % 242
 end
 
 -- Returns an iterator over the key=value pairs in a line
