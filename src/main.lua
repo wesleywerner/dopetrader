@@ -22,6 +22,9 @@ local TITLE = "Dope Trader"
 -- Identify used by Löve for persistent storage
 local IDENTITY = "dopetrader"
 
+-- Game Version
+local VERSION = "0.1 alpha"
+
 -- Enable menu for testing (F1)
 local DEBUG = 1
 
@@ -1204,6 +1207,7 @@ function state.about.draw(self)
     love.graphics.setFont(fonts:for_about_text())
     love.graphics.setColor(WHITE)
     love.graphics.printf(self.text, 10, 10, self.content_width)
+    love.graphics.printf(VERSION, 0, 10, self.content_width, "right")
     self.web_button:draw()
     self.camera:relax()
 
