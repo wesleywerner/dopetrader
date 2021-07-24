@@ -12,6 +12,10 @@ Purchasing a gun happen randomly when you go to a new location, and similarly, p
 
 The game is inspired by the 1984 classic by John Dell, Drug Wars.
 
+# Download
+
+Get the latest release on [the releases page](https://github.com/wesleywerner/dopetrader/releases).
+
 # Requirements
 
 You need the Löve 2D game engine to play. See the [Löve website](https://love2d.org) for installation instructions on your platform.
