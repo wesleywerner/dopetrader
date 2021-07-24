@@ -2973,7 +2973,7 @@ function state.play.new_game(self)
     print("Starting a new game ...")
     player:reset()
     market:initialize_predictions()
-    market:fluctuate()
+    market:fluctuate(state.tutorial.running)
     player:generate_events()
 end
 
@@ -2981,7 +2981,10 @@ function state.play.next_day(self, new_location)
     if player:add_day(new_location) <= #market.predictions then
         state.messages:clear()
         player:accrue_debt()
-        market:fluctuate(player.day == #market.predictions)
+        -- open all merchandise for trading on the last day or in tutorial mode
+        local list_everything = player.day == #market.predictions
+            or state.tutorial.running
+        market:fluctuate(list_everything)
         self:save_game()
         player:generate_events()
         state.play:switch()
@@ -3989,13 +3992,6 @@ function state.tutorial.next_slide(self)
     if self.index < #self.slides then
         self.index = self.index + 1
         self:set_slide(self.slides[self.index])
-    end
-
-    -- ensure the entire market is open for business
-    if #market.available < #market.db then
-        market:fluctuate(true)
-        state.play:update_button_texts()
-        print("(Tutorial opened the entire market)")
     end
 
     -- localize actions
