@@ -317,7 +317,7 @@ function high_scores.generate_default_scores(self)
 
     local names = {
         "Trippie Tim", "Pepper Pusher", "Kitty Ketamine",
-        "Sunshine Seller", "Lilly Lewd", "John E Dell" }
+        "Sunshine Seller", "Lilly Lewd", "Johnny-E" }
 
     self.entries = {}
 
