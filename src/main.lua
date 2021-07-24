@@ -2468,6 +2468,10 @@ function state.messages.is_dragging(self)
     return self.dragging
 end
 
+function state.messages.is_hidden(self)
+    return self.y == self.rest_y
+end
+
 function state.messages.is_locked(self)
     return self.locked
 end
@@ -3959,6 +3963,9 @@ function state.tutorial.load(self)
         "wait for home location",
         "visit loan shark",
         "wait for no debt",
+        "messages intro",
+        "wait for messages open",
+        "wait for messages close",
         "exit",
     }
 
@@ -4167,6 +4174,18 @@ function state.tutorial.next_slide(self)
         -- return control to play state until more are bought
         active_state = state.play
 
+    elseif self.current == "messages intro" then
+        state.messages:add("You are playing the tutorial")
+        self.controls = {state.messages}
+        self:set_text([[You can see a log of the events that happened
+            in the message panel below.
+            It shows automatically if there are new messages on the day.
+            Open your messages now by tapping it.]])
+
+    elseif self.current == "wait for messages close"
+        or self.current == "wait for messages open" then
+        active_state = state.play
+
     elseif self.current == "exit" then
         self.controls = nil
         self:set_text([[This concludes the tutorial.
@@ -4262,6 +4281,17 @@ function state.tutorial.update(self, dt)
             end
         end
 
+    elseif self.current == "wait for messages open" then
+        if state.messages:is_locked() then
+            active_state = self
+            self:next_slide()
+        end
+
+    elseif self.current == "wait for messages close" then
+        if not state.messages:is_locked() and state.messages:is_hidden() then
+            active_state = self
+            self:next_slide()
+        end
     end
 
     -- prevent thug encounters, except for the thugs slide.
@@ -4274,9 +4304,11 @@ function state.tutorial.update(self, dt)
     end
 
     if state.messages.locked then
-        -- hide any auto-shown messages for tutorial
-        state.messages:hide()
-        print("(Tutorial hides messages)")
+        if self.current ~= "wait for messages close" then
+            -- hide any auto-shown messages for tutorial
+            state.messages:hide()
+            print("(Tutorial hides messages)")
+        end
     end
 
 end
