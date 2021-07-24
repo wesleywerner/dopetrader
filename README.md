@@ -1,44 +1,103 @@
-Cannabis Leaf Image
+# Dope Trader
+
+Dope Trader is a turn-based commodity trading game.
+
+You play the role of a drug dealer in debt. You have one month to trade drugs and repay your debt.
+
+One day passes when you travel to a new location. Each day prices fluctuate due to market demand. When a drug is not in demand it cannot be traded.
+
+Carrying more merchandise increases the risk of rival gang encounters. You can fight back and take their cash if you have guns. Your chance to hit a thug increases with each gun you carry.
+
+Purchasing a gun happen randomly when you go to a new location, and similarly, purchasing a new trench coat that has more pockets.
+
+The game is inspired by the 1984 classic by John Dell, Drug Wars.
+
+# Requirements
+
+You need the Löve 2D game engine to play. See the [Löve website](https://love2d.org) for installation instructions on your platform.
+
+Running on GNU / *nix:
+
+```
+love dopetrader.love
+```
+
+Running on Windows:
+
+```
+love.exe dopetrader.love
+```
+
+(or drag `dopetrader.love` onto `love.exe`)
+
+Android: Install the Löve Android app and tap `dopetrader.love` to launch.
+
+# License
+
+> Copyright 2021 Wesley Werner
+>
+> This program is free software: you can redistribute it and/or modify
+> it under the terms of the GNU General Public License as published by
+> the Free Software Foundation, either version 3 of the License, or
+> any later version.
+>
+> This program is distributed in the hope that it will be useful,
+> but WITHOUT ANY WARRANTY; without even the implied warranty of
+> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> GNU General Public License for more details.
+>
+> You should have received a copy of the GNU General Public License
+> along with this program in the file named COPYING.
+> If not, see http://www.gnu.org/licenses/.
+
+# Acknowledgements
+
+Many thanks to these people for sharing their work:
+
+**Cannabis Leaf Image**
 by kotik
-Licensed as Creative Commons Zero 1.0 Public Domain License
-https://openclipart.org/detail/3579/cannabis
+[Licensed CC0 1.0 Public Domain](http://creativecommons.org/publicdomain/zero/1.0/)
+[[Source](https://openclipart.org/detail/3579/cannabis)]
+(Changes: scaled and desaturated)
 
-BodoniFLF Font
+**BodoniFLF Font**
 by Casady & Greene
-Licensed as Freeware, Non-Commercial
-https://www.fontspace.com/bodoniflf-font-f1202
+[Licensed Freeware, Non-Commercial](https://www.fontspace.com/help#license-2)
+[[Source](https://www.fontspace.com/bodoniflf-font-f1202)]
 
-Pistol Sound
+**Pistol Sound**
 by Q009
-Licensed as CC-BY-SA 3.0
-https://opengameart.org/content/q009s-weapon-sounds
+[Licensed CC-BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/)
+[[Source](https://opengameart.org/content/q009s-weapon-sounds)]
 
-Sell / Buy Sound
+**Sell / Buy Sound**
 by artisticdude
-Licensed as CC-BY-SA 3.0
-https://opengameart.org/content/inventory-sound-effects
+[Licensed CC-BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/)
+[[Source](https://opengameart.org/content/inventory-sound-effects)]
 
-Grunt Sound
+**Grunt Sound**
 by n3b
-Licensed as CC-BY 3.0
-https://opengameart.org/content/grunt
+[Licensed CC-BY 3.0](http://creativecommons.org/licenses/by/3.0/)
+[[Source](https://opengameart.org/content/grunt)]
 
-Cash Register Sound
+**Cash Register Sound**
 by kiddpark
-Licensed as CC BY 3.0
-https://freesound.org/people/kiddpark/sounds/201159/
+[Licensed CC-BY 3.0](http://creativecommons.org/licenses/by/3.0/)
+[[Source](https://freesound.org/people/kiddpark/sounds/201159/)]
 
-Running Sound
+**Running Sound**
 by mieki256
-Licensed as CC0 Public Domain
-https://opengameart.org/content/jump-and-run-and-stand
+[Licensed CC0 1.0 Public Domain](http://creativecommons.org/publicdomain/zero/1.0/)
+[[Source](https://opengameart.org/content/jump-and-run-and-stand)]
+(Changes: Increased tempo to shorten audio duration)
 
-Subway Sound
+**Subway Sound**
 by 16gpizap
-Licensed as CC BY 3.0
-https://freesound.org/people/16gpizap/sounds/499424/
+[Licensed CC-BY 3.0](http://creativecommons.org/licenses/by/3.0/)
+[[Source](https://freesound.org/people/16gpizap/sounds/499424/)]
+(Changes: Trimmed with fade-in/out to shorten audio duration)
 
-Applause Sound
+**Applause Sound**
 "Well Done" Copyright 2013 by Iwan Gabovitch <qubodup.net>
-multi-licensed under Creative Commons Attribution 3.0
-https://opengameart.org/content/well-done
+[Licensed CC-BY 3.0](http://creativecommons.org/licenses/by/3.0/)
+[[Source](https://opengameart.org/content/well-done)]
