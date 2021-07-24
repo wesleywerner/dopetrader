@@ -4146,7 +4146,7 @@ end
 
 function state.tutorial.set_text(self, text, position)
     -- remove superfluous spaces (from bracketed string literals)
-    self.text = string.gsub(text, "[ ]+", " ")
+    self.text = util.oneline(util.shrink(text))
     _, self.texth = fonts:measure(fonts:for_tutorial(), self.text)
     self.texty = display.safe_y + math.floor(display.safe_h * (position or 0.5))
     -- clamp to bottom of display, if overflown
@@ -4400,6 +4400,11 @@ function util.key_value_pairs(line, replace_underscore)
     end
 end
 
+function util.oneline(text)
+    -- remove line breaks
+    return string.gsub(text, "\n", "")
+end
+
 function util.pick(...)
     return select(math.random(1, select("#",...)), ...)
 end
@@ -4432,6 +4437,11 @@ function util.rot(input)
             c=c:byte()
             return string.char(c+(c%32<14 and 13 or -13))
         end)
+end
+
+function util.shrink(text)
+    -- remove superfluous spaces (from bracketed string literals)
+    return string.gsub(text, "[ ]+", " ")
 end
 
 function util.write_file(filename, entries)
