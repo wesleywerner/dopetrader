@@ -292,10 +292,9 @@ end
 -- |_| |_|_|\__, |_| |_| |___/\___\___/|_|  \___||___/
 --          |___/
 --
-function high_scores.add(self, person, value)
+function high_scores.add(self, person, value, rip)
     if self:is_accepted(value) then
-        local entry = { name=person, score=value, date=os.time() }
-        entry.crc = util.crc(entry)
+        local entry = { name=person, score=value, rip=rip, date=os.time() }
         table.insert(self.entries, entry)
         self:sort()
         self:cull()
@@ -372,6 +371,7 @@ function high_scores.listing(self)
             name = entrant.name,
             date = os.date("%d-%b-%Y", entrant.date),
             score = util.comma_value(entrant.score),
+            rip = entrant.rip,
             rank = rank
         })
     end
@@ -1811,7 +1811,7 @@ function state.game_over.exit_state(self)
         if self.uft8.len(self.name) == 0 then
             return
         end
-        ranked = high_scores:add(self.name, self.score)
+        ranked = high_scores:add(self.name, self.score, self.rip)
     end
     -- remove the save game
     state.play:remove_save()
@@ -1914,6 +1914,7 @@ function state.game_over.switch(self, rip)
     end
 
     -- set end game message
+    self.rip = rip or false
     if rip then
         self.message = "You died!\n" .. placement_outcome
     else
@@ -1926,7 +1927,7 @@ function state.game_over.switch(self, rip)
 end
 
 function state.game_over.textinput(self, t)
-    if self.uft8.len(self.name) < 8 then
+    if self.uft8.len(self.name) < 20 then
         self.name = self.name .. t
     end
 end
@@ -3251,6 +3252,7 @@ function state.scores.draw(self)
         local y = self.listing_y + self.font_height * rank * 2
 
         if rank == self.highlight_rank then
+            -- Highlight this entry
             love.graphics.setColor(PRIMARY_100)
             love.graphics.rectangle("fill", 0, y, display.safe_w, self.font_height * 2)
             love.graphics.setColor(0, 0, 0)
@@ -3258,10 +3260,24 @@ function state.scores.draw(self)
             love.graphics.setColor(PRIMARY_100)
         end
 
+        -- line delimiter
         love.graphics.line(0, y, display.safe_w, y)
-        love.graphics.print(string.format("%d   %s", rank, entry.name), self.name_x, y)
-        love.graphics.printf(entry.score, self.score_x, y, self.score_width, "right")
+
+        -- rank, name
+        love.graphics.print(string.format("%d   %s", rank, entry.name),
+            self.name_x, y)
+
+        -- score
+        love.graphics.printf(entry.score, self.score_x, y + self.half_height,
+            self.score_width, "right")
+
+        -- date
         love.graphics.print(entry.date, self.date_x, y + self.font_height)
+
+        -- RIP
+        if entry.rip then
+            love.graphics.print("RIP", self.rip_x, y + self.font_height)
+        end
 
     end
 
@@ -3279,14 +3295,16 @@ end
 
 function state.scores.load(self)
     self.font_width, self.font_height = fonts:measure(fonts:for_score_listing())
+    self.half_height = math.floor(self.font_height / 2)
     -- start listing below the title
     _, self.listing_y = layout:point_at("title")
     -- pad listing pos by font height
     self.listing_y = self.listing_y + self.font_height
-    -- left rank and name
+    -- position rank, name, date and RIP status
     self.rank_x = 6
     self.name_x = 6
     self.date_x = math.floor(self.font_width * 3)
+    self.rip_x = self.font_width * 14 --math.floor(display.safe_x + display.safe_w / 2)
     -- score prints at 50% display width (but is right aligned)
     self.score_x = math.floor(display.safe_w * 0.5)
     -- width of alignment is remainder of display width, less some padding
