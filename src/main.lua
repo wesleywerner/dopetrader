@@ -255,9 +255,9 @@ function fonts.load(self)
     self.small = love.graphics.newFont("res/BodoniflfBold-MVZx.ttf", 18)
 end
 
-function fonts.measure(self, font, sample, alignmode)
+function fonts.measure(self, font, sample, alignmode, width)
     local to = love.graphics.newText(font)
-    to:addf(sample or "$", display.safe_w, alignmode or "left")
+    to:addf(sample or "$", width or display.safe_w, alignmode or "left")
     return to:getDimensions()
 end
 
