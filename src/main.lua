@@ -4453,7 +4453,12 @@ end
 
 -- Returns an iterator over the key=value pairs in a line
 function util.key_value_pairs(line, replace_underscore)
-    local key_value_matcher = string.gfind(line, "([%a_]+)=([%w_]+)")
+    -- match key-value pairs as groups of alphanumeric + punctuation.
+    -- (key+)=(value+) is expressed as the character set [%w%p]
+    -- where %w matches alphanumeric, %p punctuation (including dash, underscore)
+    -- and + matches one or more repetitions.
+    -- https://www.lua.org/pil/20.2.html
+    local key_value_matcher = string.gfind(line, "([%w%p]+)=([%w%p]+)")
     return function()
         local key, value = key_value_matcher()
         if key ~= nil then
