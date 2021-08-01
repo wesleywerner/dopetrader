@@ -4044,8 +4044,8 @@ function state.tutorial.next_slide(self)
     elseif self.current == "bank intro" then
         self.controls = {state.play.labels:get("bank")}
         self:set_text([[Safely store large amounts of cash in the BANK.
-            This is especially true when travelling on the subway,
-            which are rife with muggers.]])
+            This is wise because travelling on the subway,
+            which is rife with muggers, is risky business.]])
 
     elseif self.current == "guns intro" then
         self.controls = {state.play.labels:get("guns")}
@@ -4080,8 +4080,7 @@ function state.tutorial.next_slide(self)
                 state.play.buttons:get(string.format("buy %d", i)))
         end
         self:set_text([[The market lists all items available for trade.
-            Each day prices fluctuate, and availability changes.
-            Next we will buy some drugs ...]], 0)
+            Each day prices fluctuate, and availability changes.]], 0)
 
     elseif self.current == "buy 3 of" then
         -- get cheapest drug on the market
@@ -4148,8 +4147,8 @@ function state.tutorial.next_slide(self)
                     }
             end
         end
-        self:set_text([[Nicely done. Now SELL all your stock.
-            Hold the SELL button until everything is sold.]])
+        self:set_text([[Now SELL all your stock by
+            holding the SELL button until everything is sold.]])
         self.texty = self.controls[1].top - self.texth
 
     elseif self.current == "wait for sale" then
@@ -4180,10 +4179,17 @@ function state.tutorial.next_slide(self)
     elseif self.current == "messages intro" then
         state.messages:add("You are playing the tutorial")
         self.controls = {state.messages}
-        self:set_text([[You can see a log of the events that happened
-            in the message panel below.
-            It shows automatically if there are new messages on the day.
-            Open your messages now by tapping it.]])
+        if display.mobile then
+            self:set_text([[You can see a log of the events that happened
+                in the message panel below.
+                It shows automatically if there are new messages on the day.
+                Open your messages now by tapping it.]])
+        else
+            self:set_text([[You can see a log of the events that happened
+                in the message panel below.
+                It shows automatically if there are new messages on the day.
+                Open your messages now by clicking it, or press the Space Bar.]])
+        end
 
     elseif self.current == "wait for messages close"
         or self.current == "wait for messages open" then
