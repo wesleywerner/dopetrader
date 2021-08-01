@@ -8,9 +8,9 @@ One day passes when you travel to a new location. Each day prices fluctuate due 
 
 Carrying more merchandise increases the risk of rival gang encounters. You can fight back and take their cash if you have guns. Your chance to hit a thug increases with each gun you carry.
 
-Purchasing a gun happen randomly when you go to a new location, and similarly, purchasing a new trench coat that has more pockets.
+Purchasing guns happens randomly when you go to a new location.
 
-The game is inspired by the 1984 classic by John Dell, Drug Wars.
+The game is inspired by the 1984 classic by John Dell, "Drug Wars".
 
 # Screenshots
 
@@ -23,29 +23,31 @@ The game is inspired by the 1984 classic by John Dell, Drug Wars.
 [![image](screenshots/thugs_thumb.png)](screenshots/thugs.png)
 [![image](screenshots/scores_thumb.png)](screenshots/scores.png)
 
-# Download
+# Download It
 
 Get the latest release on [the releases page](https://github.com/wesleywerner/dopetrader/releases).
 
-# Requirements
+# Play It
 
 You need the Löve 2D game engine to play. See the [Löve website](https://love2d.org) for installation instructions on your platform.
 
-Running on GNU / *nix:
+## Android
+
+Install the [Löve Android](https://play.google.com/store/apps/details?id=org.love2d.android) app and tap `dopetrader.love` to launch.
+
+## GNU / *nix
 
 ```
 love dopetrader.love
 ```
 
-Running on Windows:
+## Windows
 
 ```
 love.exe dopetrader.love
 ```
 
 (or drag `dopetrader.love` onto `love.exe`)
-
-Android: Install the [Löve Android](https://play.google.com/store/apps/details?id=org.love2d.android) app and tap `dopetrader.love` to launch.
 
 For detailed instructions see the [Löve wiki page on Getting Started](https://love2d.org/wiki/Getting_Started)
 
@@ -122,3 +124,4 @@ by 16gpizap
 "Well Done" Copyright 2013 by Iwan Gabovitch <qubodup.net>
 [Licensed CC-BY 3.0](http://creativecommons.org/licenses/by/3.0/)
 [[Source](https://opengameart.org/content/well-done)]
+
