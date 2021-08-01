@@ -45,7 +45,7 @@ love.exe dopetrader.love
 
 (or drag `dopetrader.love` onto `love.exe`)
 
-Android: Install the Löve Android app and tap `dopetrader.love` to launch.
+Android: Install the [Löve Android](https://play.google.com/store/apps/details?id=org.love2d.android) app and tap `dopetrader.love` to launch.
 
 For detailed instructions see the [Löve wiki page on Getting Started](https://love2d.org/wiki/Getting_Started)
 
