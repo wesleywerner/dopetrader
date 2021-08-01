@@ -12,6 +12,17 @@ Purchasing a gun happen randomly when you go to a new location, and similarly, p
 
 The game is inspired by the 1984 classic by John Dell, Drug Wars.
 
+# Screenshots
+
+[![image](screenshots/menu_thumb.png)](screenshots/menu.png)
+[![image](screenshots/trading_thumb.png)](screenshots/trading.png)
+[![image](screenshots/jet_thumb.png)](screenshots/jet.png)
+[![image](screenshots/loanshark_thumb.png)](screenshots/loanshark.png)
+[![image](screenshots/messages_thumb.png)](screenshots/messages.png)
+[![image](screenshots/purchase_thumb.png)](screenshots/purchase.png)
+[![image](screenshots/thugs_thumb.png)](screenshots/thugs.png)
+[![image](screenshots/scores_thumb.png)](screenshots/scores.png)
+
 # Download
 
 Get the latest release on [the releases page](https://github.com/wesleywerner/dopetrader/releases).
@@ -35,6 +46,12 @@ love.exe dopetrader.love
 (or drag `dopetrader.love` onto `love.exe`)
 
 Android: Install the Löve Android app and tap `dopetrader.love` to launch.
+
+For detailed instructions see the [Löve wiki page on Getting Started](https://love2d.org/wiki/Getting_Started)
+
+# Tutorial
+
+The in-game tutorial runs the first time you play. It can be restarted from the Options menu.
 
 # License
 
