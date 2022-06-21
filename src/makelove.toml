@@ -1,0 +1,13 @@
+name = "Dope Trader"
+default_targets = ["win64"]
+build_directory = "../build"
+
+love_files = [
+    "::git-ls-tree::",
+    "-*/.*",
+]
+
+icon_file = "res/leaf.png"
+
+[archive_files]
+"../README.md" = "README.txt"

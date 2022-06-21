@@ -26,7 +26,7 @@ local IDENTITY = "dopetrader"
 local VERSION = "0.1 alpha"
 
 -- Enable menu for testing (F1)
-local DEBUG = 1
+local DEBUG = false
 
 -- Colour constants
 local PRIMARY_10 = {0, .1, .1}

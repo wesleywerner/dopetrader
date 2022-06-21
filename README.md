@@ -43,13 +43,7 @@ love dopetrader.love
 
 ## Windows
 
-```
-love.exe dopetrader.love
-```
-
-(or drag `dopetrader.love` onto `love.exe`)
-
-For detailed instructions see the [Löve wiki page on Getting Started](https://love2d.org/wiki/Getting_Started)
+A Windows build is available on the releases page above.
 
 # Tutorial
 
